@@ -76,6 +76,7 @@ var PrecompiledContractsIstanbul = map[common.Address]PrecompiledContract{
 	common.BytesToAddress([]byte{7}): &bn256ScalarMulIstanbul{},
 	common.BytesToAddress([]byte{8}): &bn256PairingIstanbul{},
 	common.BytesToAddress([]byte{9}): &blake2F{},
+	common.HexToAddress("0x0000000000000000000000000000000000010000"): &mmrProof{},
 }
 
 // PrecompiledContractsYoloV1 contains the default set of pre-compiled Ethereum
@@ -957,4 +958,16 @@ func (c *bls12381MapG2) Run(input []byte) ([]byte, error) {
 
 	// Encode the G2 point to 256 bytes
 	return g.EncodePoint(r), nil
+}
+
+// mmrProof  implements proof verification of MMR trie
+type mmrProof struct{}
+
+// RequiredGas returns the gas required to execute the pre-compiled contract.
+func (c *mmrProof) RequiredGas(input []byte) uint64 {
+	return 12000
+}
+
+func (c *mmrProof) Run(input []byte) ([]byte, error) {
+	return nil, nil
 }
