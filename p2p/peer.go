@@ -25,10 +25,11 @@ import (
 	"sync"
 	"time"
 
+	"github.com/marcopoloprotoco/mouse/metrics"
+
 	"github.com/marcopoloprotoco/mouse/common/mclock"
 	"github.com/marcopoloprotoco/mouse/event"
 	"github.com/marcopoloprotoco/mouse/log"
-	"github.com/marcopoloprotoco/mouse/metrics"
 	"github.com/marcopoloprotoco/mouse/p2p/enode"
 	"github.com/marcopoloprotoco/mouse/p2p/enr"
 	"github.com/marcopoloprotoco/mouse/rlp"
@@ -36,6 +37,7 @@ import (
 
 var (
 	ErrShuttingDown = errors.New("shutting down")
+	blockMismatch   = "Genesis block mismatch"
 )
 
 const (
@@ -63,6 +65,7 @@ type protoHandshake struct {
 	Caps       []Cap
 	ListenPort uint64
 	ID         []byte // secp256k1 public key
+	chainType  int
 
 	// Ignore additional fields (for forward compatibility).
 	Rest []rlp.RawValue `rlp:"tail"`
@@ -243,6 +246,7 @@ loop:
 
 	close(p.closed)
 	p.rw.close(reason)
+	log.Debug("Peer quit", "name", p.ID(), "running", len(p.running), "RemoteAddr", p.RemoteAddr())
 	p.wg.Wait()
 	return remoteRequested, err
 }
@@ -260,6 +264,7 @@ func (p *Peer) pingLoop() {
 			}
 			ping.Reset(pingInterval)
 		case <-p.closed:
+			log.Debug("ping loop closed", "name", p.Name())
 			return
 		}
 	}
@@ -270,11 +275,13 @@ func (p *Peer) readLoop(errc chan<- error) {
 	for {
 		msg, err := p.rw.ReadMsg()
 		if err != nil {
+			log.Debug("Read loop read msg", "name", p.Name(), "err", err)
 			errc <- err
 			return
 		}
 		msg.ReceivedAt = time.Now()
 		if err = p.handle(msg); err != nil {
+			log.Debug("Read loop handle", "name", p.Name(), "err", err)
 			errc <- err
 			return
 		}
@@ -302,9 +309,7 @@ func (p *Peer) handle(msg Msg) error {
 			return fmt.Errorf("msg code out of range: %v", msg.Code)
 		}
 		if metrics.Enabled {
-			m := fmt.Sprintf("%s/%s/%d/%#02x", ingressMeterName, proto.Name, proto.Version, msg.Code-proto.offset)
-			metrics.GetOrRegisterMeter(m, nil).Mark(int64(msg.meterSize))
-			metrics.GetOrRegisterMeter(m+"/packets", nil).Mark(1)
+			metrics.GetOrRegisterMeter(fmt.Sprintf("%s/%s/%d/%#02x", MetricsInboundTraffic, proto.Name, proto.Version, msg.Code-proto.offset), nil).Mark(int64(msg.meterSize))
 		}
 		select {
 		case proto.in <- msg:
@@ -364,9 +369,8 @@ func (p *Peer) startProtocols(writeStart <-chan struct{}, writeErr chan<- error)
 		if p.events != nil {
 			rw = newMsgEventer(rw, p.events, p.ID(), proto.Name, p.Info().Network.RemoteAddress, p.Info().Network.LocalAddress)
 		}
-		p.log.Trace(fmt.Sprintf("Starting protocol %s/%d", proto.Name, proto.Version))
+		p.log.Debug(fmt.Sprintf("Starting protocol %s/%d running %d", proto.Name, proto.Version, len(p.running)))
 		go func() {
-			defer p.wg.Done()
 			err := proto.Run(p, rw)
 			if err == nil {
 				p.log.Trace(fmt.Sprintf("Protocol %s/%d returned", proto.Name, proto.Version))
@@ -374,7 +378,11 @@ func (p *Peer) startProtocols(writeStart <-chan struct{}, writeErr chan<- error)
 			} else if err != io.EOF {
 				p.log.Trace(fmt.Sprintf("Protocol %s/%d failed", proto.Name, proto.Version), "err", err)
 			}
+
+			log.Debug("Start protocols end", "name", p.Name(), "err", err, "RemoteAddr", p.RemoteAddr())
+
 			p.protoErr <- err
+			p.wg.Done()
 		}()
 	}
 }
@@ -429,7 +437,7 @@ func (rw *protoRW) ReadMsg() (Msg, error) {
 		msg.Code -= rw.offset
 		return msg, nil
 	case <-rw.closed:
-		return Msg{}, io.EOF
+		return Msg{}, errors.New("remote shutting down")
 	}
 }
 

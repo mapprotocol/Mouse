@@ -40,11 +40,12 @@ import (
 )
 
 const (
-	datadirPrivateKey      = "nodekey"            // Path within the datadir to the node's private key
-	datadirDefaultKeyStore = "keystore"           // Path within the datadir to the keystore
-	datadirStaticNodes     = "static-nodes.json"  // Path within the datadir to the static node list
-	datadirTrustedNodes    = "trusted-nodes.json" // Path within the datadir to the trusted node list
-	datadirNodeDatabase    = "nodes"              // Path within the datadir to store the node infos
+	datadirPrivateKey        = "nodekey"            // Path within the datadir to the node's private key
+	datadirDefaultKeyStore   = "keystore"           // Path within the datadir to the keystore
+	datadirStaticNodes       = "static-nodes.json"  // Path within the datadir to the static node list
+	datadirTrustedNodes      = "trusted-nodes.json" // Path within the datadir to the trusted node list
+	datadirNodeDatabase      = "nodes"              // Path within the datadir to store the node infos
+	datadirOtherNodeDatabase = "nodes-other"        // Path within the datadir to store the node infos
 )
 
 // Config represents a small collection of configuration values to fine tune the
@@ -215,6 +216,13 @@ func (c *Config) NodeDB() string {
 		return "" // ephemeral
 	}
 	return c.ResolvePath(datadirNodeDatabase)
+}
+
+func (c *Config) NodeOtherDB() string {
+	if c.DataDir == "" {
+		return "" // ephemeral
+	}
+	return c.ResolvePath(datadirOtherNodeDatabase)
 }
 
 // DefaultIPCEndpoint returns the IPC path used by default.

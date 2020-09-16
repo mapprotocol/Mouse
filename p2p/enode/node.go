@@ -22,13 +22,13 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"github.com/marcopoloprotoco/mouse/rlp"
 	"math/bits"
 	"math/rand"
 	"net"
 	"strings"
 
 	"github.com/marcopoloprotoco/mouse/p2p/enr"
-	"github.com/marcopoloprotoco/mouse/rlp"
 )
 
 var errMissingPrefix = errors.New("missing 'enr:' prefix for base64-encoded record")

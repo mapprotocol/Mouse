@@ -25,12 +25,12 @@ import (
 	"github.com/marcopoloprotoco/mouse/core"
 	"github.com/marcopoloprotoco/mouse/core/rawdb"
 	"github.com/marcopoloprotoco/mouse/core/types"
-	"github.com/marcopoloprotoco/mouse/mos"
-	"github.com/marcopoloprotoco/mouse/mosclient"
-	"github.com/marcopoloprotoco/mouse/mosdb"
 	"github.com/marcopoloprotoco/mouse/les/checkpointoracle"
 	"github.com/marcopoloprotoco/mouse/light"
 	"github.com/marcopoloprotoco/mouse/log"
+	"github.com/marcopoloprotoco/mouse/mos"
+	"github.com/marcopoloprotoco/mouse/mosclient"
+	"github.com/marcopoloprotoco/mouse/mosdb"
 	"github.com/marcopoloprotoco/mouse/node"
 	"github.com/marcopoloprotoco/mouse/p2p"
 	"github.com/marcopoloprotoco/mouse/p2p/discv5"
@@ -96,8 +96,7 @@ func (c *lesCommons) makeProtocols(versions []uint, runPeer func(version uint, p
 			Run: func(peer *p2p.Peer, rw p2p.MsgReadWriter) error {
 				return runPeer(version, peer, rw)
 			},
-			PeerInfo:       peerInfo,
-			DialCandidates: dialCandidates,
+			PeerInfo: peerInfo,
 		}
 	}
 	return protos

@@ -1,4 +1,4 @@
-// Copyright 2018 The mouse Authors
+// Copyright 2015 The mouse Authors
 // This file is part of the mouse library.
 //
 // The mouse library is free software: you can redistribute it and/or modify
@@ -461,15 +461,4 @@ func TestDBExpiration(t *testing.T) {
 			}
 		}
 	}
-}
-
-// This test checks that expiration works when discovery v5 data is present
-// in the database.
-func TestDBExpireV5(t *testing.T) {
-	db, _ := OpenDB("")
-	defer db.Close()
-
-	ip := net.IP{127, 0, 0, 1}
-	db.UpdateFindFailsV5(ID{}, ip, 4)
-	db.expireNodes()
 }

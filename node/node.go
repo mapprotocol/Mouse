@@ -28,9 +28,9 @@ import (
 
 	"github.com/marcopoloprotoco/mouse/accounts"
 	"github.com/marcopoloprotoco/mouse/core/rawdb"
-	"github.com/marcopoloprotoco/mouse/mosdb"
 	"github.com/marcopoloprotoco/mouse/event"
 	"github.com/marcopoloprotoco/mouse/log"
+	"github.com/marcopoloprotoco/mouse/mosdb"
 	"github.com/marcopoloprotoco/mouse/p2p"
 	"github.com/marcopoloprotoco/mouse/rpc"
 	"github.com/prometheus/tsdb/fileutil"
@@ -133,6 +133,10 @@ func New(conf *Config) (*Node, error) {
 	}
 	if node.server.Config.NodeDatabase == "" {
 		node.server.Config.NodeDatabase = node.config.NodeDB()
+	}
+
+	if node.server.Config.NodeOtherDatabase == "" {
+		node.server.Config.NodeOtherDatabase = node.config.NodeOtherDB()
 	}
 
 	// Configure RPC servers.

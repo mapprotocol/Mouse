@@ -36,14 +36,14 @@ import (
 	"github.com/marcopoloprotoco/mouse/core/rawdb"
 	"github.com/marcopoloprotoco/mouse/core/types"
 	"github.com/marcopoloprotoco/mouse/core/vm"
-	"github.com/marcopoloprotoco/mouse/mos/downloader"
-	"github.com/marcopoloprotoco/mouse/mos/filters"
-	"github.com/marcopoloprotoco/mouse/mos/gasprice"
-	"github.com/marcopoloprotoco/mouse/mosdb"
 	"github.com/marcopoloprotoco/mouse/event"
 	"github.com/marcopoloprotoco/mouse/internal/ethapi"
 	"github.com/marcopoloprotoco/mouse/log"
 	"github.com/marcopoloprotoco/mouse/miner"
+	"github.com/marcopoloprotoco/mouse/mos/downloader"
+	"github.com/marcopoloprotoco/mouse/mos/filters"
+	"github.com/marcopoloprotoco/mouse/mos/gasprice"
+	"github.com/marcopoloprotoco/mouse/mosdb"
 	"github.com/marcopoloprotoco/mouse/node"
 	"github.com/marcopoloprotoco/mouse/p2p"
 	"github.com/marcopoloprotoco/mouse/p2p/enode"
@@ -503,7 +503,6 @@ func (s *Ethereum) Protocols() []p2p.Protocol {
 	for i, vsn := range ProtocolVersions {
 		protos[i] = s.protocolManager.makeProtocol(vsn)
 		protos[i].Attributes = []enr.Entry{s.currentEthEntry()}
-		protos[i].DialCandidates = s.dialCandidates
 	}
 	return protos
 }

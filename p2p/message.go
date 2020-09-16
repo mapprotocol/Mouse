@@ -20,6 +20,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"github.com/marcopoloprotoco/mouse/common"
 	"io"
 	"io/ioutil"
 	"sync/atomic"
@@ -91,12 +92,19 @@ type MsgReadWriter interface {
 	MsgWriter
 }
 
+type writeCounter common.StorageSize
+
+func (c *writeCounter) Write(b []byte) (int, error) {
+	*c += writeCounter(len(b))
+	return len(b), nil
+}
+
 // Send writes an RLP-encoded message with the given code.
 // data should encode as an RLP list.
 func Send(w MsgWriter, msgcode uint64, data interface{}) error {
 	size, r, err := rlp.EncodeToReader(data)
 	if err != nil {
-		return err
+		return errors.New(fmt.Sprintf("msgcode: %d, error %s", msgcode, err.Error()))
 	}
 	return w.WriteMsg(Msg{Code: msgcode, Size: uint32(size), Payload: r})
 }

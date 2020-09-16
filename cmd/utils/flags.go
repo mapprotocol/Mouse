@@ -31,6 +31,7 @@ import (
 	"text/template"
 	"time"
 
+	pcsclite "github.com/gballet/go-libpcsclite"
 	"github.com/marcopoloprotoco/mouse/accounts"
 	"github.com/marcopoloprotoco/mouse/accounts/keystore"
 	"github.com/marcopoloprotoco/mouse/common"
@@ -42,11 +43,6 @@ import (
 	"github.com/marcopoloprotoco/mouse/core/rawdb"
 	"github.com/marcopoloprotoco/mouse/core/vm"
 	"github.com/marcopoloprotoco/mouse/crypto"
-	"github.com/marcopoloprotoco/mouse/mos"
-	"github.com/marcopoloprotoco/mouse/mos/downloader"
-	"github.com/marcopoloprotoco/mouse/mos/gasprice"
-	"github.com/marcopoloprotoco/mouse/mosdb"
-	"github.com/marcopoloprotoco/mouse/mosstats"
 	"github.com/marcopoloprotoco/mouse/graphql"
 	"github.com/marcopoloprotoco/mouse/internal/ethapi"
 	"github.com/marcopoloprotoco/mouse/internal/flags"
@@ -56,6 +52,11 @@ import (
 	"github.com/marcopoloprotoco/mouse/metrics/exp"
 	"github.com/marcopoloprotoco/mouse/metrics/influxdb"
 	"github.com/marcopoloprotoco/mouse/miner"
+	"github.com/marcopoloprotoco/mouse/mos"
+	"github.com/marcopoloprotoco/mouse/mos/downloader"
+	"github.com/marcopoloprotoco/mouse/mos/gasprice"
+	"github.com/marcopoloprotoco/mouse/mosdb"
+	"github.com/marcopoloprotoco/mouse/mosstats"
 	"github.com/marcopoloprotoco/mouse/node"
 	"github.com/marcopoloprotoco/mouse/p2p"
 	"github.com/marcopoloprotoco/mouse/p2p/discv5"
@@ -63,7 +64,6 @@ import (
 	"github.com/marcopoloprotoco/mouse/p2p/nat"
 	"github.com/marcopoloprotoco/mouse/p2p/netutil"
 	"github.com/marcopoloprotoco/mouse/params"
-	pcsclite "github.com/gballet/go-libpcsclite"
 	cli "gopkg.in/urfave/cli.v1"
 )
 
@@ -822,6 +822,36 @@ func setBootstrapNodes(ctx *cli.Context, cfg *p2p.Config) {
 	}
 }
 
+// setBootstrapNodes creates a list of bootstrap nodes from the command line
+// flags, reverting to pre-configured ones if none have been specified.
+func setBootstrapOtherNodes(ctx *cli.Context, cfg *p2p.Config) {
+	urls := params.MainnetOtherBootnodes
+	switch {
+	case ctx.GlobalBool(LegacyTestnetFlag.Name) || ctx.GlobalBool(RopstenFlag.Name):
+		urls = params.RopstenOtherBootnodes
+	case ctx.GlobalBool(RinkebyFlag.Name):
+		urls = params.RinkebyOtherBootnodes
+	case ctx.GlobalBool(GoerliFlag.Name):
+		urls = params.GoerliOtherBootnodes
+	case ctx.GlobalBool(YoloV1Flag.Name):
+		urls = params.YoloV1OtherBootnodes
+	case cfg.BootstrapOtherNodes != nil:
+		return // already set, don't apply defaults.
+	}
+
+	cfg.BootstrapOtherNodes = make([]*enode.Node, 0, len(urls))
+	for _, url := range urls {
+		if url != "" {
+			node, err := enode.Parse(enode.ValidSchemes, url)
+			if err != nil {
+				log.Crit("Bootstrap URL invalid", "enode", url, "err", err)
+				continue
+			}
+			cfg.BootstrapOtherNodes = append(cfg.BootstrapOtherNodes, node)
+		}
+	}
+}
+
 // setBootstrapNodesV5 creates a list of bootstrap nodes from the command line
 // flags, reverting to pre-configured ones if none have been specified.
 func setBootstrapNodesV5(ctx *cli.Context, cfg *p2p.Config) {
@@ -1131,6 +1161,7 @@ func SetP2PConfig(ctx *cli.Context, cfg *p2p.Config) {
 	setNAT(ctx, cfg)
 	setListenAddress(ctx, cfg)
 	setBootstrapNodes(ctx, cfg)
+	setBootstrapOtherNodes(ctx, cfg)
 	setBootstrapNodesV5(ctx, cfg)
 
 	lightClient := ctx.GlobalString(SyncModeFlag.Name) == "light"

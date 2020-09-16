@@ -245,6 +245,13 @@ func (e *lnEndpoint) get() (newIP net.IP, newPort int) {
 	return newIP, newPort
 }
 
+// PredictAddr wraps IPTracker.PredictEndpoint, converting from its string-based
+// endpoint representation to IP and port types.
+func (ln *LocalNode) PredictAddr() string {
+	newIP, _ := ln.endpoint4.get()
+	return newIP.String()
+}
+
 // predictAddr wraps IPTracker.PredictEndpoint, converting from its string-based
 // endpoint representation to IP and port types.
 func predictAddr(t *netutil.IPTracker) (net.IP, int) {

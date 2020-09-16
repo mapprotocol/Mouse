@@ -377,7 +377,7 @@ func (tab *Table) nextRevalidateTime() time.Duration {
 }
 
 // copyLiveNodes adds nodes from the table to the database if they have been in the table
-// longer than seedMinTableTime.
+// longer then minTableTime.
 func (tab *Table) copyLiveNodes() {
 	tab.mutex.Lock()
 	defer tab.mutex.Unlock()
@@ -392,35 +392,22 @@ func (tab *Table) copyLiveNodes() {
 	}
 }
 
-// findnodeByID returns the n nodes in the table that are closest to the given id.
-// This is used by the FINDNODE/v4 handler.
-//
-// The preferLive parameter says whether the caller wants liveness-checked results. If
-// preferLive is true and the table contains any verified nodes, the result will not
-// contain unverified nodes. However, if there are no verified nodes at all, the result
-// will contain unverified nodes.
-func (tab *Table) findnodeByID(target enode.ID, nresults int, preferLive bool) *nodesByDistance {
-	tab.mutex.Lock()
-	defer tab.mutex.Unlock()
-
-	// Scan all buckets. There might be a better way to do this, but there aren't that many
-	// buckets, so this solution should be fine. The worst-case complexity of this loop
-	// is O(tab.len() * nresults).
-	nodes := &nodesByDistance{target: target}
-	liveNodes := &nodesByDistance{target: target}
+// closest returns the n nodes in the table that are closest to the
+// given id. The caller must hold tab.mutex.
+func (tab *Table) closest(target enode.ID, nresults int, checklive bool) *nodesByDistance {
+	// This is a very wasteful way to find the closest nodes but
+	// obviously correct. I believe that tree-based buckets would make
+	// this easier to implement efficiently.
+	close := &nodesByDistance{target: target}
 	for _, b := range &tab.buckets {
 		for _, n := range b.entries {
-			nodes.push(n, nresults)
-			if preferLive && n.livenessChecks > 0 {
-				liveNodes.push(n, nresults)
+			if checklive && n.livenessChecks == 0 {
+				continue
 			}
+			close.push(n, nresults)
 		}
 	}
-
-	if preferLive && len(liveNodes.entries) > 0 {
-		return liveNodes
-	}
-	return nodes
+	return close
 }
 
 // len returns the number of nodes in the table.
@@ -434,21 +421,9 @@ func (tab *Table) len() (n int) {
 	return n
 }
 
-// bucketLen returns the number of nodes in the bucket for the given ID.
-func (tab *Table) bucketLen(id enode.ID) int {
-	tab.mutex.Lock()
-	defer tab.mutex.Unlock()
-
-	return len(tab.bucket(id).entries)
-}
-
 // bucket returns the bucket for the given node ID hash.
 func (tab *Table) bucket(id enode.ID) *bucket {
 	d := enode.LogDist(tab.self().ID(), id)
-	return tab.bucketAtDistance(d)
-}
-
-func (tab *Table) bucketAtDistance(d int) *bucket {
 	if d <= bucketMinDistance {
 		return tab.buckets[0]
 	}
@@ -536,14 +511,11 @@ func (tab *Table) addVerifiedNode(n *node) {
 func (tab *Table) delete(node *node) {
 	tab.mutex.Lock()
 	defer tab.mutex.Unlock()
-
+	log.Trace("Node delete", "ip", node.IP(), "node", node.String())
 	tab.deleteInBucket(tab.bucket(node.ID()), node)
 }
 
 func (tab *Table) addIP(b *bucket, ip net.IP) bool {
-	if len(ip) == 0 {
-		return false // Nodes without IP cannot be added.
-	}
 	if netutil.IsLAN(ip) {
 		return true
 	}

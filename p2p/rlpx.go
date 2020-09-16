@@ -35,22 +35,24 @@ import (
 	"sync"
 	"time"
 
+	"github.com/marcopoloprotoco/mouse/log"
+
+	"github.com/golang/snappy"
 	"github.com/marcopoloprotoco/mouse/common/bitutil"
 	"github.com/marcopoloprotoco/mouse/crypto"
 	"github.com/marcopoloprotoco/mouse/crypto/ecies"
 	"github.com/marcopoloprotoco/mouse/metrics"
 	"github.com/marcopoloprotoco/mouse/rlp"
-	"github.com/golang/snappy"
 	"golang.org/x/crypto/sha3"
 )
 
 const (
 	maxUint24 = ^uint32(0) >> 8
 
-	sskLen = 16                     // ecies.MaxSharedKeyLength(pubKey) / 2
-	sigLen = crypto.SignatureLength // elliptic S256
-	pubLen = 64                     // 512 bit pubkey in uncompressed representation without format byte
-	shaLen = 32                     // hash length (for nonce etc)
+	sskLen = 16 // ecies.MaxSharedKeyLength(pubKey) / 2
+	sigLen = 65 // elliptic S256
+	pubLen = 64 // 512 bit pubkey in uncompressed representation without format byte
+	shaLen = 32 // hash length (for nonce etc)
 
 	authMsgLen  = sigLen + shaLen + pubLen + shaLen + 1
 	authRespLen = pubLen + shaLen + 1
@@ -68,6 +70,8 @@ const (
 	// This is shorter than the usual timeout because we don't want
 	// to wait if the connection is known to be bad anyway.
 	discWriteTimeout = 1 * time.Second
+
+	TrueRLPXVersion = 5
 )
 
 // errPlainMessageTooLarge is returned if a decompressed message length exceeds
@@ -332,13 +336,16 @@ func (h *encHandshake) makeAuthMsg(prv *ecdsa.PrivateKey) (*authMsgV4, error) {
 	copy(msg.Signature[:], signature)
 	copy(msg.InitiatorPubkey[:], crypto.FromECDSAPub(&prv.PublicKey)[1:])
 	copy(msg.Nonce[:], h.initNonce)
-	msg.Version = 4
+	msg.Version = TrueRLPXVersion
 	return msg, nil
 }
 
 func (h *encHandshake) handleAuthResp(msg *authRespV4) (err error) {
 	h.respNonce = msg.Nonce[:]
 	h.remoteRandomPub, err = importPublicKey(msg.RandomPubkey[:])
+	if msg.Version != TrueRLPXVersion {
+		return fmt.Errorf("enc AuthResp %d version error", msg.Version)
+	}
 	return err
 }
 
@@ -372,6 +379,9 @@ func receiverEncHandshake(conn io.ReadWriter, prv *ecdsa.PrivateKey) (s secrets,
 	}
 	if _, err = conn.Write(authRespPacket); err != nil {
 		return s, err
+	}
+	if authMsg.Version != TrueRLPXVersion {
+		return s, fmt.Errorf("enc handshake %d version error", authMsg.Version)
 	}
 	return h.secrets(authPacket, authRespPacket)
 }
@@ -418,8 +428,18 @@ func (h *encHandshake) makeAuthResp() (msg *authRespV4, err error) {
 	msg = new(authRespV4)
 	copy(msg.Nonce[:], h.respNonce)
 	copy(msg.RandomPubkey[:], exportPubkey(&h.randomPrivKey.PublicKey))
-	msg.Version = 4
+	msg.Version = TrueRLPXVersion
 	return msg, nil
+}
+
+func (msg *authMsgV4) sealPlain(h *encHandshake) ([]byte, error) {
+	buf := make([]byte, authMsgLen)
+	n := copy(buf, msg.Signature[:])
+	n += copy(buf[n:], crypto.Keccak256(exportPubkey(&h.randomPrivKey.PublicKey)))
+	n += copy(buf[n:], msg.InitiatorPubkey[:])
+	n += copy(buf[n:], msg.Nonce[:])
+	buf[n] = 0 // token-flag
+	return ecies.Encrypt(rand.Reader, h.remote, buf, nil, nil)
 }
 
 func (msg *authMsgV4) decodePlain(input []byte) {
@@ -427,7 +447,7 @@ func (msg *authMsgV4) decodePlain(input []byte) {
 	n += shaLen // skip sha3(initiator-ephemeral-pubk)
 	n += copy(msg.InitiatorPubkey[:], input[n:])
 	copy(msg.Nonce[:], input[n:])
-	msg.Version = 4
+	msg.Version = TrueRLPXVersion
 	msg.gotPlain = true
 }
 
@@ -441,7 +461,7 @@ func (msg *authRespV4) sealPlain(hs *encHandshake) ([]byte, error) {
 func (msg *authRespV4) decodePlain(input []byte) {
 	n := copy(msg.RandomPubkey[:], input)
 	copy(msg.Nonce[:], input[n:])
-	msg.Version = 4
+	msg.Version = TrueRLPXVersion
 }
 
 var padSpace = make([]byte, 300)
@@ -595,9 +615,7 @@ func (rw *rlpxFrameRW) WriteMsg(msg Msg) error {
 	}
 	msg.meterSize = msg.Size
 	if metrics.Enabled && msg.meterCap.Name != "" { // don't meter non-subprotocol messages
-		m := fmt.Sprintf("%s/%s/%d/%#02x", egressMeterName, msg.meterCap.Name, msg.meterCap.Version, msg.meterCode)
-		metrics.GetOrRegisterMeter(m, nil).Mark(int64(msg.meterSize))
-		metrics.GetOrRegisterMeter(m+"/packets", nil).Mark(1)
+		metrics.GetOrRegisterMeter(fmt.Sprintf("%s/%s/%d/%#02x", MetricsOutboundTraffic, msg.meterCap.Name, msg.meterCap.Version, msg.meterCode), nil).Mark(int64(msg.meterSize))
 	}
 	// write header
 	headbuf := make([]byte, 32)
@@ -635,6 +653,7 @@ func (rw *rlpxFrameRW) WriteMsg(msg Msg) error {
 	fmacseed := rw.egressMAC.Sum(nil)
 	mac := updateMAC(rw.egressMAC, rw.macCipher, fmacseed)
 	_, err := rw.conn.Write(mac)
+	log.Trace("RLPX write msg", "code", msg.Code, "size", msg.Size, "snappy", rw.snappy, "ptype", len(ptype), "mac", len(mac), "fmacseed", len(fmacseed))
 	return err
 }
 
