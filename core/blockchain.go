@@ -206,6 +206,7 @@ type BlockChain struct {
 	prefetcher Prefetcher // Block state prefetcher interface
 	processor  Processor  // Block transaction processor interface
 	vmConfig   vm.Config
+	mmrInfo 	*Mmr
 
 	badBlocks       *lru.Cache                     // Bad block cache
 	shouldPreserve  func(*types.Block) bool        // Function used to determine whether should preserve the given block.
@@ -248,6 +249,7 @@ func NewBlockChain(db mosdb.Database, cacheConfig *CacheConfig, chainConfig *par
 	bc.validator = NewBlockValidator(chainConfig, bc, engine)
 	bc.prefetcher = newStatePrefetcher(chainConfig, bc, engine)
 	bc.processor = NewStateProcessor(chainConfig, bc, engine)
+	bc.mmrInfo = NewMMR()
 
 	var err error
 	bc.hc, err = NewHeaderChain(db, chainConfig, engine, bc.insertStopped)
@@ -368,6 +370,10 @@ func (bc *BlockChain) GetVMConfig() *vm.Config {
 	return &bc.vmConfig
 }
 
+func (bc *BlockChain) LoadMMR() error {
+	return nil
+}
+
 // empty returns an indicator whether the blockchain is empty.
 // Note, it's a special case that we connect a non-empty ancient
 // database with an empty node, so that we can plugin the ancient
@@ -435,7 +441,7 @@ func (bc *BlockChain) loadLastState() error {
 	if pivot := rawdb.ReadLastPivotNumber(bc.db); pivot != nil {
 		log.Info("Loaded last fast-sync pivot marker", "number", *pivot)
 	}
-	return nil
+	return bc.LoadMMR()
 }
 
 // SetHead rewinds the local chain to a new head. Depending on whether the node
@@ -1895,6 +1901,11 @@ func (bc *BlockChain) insertChain(chain types.Blocks, verifySeals bool) (int, er
 
 		dirty, _ := bc.stateCache.TrieDB().Size()
 		stats.report(chain, it.index, dirty)
+		timecost := uint64(0)
+		if block.NumberU64() > 0 {
+			timecost = bc.GetBlockByNumber(block.NumberU64() - 1).Time() - block.Time()
+		}
+		PushBlock(bc.mmrInfo,block,timecost)
 	}
 	// Any blocks remaining here? The only ones we care about are the future ones
 	if block != nil && errors.Is(err, consensus.ErrFutureBlock) {

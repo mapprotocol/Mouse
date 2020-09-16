@@ -12,6 +12,7 @@ import (
 
 	"github.com/marcopoloprotoco/mouse/common"
 	"github.com/marcopoloprotoco/mouse/rlp"
+	"github.com/marcopoloprotoco/mouse/core/types"
 	"golang.org/x/crypto/sha3"
 )
 
@@ -857,4 +858,11 @@ func VerifyRequiredBlocks(info *ProofInfo, right_difficulty *big.Int) ([]*ProofB
 		})
 	}
 	return proof_blocks, nil
+}
+
+///////////////////////////////////////////////////////////////////////////////////////
+func PushBlock(mm *Mmr,b *types.Block,time uint64) {
+	d := b.Difficulty()
+	n := NewNode(b.Hash(),d,new(big.Int).Set(d),big.NewInt(0),time)
+	mm.Push(n)
 }
