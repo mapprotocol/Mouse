@@ -373,7 +373,20 @@ func (bc *BlockChain) GetVMConfig() *vm.Config {
 func (bc *BlockChain) LoadMMR() error {
 	return nil
 }
-
+// must be check the newwest height
+func (bc *BlockChain) GetMmrRoot() common.Hash {
+	return bc.mmrInfo.GetRoot()
+}
+func (bc *BlockChain) PushBlockInMMR(block *types.Block) {
+	bc.chainmu.Lock()
+	defer bc.chainmu.Unlock()
+	
+	timecost := uint64(0)
+	if block.NumberU64() > 0 {
+		timecost = bc.GetBlockByNumber(block.NumberU64() - 1).Time() - block.Time()
+	}
+	PushBlock(bc.mmrInfo,block,timecost)
+} 
 // empty returns an indicator whether the blockchain is empty.
 // Note, it's a special case that we connect a non-empty ancient
 // database with an empty node, so that we can plugin the ancient
