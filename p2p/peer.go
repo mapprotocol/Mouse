@@ -182,6 +182,11 @@ func (p *Peer) Inbound() bool {
 	return p.rw.is(inboundConn)
 }
 
+// ChainId returns true if the peer is an inbound connection
+func (p *Peer) ChainId() int {
+	return p.rw.chainType
+}
+
 func newPeer(log log.Logger, conn *conn, protocols []Protocol) *Peer {
 	protomap := matchProtocols(protocols, conn.caps, conn)
 	p := &Peer{

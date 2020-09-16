@@ -31,11 +31,11 @@ import (
 	"github.com/marcopoloprotoco/mouse/core"
 	"github.com/marcopoloprotoco/mouse/core/forkid"
 	"github.com/marcopoloprotoco/mouse/core/types"
+	"github.com/marcopoloprotoco/mouse/event"
+	"github.com/marcopoloprotoco/mouse/log"
 	"github.com/marcopoloprotoco/mouse/mos/downloader"
 	"github.com/marcopoloprotoco/mouse/mos/fetcher"
 	"github.com/marcopoloprotoco/mouse/mosdb"
-	"github.com/marcopoloprotoco/mouse/event"
-	"github.com/marcopoloprotoco/mouse/log"
 	"github.com/marcopoloprotoco/mouse/p2p"
 	"github.com/marcopoloprotoco/mouse/p2p/enode"
 	"github.com/marcopoloprotoco/mouse/params"
@@ -79,6 +79,7 @@ type ProtocolManager struct {
 	blockFetcher *fetcher.BlockFetcher
 	txFetcher    *fetcher.TxFetcher
 	peers        *peerSet
+	peersOther   *peerSet
 
 	eventMux      *event.TypeMux
 	txsCh         chan core.NewTxsEvent
@@ -111,6 +112,7 @@ func NewProtocolManager(config *params.ChainConfig, checkpoint *params.TrustedCh
 		blockchain: blockchain,
 		chaindb:    chaindb,
 		peers:      newPeerSet(),
+		peersOther: newPeerSet(),
 		whitelist:  whitelist,
 		txsyncCh:   make(chan *txsync),
 		quitSync:   make(chan struct{}),
@@ -250,6 +252,23 @@ func (pm *ProtocolManager) removePeer(id string) {
 	}
 }
 
+func (pm *ProtocolManager) removeOtherPeer(id string) {
+	// Short circuit if the peer was already removed
+	peer := pm.peersOther.Peer(id)
+	if peer == nil {
+		return
+	}
+	log.Debug("Removing Other Ethereum peer", "peer", id)
+
+	if err := pm.peersOther.Unregister(id); err != nil {
+		log.Error("Peer Other removal failed", "peer", id, "err", err)
+	}
+	// Hard disconnect at the networking layer
+	if peer != nil {
+		peer.Peer.Disconnect(p2p.DiscUselessPeer)
+	}
+}
+
 func (pm *ProtocolManager) Start(maxPeers int) {
 	pm.maxPeers = maxPeers
 
@@ -299,7 +318,11 @@ func (pm *ProtocolManager) runPeer(p *peer) error {
 	}
 	pm.peerWG.Add(1)
 	defer pm.peerWG.Done()
-	return pm.handle(p)
+	if p.Peer.ChainId() == p2p.ChainA {
+		return pm.handle(p)
+	} else {
+		return pm.handleOther(p)
+	}
 }
 
 // handle is the callback invoked to manage the life cycle of an mos peer. When
@@ -309,7 +332,7 @@ func (pm *ProtocolManager) handle(p *peer) error {
 	if pm.peers.Len() >= pm.maxPeers && !p.Peer.Info().Network.Trusted {
 		return p2p.DiscTooManyPeers
 	}
-	p.Log().Debug("Ethereum peer connected", "name", p.Name())
+	p.Log().Info("Ethereum peer connected", "name", p.Name())
 
 	// Execute the Ethereum handshake
 	var (
@@ -366,6 +389,42 @@ func (pm *ProtocolManager) handle(p *peer) error {
 			return err
 		}
 	}
+	// Handle incoming messages until the connection is torn down
+	for {
+		if err := pm.handleMsg(p); err != nil {
+			p.Log().Debug("Ethereum message handling failed", "err", err)
+			return err
+		}
+	}
+}
+
+func (pm *ProtocolManager) handleOther(p *peer) error {
+	// Ignore maxPeers if this is a trusted peer
+	if pm.peersOther.Len() >= pm.maxPeers && !p.Peer.Info().Network.Trusted {
+		return p2p.DiscTooManyPeers
+	}
+	p.Log().Info("Ethereum Other peer connected", "name", p.Name())
+
+	// Execute the Ethereum handshake
+	var (
+		genesis = pm.blockchain.Genesis()
+		head    = pm.blockchain.CurrentHeader()
+		hash    = head.Hash()
+		number  = head.Number.Uint64()
+		td      = pm.blockchain.GetTd(hash, number)
+	)
+	if err := p.Handshake(pm.networkID, td, hash, genesis.Hash(), forkid.NewID(pm.blockchain), pm.forkFilter); err != nil {
+		p.Log().Debug("Ethereum handshake failed", "err", err)
+		return err
+	}
+
+	// Register the peer locally
+	if err := pm.peersOther.Register(p, pm.removeOtherPeer); err != nil {
+		p.Log().Error("Ethereum peer registration failed", "err", err)
+		return err
+	}
+	defer pm.removeOtherPeer(p.id)
+
 	// Handle incoming messages until the connection is torn down
 	for {
 		if err := pm.handleMsg(p); err != nil {
