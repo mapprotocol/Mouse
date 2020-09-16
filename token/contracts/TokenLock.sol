@@ -793,3 +793,42 @@ contract Ownable is Context {
         _owner = newOwner;
     }
 }
+
+
+contract MapToken is ERC20("map", "map"), Ownable {
+
+    function mint(address _to, uint256 _amount) public onlyOwner {
+        _mint(_to, _amount);
+    }
+}
+
+contract TokenReference {
+    MapToken public mapToken;
+
+    event LockToken(
+        address indexed token,
+        address indexed sender,
+        uint256 amount
+    );
+
+    constructor(MapToken _token) public {
+        mapToken = _token;
+    }
+
+    function lock(uint256 _amount) public {
+        mapToken.transferFrom(msg.sender, address(this), _amount);
+        emit LockToken(address(mapToken), msg.sender, _amount);
+    }
+}
+
+contract TokenGen {
+    MapToken public mapToken;
+
+    constructor(MapToken _token) public {
+        mapToken = _token;
+    }
+
+    function unlock(bytes memory _proofData) public {
+        mapToken.mint(address(this), 0);
+    }
+}
