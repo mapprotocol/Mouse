@@ -27,6 +27,7 @@ import (
 	"sync"
 	"sync/atomic"
 	"time"
+	"bytes"
 
 	"github.com/marcopoloprotoco/mouse/common"
 	"github.com/marcopoloprotoco/mouse/common/mclock"
@@ -380,7 +381,7 @@ func (bc *BlockChain) GetMmrRoot() common.Hash {
 func (bc *BlockChain) PushBlockInMMR(block *types.Block) {
 	bc.chainmu.Lock()
 	defer bc.chainmu.Unlock()
-	
+
 	timecost := uint64(0)
 	if block.NumberU64() > 0 {
 		timecost = bc.GetBlockByNumber(block.NumberU64() - 1).Time() - block.Time()
@@ -1874,7 +1875,15 @@ func (bc *BlockChain) insertChain(chain types.Blocks, verifySeals bool) (int, er
 		if err != nil {
 			return it.index, err
 		}
-
+		timecost := uint64(0)
+		if block.NumberU64() > 0 {
+			timecost = bc.GetBlockByNumber(block.NumberU64() - 1).Time() - block.Time()
+		}
+		PushBlock(bc.mmrInfo,block,timecost)
+		mmrLocal,mmrRemote := bc.mmrInfo.GetRoot(),block.MmrRoot()
+		if bytes.Equal(mmrLocal[:],mmrRemote[:]) {
+			return it.index,errors.New(fmt.Sprintf("not match mmr root,height:%v,local:%v,remote:%v",block.NumberU64(),mmrLocal,mmrRemote))
+		}
 		// Update the metrics touched during block commit
 		accountCommitTimer.Update(statedb.AccountCommits)   // Account commits are complete, we can mark them
 		storageCommitTimer.Update(statedb.StorageCommits)   // Storage commits are complete, we can mark them
@@ -1914,11 +1923,6 @@ func (bc *BlockChain) insertChain(chain types.Blocks, verifySeals bool) (int, er
 
 		dirty, _ := bc.stateCache.TrieDB().Size()
 		stats.report(chain, it.index, dirty)
-		timecost := uint64(0)
-		if block.NumberU64() > 0 {
-			timecost = bc.GetBlockByNumber(block.NumberU64() - 1).Time() - block.Time()
-		}
-		PushBlock(bc.mmrInfo,block,timecost)
 	}
 	// Any blocks remaining here? The only ones we care about are the future ones
 	if block != nil && errors.Is(err, consensus.ErrFutureBlock) {
