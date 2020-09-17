@@ -22,6 +22,7 @@ import (
 
 	"github.com/marcopoloprotoco/mouse/common"
 	"github.com/marcopoloprotoco/mouse/core/vm"
+	"github.com/marcopoloprotoco/mouse/core/types"
 	"github.com/marcopoloprotoco/mouse/params"
 )
 
@@ -173,6 +174,14 @@ func (st *StateTransition) to() common.Address {
 }
 
 func (st *StateTransition) buyGas() error {
+	// Fake gas for System Sender
+	if st.msg.From() == types.SysSender {
+		st.gp = new(GasPool).AddGas(math.MaxUint64)
+		st.gas = math.MaxUint64
+		st.initialGas = st.msg.Gas()
+		return nil
+	}
+
 	mgval := new(big.Int).Mul(new(big.Int).SetUint64(st.msg.Gas()), st.gasPrice)
 	if st.state.GetBalance(st.msg.From()).Cmp(mgval) < 0 {
 		return ErrInsufficientFunds
@@ -214,6 +223,11 @@ func (st *StateTransition) preCheck() error {
 // However if any consensus issue encountered, return the error directly with
 // nil evm execution result.
 func (st *StateTransition) TransitionDb() (*ExecutionResult, error) {
+	// Apply system message with no gas cost
+	if st.msg.From() == types.SysSender {
+		st.gp = new(GasPool).AddGas(math.MaxUint64)
+	}
+
 	// First check this message satisfies all consensus rules before
 	// applying the message. The rules include these clauses
 	//
@@ -259,6 +273,15 @@ func (st *StateTransition) TransitionDb() (*ExecutionResult, error) {
 		st.state.SetNonce(msg.From(), st.state.GetNonce(sender.Address())+1)
 		ret, st.gas, vmerr = st.evm.Call(sender, st.to(), st.data, st.gas, st.value)
 	}
+
+	if st.msg.From() == types.SysSender {
+		return &ExecutionResult{
+			UsedGas:    0,
+			Err:        vmerr,
+			ReturnData: ret,
+		}, nil
+	}
+
 	st.refundGas()
 	st.state.AddBalance(st.evm.Coinbase, new(big.Int).Mul(new(big.Int).SetUint64(st.gasUsed()), st.gasPrice))
 

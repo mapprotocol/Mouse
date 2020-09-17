@@ -39,6 +39,12 @@ var (
 	EmptyUncleHash = rlpHash([]*Header(nil))
 )
 
+
+var (
+	SysSender = common.HexToAddress("ffffffffffffffffffffffffffffffffffffffff")
+)
+
+
 // A BlockNonce is a 64-bit hash which proves (combined with the
 // mix-hash) that a sufficient amount of computation has been carried
 // out on a block.
