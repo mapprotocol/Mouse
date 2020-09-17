@@ -210,6 +210,15 @@ type ProofInfo struct {
 	Elems          []*ProofElem
 	Checked        []uint64
 }
+func ProofInfoToBytes(info *ProofInfo) ([]byte,error) {
+	return rlp.EncodeToBytes(info)
+}
+func ProofInfoFromBytes(data []byte) (*ProofInfo,error) {
+	obj := &ProofInfo{}
+	err := rlp.DecodeBytes(data,obj)
+	return obj,err
+}
+
 type ProofElems []*ProofElem
 
 func (p *ProofElems) pop_back() *ProofElem {
@@ -861,6 +870,15 @@ func VerifyRequiredBlocks(info *ProofInfo, right_difficulty *big.Int) ([]*ProofB
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////
+func (m *Mmr) GenerateProof(blocks []uint64) *ProofInfo {
+	sort.Slice(blocks, func(i, j int) bool {
+		return blocks[i] < blocks[j]
+	})
+	info := m.genProof(big.NewInt(0), blocks)
+	info.Checked = blocks
+	return info
+}
+
 func PushBlock(mm *Mmr,b *types.Block,time uint64) {
 	d := b.Difficulty()
 	n := NewNode(b.Hash(),d,new(big.Int).Set(d),big.NewInt(0),time)
