@@ -868,9 +868,11 @@ func VerifyRequiredBlocks(info *ProofInfo, right_difficulty *big.Int) ([]*ProofB
 	}
 	return proof_blocks, nil
 }
-
+func VerifyRequiredBlocks2(info *ProofInfo,blocks []uint64) ([]*ProofBlock, error) {
+	return nil,nil
+}
 ///////////////////////////////////////////////////////////////////////////////////////
-func (m *Mmr) GenerateProof(blocks []uint64) *ProofInfo {
+func (m *Mmr) GenerateProof(blocks []uint64,right *big.Int) *ProofInfo {
 	sort.Slice(blocks, func(i, j int) bool {
 		return blocks[i] < blocks[j]
 	})

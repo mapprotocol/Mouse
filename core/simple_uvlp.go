@@ -2,7 +2,7 @@ package core
 
 import (
 	// "bytes"
-	// "fmt"
+	"fmt"
 	"sort"
 	"errors"
 	"math/big"
@@ -12,39 +12,103 @@ import (
 	// "golang.org/x/crypto/sha3"
 )
 
-type BaseUvlpMsg struct {
+var (
+	K = 6
+)
+
+
+type BaseReqUvlpMsg struct {
 	Check 	[]uint64
 	Right	*big.Int	
 }
 
-func (b *BaseUvlpMsg) Datas() ([]byte,error) {
+func (b *BaseReqUvlpMsg) Datas() ([]byte,error) {
 	data, err := rlp.EncodeToBytes(b)
 	if err != nil {
 		return nil,err
 	}
 	return data,nil
 }
-func (b *BaseUvlpMsg) Parse(data []byte) error {
-	obj := &BaseUvlpMsg{}
+func (b *BaseReqUvlpMsg) Parse(data []byte) error {
+	obj := &BaseReqUvlpMsg{}
 	err := rlp.DecodeBytes(data,obj)
 	if err != nil {
 		b = obj
 	}
 	return err
 }
-func makeFirstBaseUvlopMsg() *BaseUvlpMsg {
-	return &BaseUvlpMsg{
+func makeFirstBaseUvlopMsg() *BaseReqUvlpMsg {
+	return &BaseReqUvlpMsg{
 		Check: 		[]uint64{0},
 		Right:		big.NewInt(0),
 	}
 }
-func makeSecondMsg(txInBlock,leatest uint64) *BaseUvlpMsg {
-	return &BaseUvlpMsg{
+
+type UvlpMsgReq struct {
+	FirstReq 	*BaseReqUvlpMsg
+	SecondReq 	*BaseReqUvlpMsg
+}
+
+func (b *UvlpMsgReq) Datas() ([]byte,error) {
+	data, err := rlp.EncodeToBytes(b)
+	if err != nil {
+		return nil,err
+	}
+	return data,nil
+}
+func (b *UvlpMsgReq) Parse(data []byte) error {
+	obj := &UvlpMsgReq{}
+	err := rlp.DecodeBytes(data,obj)
+	if err != nil {
+		b = obj
+	}
+	return err
+}
+func makeUvlpMsgReq(blocks []uint64) *UvlpMsgReq {
+	return &UvlpMsgReq{
+		FirstReq:		makeFirstBaseUvlopMsg(),
+		SecondReq:		&BaseReqUvlpMsg{
+			Check:		blocks,
+		},	
+	}
+}
+
+type ChainHeaderProofMsg struct {
+	Proof 	*ProofInfo			// the leatest blockchain and an proof of existence
+	Header	[]*types.Header	
+	Right 	*big.Int				
+}
+type ChainInProofMsg struct {
+	Proof 	*ProofInfo
+	Header 	[]*types.Header
+}
+
+type UvlpMsgRes struct {
+	FirstRes 	*ChainHeaderProofMsg
+	SecondRes 	*ChainInProofMsg
+}
+func (b *UvlpMsgRes) Datas() ([]byte,error) {
+	data, err := rlp.EncodeToBytes(b)
+	if err != nil {
+		return nil,err
+	}
+	return data,nil
+}
+func (b *UvlpMsgRes) Parse(data []byte) error {
+	obj := &UvlpMsgRes{}
+	err := rlp.DecodeBytes(data,obj)
+	if err != nil {
+		b = obj
+	}
+	return err
+}
+
+func makeSecondMsg(txInBlock,leatest uint64) *BaseReqUvlpMsg {
+	return &BaseReqUvlpMsg{
 		Check: 		[]uint64{txInBlock,leatest},
 		Right:		big.NewInt(0),
 	}
 }
-
 func Uint64SliceEqual(a, b []uint64) bool {
     if len(a) != len(b) {
         return false
@@ -80,6 +144,7 @@ type SimpleUVLP struct {
 	MmrInfo 		*Mmr
 	OtherGenesis 	*types.Block
 	chain 			*BlockChain
+	otherChain 		[]*types.Header
 }
 
 func NewSimpleUVLP() *SimpleUVLP {
@@ -91,15 +156,15 @@ func (uv *SimpleUVLP) GetFirstMsg() ([]byte,error) {
 } 
 
 func (uv *SimpleUVLP) RecvFirstMsg(data []byte) ([]byte,error) {
-	msg := &BaseUvlpMsg{}
+	msg := &BaseReqUvlpMsg{}
 	if err := msg.Parse(data); err != nil {
 		return nil,err
 	}
-	proof := uv.MmrInfo.GenerateProof(msg.Check)
+	proof := uv.MmrInfo.GenerateProof(msg.Check,big.NewInt(0))
 	return ProofInfoToBytes(proof)
 }
 
-func (uv *SimpleUVLP) verifyFirstMsg(data []byte,first *BaseUvlpMsg) error {
+func (uv *SimpleUVLP) verifyFirstMsg(data []byte,first *BaseReqUvlpMsg) error {
 	proof,err := ProofInfoFromBytes(data)
 	if err != nil {
 		return err
@@ -119,7 +184,7 @@ func (uv *SimpleUVLP) GetSecondMsg(txInBlock,leatest uint64) ([]byte,error) {
 	return makeSecondMsg(txInBlock,leatest).Datas()
 }
 func (uv *SimpleUVLP) RecvSecondMsg(data []byte) ([]byte,error) {
-	msg := &BaseUvlpMsg{}
+	msg := &BaseReqUvlpMsg{}
 	if err := msg.Parse(data); err != nil {
 		return nil,err
 	}
@@ -131,11 +196,10 @@ func (uv *SimpleUVLP) RecvSecondMsg(data []byte) ([]byte,error) {
 		return nil,errors.New("the proof point over the leatest chain height")
 	}
 	// will send the block head with proofs to peer
-	proof := uv.MmrInfo.GenerateProof(msg.Check)
+	proof := uv.MmrInfo.GenerateProof(msg.Check,big.NewInt(0))
 	return ProofInfoToBytes(proof)
 }
-
-func (uv *SimpleUVLP) VerifySecondMsg(data []byte,second *BaseUvlpMsg) error {
+func (uv *SimpleUVLP) VerifySecondMsg(data []byte,second *BaseReqUvlpMsg) error {
 	proof,err := ProofInfoFromBytes(data)
 	if err != nil {
 		return err
@@ -154,3 +218,102 @@ func (uv *SimpleUVLP) VerifySecondMsg(data []byte,second *BaseUvlpMsg) error {
 	return nil
 } 
 
+///////////////////////////////////////////////////////////////////////////////////
+func (uv *SimpleUVLP) GetSimpleUvlpMsgReq(blocks []uint64) ([]byte,error) {
+	return 	makeUvlpMsgReq(blocks).Datas()
+} 
+
+func (uv *SimpleUVLP) HandleSimpleUvlpMsgReq(data []byte) ([]byte,error) {
+	msg := &UvlpMsgReq{}
+	if err := msg.Parse(data); err != nil {
+		return nil,err
+	}
+	res := &UvlpMsgRes{}
+	// generate proof the leatest chain
+	cur := uv.chain.CurrentBlock()
+	curNum := cur.NumberU64()
+	Right,heads := getRightDifficult(uv.chain,curNum,cur.Difficulty())
+	proof,_,_ := uv.MmrInfo.CreateNewProof(Right)
+	heads = append([]*types.Header{cur.Header()},heads...)
+	res.FirstRes.Proof,res.FirstRes.Header = proof,heads
+	res.FirstRes.Right = new(big.Int).Set(Right)
+	// handle next req
+	
+	blocks := msg.SecondReq.Check
+	sort.Slice(blocks, func(i, j int) bool {
+		return blocks[i] < blocks[j]
+	})
+	if blocks[len(blocks)-1] > curNum {
+		return nil,errors.New("the proof point over the leatest chain height")
+	}
+	blocks = append(blocks,curNum)
+	// will send the block head with proofs to peer
+	if b := uv.chain.GetBlockByNumber(blocks[0]); b != nil {
+		proof2 := uv.MmrInfo.GenerateProof(blocks,big.NewInt(0))
+		res.SecondRes.Proof = proof2
+		res.SecondRes.Header = []*types.Header{b.Header()}
+	} else {
+		return nil,fmt.Errorf("cann't found the block:",blocks[0])
+	}
+	
+	return res.Datas()
+}
+func (uv *SimpleUVLP) VerfiySimpleUvlpMsg(data []byte,secondBlocks []uint64) error {
+	msg := &UvlpMsgRes{}
+	if err := msg.Parse(data); err != nil {
+		return err
+	}
+	
+	if pBlocks, err := VerifyRequiredBlocks(msg.FirstRes.Proof, msg.FirstRes.Right); err != nil {
+		return err
+	} else {
+		if !msg.FirstRes.Proof.VerifyProof(pBlocks) {
+			return errors.New("Verify Proof Failed on first msg")
+		} else {
+			if err := originGenesisCheck(msg.FirstRes.Header[0]); err != nil {
+				return err
+			}
+
+			// verify proof2
+
+			if pBlocks, err := VerifyRequiredBlocks2(msg.SecondRes.Proof, secondBlocks); err != nil {
+				return err
+			} else {
+				if !msg.SecondRes.Proof.VerifyProof(pBlocks) {
+					return errors.New("Verify Proof2 Failed on first msg")
+				}
+				// check headers 
+				return  checkHeaders(msg.SecondRes.Header)
+			}
+		}
+	}
+	return nil
+}
+///////////////////////////////////////////////////////////////////////////////////
+// header block check 
+func originHeaderCheck(head *types.Header) error {
+	return nil
+} 
+func originGenesisCheck(head *types.Header) error {
+	return nil
+}
+func checkHeaders(heads []*types.Header) error {
+	return nil
+}
+func getRightDifficult(chain *BlockChain,curNum uint64,r *big.Int) (*big.Int,[]*types.Header) {
+
+	heads := []*types.Header{}
+	i := int(curNum - uint64(K))
+	if i < 0 {
+		i = 0
+	}
+	right := new(big.Int).Set(r)
+	for ; i < int(K) ; i++ {
+		b := chain.GetBlockByNumber(uint64(i))
+		if b != nil {
+			heads = append(heads,b.Header())
+			right = new(big.Int).Add(right,b.Difficulty())
+		}
+	}
+	return right,heads
+}
