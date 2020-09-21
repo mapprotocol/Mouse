@@ -1,11 +1,12 @@
 package core
 
 import (
-	// "bytes"
+	"bytes"
 	"fmt"
 	"sort"
 	"errors"
 	"math/big"
+	"encoding/hex"
 	// "github.com/marcopoloprotoco/mouse/common"
 	"github.com/marcopoloprotoco/mouse/rlp"
 	"github.com/marcopoloprotoco/mouse/core/types"
@@ -140,11 +141,64 @@ func Uint64SliceHas(origin,sub []uint64) bool {
 }
 ///////////////////////////////////////////////////////////////////////////////////
 
+type OtherChainAdapter struct {
+	Genesis 		*types.Block
+	ConfirmBlock 	*types.Header
+	ProofHeader		*types.Header
+	ProofHeight 	uint64
+	Leatest 		[]*types.Header
+}
+
+// header block check 
+func (o *OtherChainAdapter) originHeaderCheck(head []*types.Header) error {
+	// check difficult
+	return nil
+} 
+func (o *OtherChainAdapter) GenesisCheck(head *types.Header) error {
+	rHash,lHash := head.Hash(),o.Genesis.Header().Hash()
+	if !bytes.Equal(rHash[:],lHash[:]) {
+		fmt.Println("genesis not match,loack:",hex.EncodeToString(lHash[:]),"remote:",hex.EncodeToString(rHash[:]))
+		return errors.New("genesis not match")
+	}
+	return nil
+}
+func (o *OtherChainAdapter) checkHeaders(heads []*types.Header,setcur bool) error {
+	if len(heads) == 0 {
+		return errors.New("invalid params")
+	}
+	head := heads[0]
+	if head.Number.Uint64() != o.ProofHeight {
+		fmt.Println("height not match,l:",o.ProofHeight,"r:",head.Number)
+		return errors.New("height not match")
+	}
+	if err := o.originHeaderCheck(heads); err != nil {
+		return err
+	}
+	if setcur {
+		o.setProofHeader(head)
+	} else {
+		o.setLeatestHeader(heads[1],heads[2:])
+	}
+	return nil
+}
+func (o *OtherChainAdapter) setProofHeader(head *types.Header) {
+	o.ProofHeader = types.CopyHeader(head)
+}
+func (o *OtherChainAdapter) setLeatestHeader(confirm *types.Header,leatest []*types.Header,) {
+	o.ConfirmBlock =  types.CopyHeader(confirm)
+	tmp := []*types.Header{}
+	for _,v := range leatest {
+		tmp = append(tmp,types.CopyHeader(v))
+	}
+	o.Leatest = tmp
+}
+
+///////////////////////////////////////////////////////////////////////////////////
+
 type SimpleUVLP struct {
-	MmrInfo 		*Mmr
-	OtherGenesis 	*types.Block
-	chain 			*BlockChain
-	otherChain 		[]*types.Header
+	MmrInfo 			*Mmr
+	localChain 			*BlockChain
+	remoteChain			*OtherChainAdapter
 }
 
 func NewSimpleUVLP() *SimpleUVLP {
@@ -192,8 +246,8 @@ func (uv *SimpleUVLP) RecvSecondMsg(data []byte) ([]byte,error) {
 	sort.Slice(blocks, func(i, j int) bool {
 		return blocks[i] < blocks[j]
 	})
-	if blocks[len(blocks)-1] > uv.chain.CurrentBlock().NumberU64() {
-		return nil,errors.New("the proof point over the leatest chain height")
+	if blocks[len(blocks)-1] > uv.localChain.CurrentBlock().NumberU64() {
+		return nil,errors.New("the proof point over the leatest localChain height")
 	}
 	// will send the block head with proofs to peer
 	proof := uv.MmrInfo.GenerateProof(msg.Check,big.NewInt(0))
@@ -229,12 +283,13 @@ func (uv *SimpleUVLP) HandleSimpleUvlpMsgReq(data []byte) ([]byte,error) {
 		return nil,err
 	}
 	res := &UvlpMsgRes{}
-	// generate proof the leatest chain
-	cur := uv.chain.CurrentBlock()
+	// generate proof the leatest localChain
+	cur := uv.localChain.CurrentBlock()
+	genesis := uv.localChain.GetBlockByNumber(0)
 	curNum := cur.NumberU64()
-	Right,heads := getRightDifficult(uv.chain,curNum,cur.Difficulty())
+	Right,heads := getRightDifficult(uv.localChain,curNum,cur.Difficulty())
 	proof,_,_ := uv.MmrInfo.CreateNewProof(Right)
-	heads = append([]*types.Header{cur.Header()},heads...)
+	heads = append([]*types.Header{genesis.Header(),cur.Header()},heads...)
 	res.FirstRes.Proof,res.FirstRes.Header = proof,heads
 	res.FirstRes.Right = new(big.Int).Set(Right)
 	// handle next req
@@ -244,11 +299,11 @@ func (uv *SimpleUVLP) HandleSimpleUvlpMsgReq(data []byte) ([]byte,error) {
 		return blocks[i] < blocks[j]
 	})
 	if blocks[len(blocks)-1] > curNum {
-		return nil,errors.New("the proof point over the leatest chain height")
+		return nil,errors.New("the proof point over the leatest localChain height")
 	}
 	blocks = append(blocks,curNum)
 	// will send the block head with proofs to peer
-	if b := uv.chain.GetBlockByNumber(blocks[0]); b != nil {
+	if b := uv.localChain.GetBlockByNumber(blocks[0]); b != nil {
 		proof2 := uv.MmrInfo.GenerateProof(blocks,big.NewInt(0))
 		res.SecondRes.Proof = proof2
 		res.SecondRes.Header = []*types.Header{b.Header()}
@@ -258,6 +313,7 @@ func (uv *SimpleUVLP) HandleSimpleUvlpMsgReq(data []byte) ([]byte,error) {
 	
 	return res.Datas()
 }
+
 func (uv *SimpleUVLP) VerfiySimpleUvlpMsg(data []byte,secondBlocks []uint64) error {
 	msg := &UvlpMsgRes{}
 	if err := msg.Parse(data); err != nil {
@@ -270,12 +326,13 @@ func (uv *SimpleUVLP) VerfiySimpleUvlpMsg(data []byte,secondBlocks []uint64) err
 		if !msg.FirstRes.Proof.VerifyProof(pBlocks) {
 			return errors.New("Verify Proof Failed on first msg")
 		} else {
-			if err := originGenesisCheck(msg.FirstRes.Header[0]); err != nil {
+			if err := uv.remoteChain.GenesisCheck(msg.FirstRes.Header[0]); err != nil {
 				return err
 			}
-
+			if err := uv.remoteChain.checkHeaders(msg.FirstRes.Header,false); err != nil {
+				return err
+			}
 			// verify proof2
-
 			if pBlocks, err := VerifyRequiredBlocks2(msg.SecondRes.Proof, secondBlocks); err != nil {
 				return err
 			} else {
@@ -283,33 +340,25 @@ func (uv *SimpleUVLP) VerfiySimpleUvlpMsg(data []byte,secondBlocks []uint64) err
 					return errors.New("Verify Proof2 Failed on first msg")
 				}
 				// check headers 
-				return  checkHeaders(msg.SecondRes.Header)
+				return  uv.remoteChain.checkHeaders(msg.SecondRes.Header,true)
 			}
 		}
 	}
 	return nil
 }
-///////////////////////////////////////////////////////////////////////////////////
-// header block check 
-func originHeaderCheck(head *types.Header) error {
-	return nil
-} 
-func originGenesisCheck(head *types.Header) error {
-	return nil
-}
-func checkHeaders(heads []*types.Header) error {
-	return nil
-}
-func getRightDifficult(chain *BlockChain,curNum uint64,r *big.Int) (*big.Int,[]*types.Header) {
 
+///////////////////////////////////////////////////////////////////////////////////
+
+func getRightDifficult(localChain *BlockChain,curNum uint64,r *big.Int) (*big.Int,[]*types.Header) {
 	heads := []*types.Header{}
 	i := int(curNum - uint64(K))
 	if i < 0 {
 		i = 0
 	}
+
 	right := new(big.Int).Set(r)
 	for ; i < int(K) ; i++ {
-		b := chain.GetBlockByNumber(uint64(i))
+		b := localChain.GetBlockByNumber(uint64(i))
 		if b != nil {
 			heads = append(heads,b.Header())
 			right = new(big.Int).Add(right,b.Difficulty())
