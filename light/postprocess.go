@@ -31,8 +31,8 @@ import (
 	"github.com/marcopoloprotoco/mouse/core"
 	"github.com/marcopoloprotoco/mouse/core/rawdb"
 	"github.com/marcopoloprotoco/mouse/core/types"
-	"github.com/marcopoloprotoco/mouse/mosdb"
 	"github.com/marcopoloprotoco/mouse/log"
+	"github.com/marcopoloprotoco/mouse/mosdb"
 	"github.com/marcopoloprotoco/mouse/params"
 	"github.com/marcopoloprotoco/mouse/rlp"
 	"github.com/marcopoloprotoco/mouse/trie"
@@ -356,7 +356,7 @@ func NewBloomTrieIndexer(db mosdb.Database, odr OdrBackend, parentSize, size uin
 func (b *BloomTrieIndexerBackend) fetchMissingNodes(ctx context.Context, section uint64, root common.Hash) error {
 	indexCh := make(chan uint, types.BloomBitLength)
 	type res struct {
-		nodes *NodeSet
+		nodes *types.NodeSet
 		err   error
 	}
 	resCh := make(chan res, types.BloomBitLength)

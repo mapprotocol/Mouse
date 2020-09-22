@@ -30,10 +30,10 @@ import (
 	"github.com/marcopoloprotoco/mouse/core/rawdb"
 	"github.com/marcopoloprotoco/mouse/core/state"
 	"github.com/marcopoloprotoco/mouse/core/types"
-	"github.com/marcopoloprotoco/mouse/mosdb"
 	"github.com/marcopoloprotoco/mouse/light"
 	"github.com/marcopoloprotoco/mouse/log"
 	"github.com/marcopoloprotoco/mouse/metrics"
+	"github.com/marcopoloprotoco/mouse/mosdb"
 	"github.com/marcopoloprotoco/mouse/p2p"
 	"github.com/marcopoloprotoco/mouse/rlp"
 	"github.com/marcopoloprotoco/mouse/trie"
@@ -591,7 +591,7 @@ func (h *serverHandler) handleMsg(p *clientPeer, wg *sync.WaitGroup) error {
 			wg.Add(1)
 			go func() {
 				defer wg.Done()
-				nodes := light.NewNodeSet()
+				nodes := types.NewNodeSet()
 
 				for i, request := range req.Reqs {
 					if i != 0 && !task.waitOrStop() {
@@ -700,7 +700,7 @@ func (h *serverHandler) handleMsg(p *clientPeer, wg *sync.WaitGroup) error {
 					root     common.Hash
 					auxTrie  *trie.Trie
 				)
-				nodes := light.NewNodeSet()
+				nodes := types.NewNodeSet()
 				for i, request := range req.Reqs {
 					if i != 0 && !task.waitOrStop() {
 						sendResponse(req.ReqID, 0, nil, task.servingTime)

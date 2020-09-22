@@ -17,8 +17,15 @@
 package core
 
 import (
+	"bytes"
 	"fmt"
+	"github.com/marcopoloprotoco/mouse/common"
+	"github.com/marcopoloprotoco/mouse/common/math"
+	"github.com/marcopoloprotoco/mouse/mosdb/memorydb"
+	"github.com/marcopoloprotoco/mouse/rlp"
+	"github.com/marcopoloprotoco/mouse/trie"
 	"math/big"
+	"testing"
 
 	"github.com/marcopoloprotoco/mouse/consensus/ethash"
 	"github.com/marcopoloprotoco/mouse/core/rawdb"
@@ -97,4 +104,60 @@ func ExampleGenerateChain() {
 	// balance of addr1: 989000
 	// balance of addr2: 10000
 	// balance of addr3: 19687500000000001000
+}
+
+func makeBenchBlock() *types.Block {
+	var (
+		key, _   = crypto.GenerateKey()
+		txs      = make([]*types.Transaction, 10)
+		receipts = make([]*types.Receipt, len(txs))
+		signer   = types.NewEIP155Signer(params.TestChainConfig.ChainID)
+		uncles   = make([]*types.Header, 3)
+	)
+	header := &types.Header{
+		Difficulty: math.BigPow(11, 11),
+		Number:     math.BigPow(2, 9),
+		GasLimit:   12345678,
+		GasUsed:    1476322,
+		Time:       9876543,
+		Extra:      []byte("coolest block on chain"),
+	}
+	for i := range txs {
+		amount := math.BigPow(2, int64(i))
+		price := big.NewInt(300000)
+		data := make([]byte, 100)
+		tx := types.NewTransaction(uint64(i), common.Address{}, amount, 123457, price, data)
+		signedTx, err := types.SignTx(tx, signer, key)
+		if err != nil {
+			panic(err)
+		}
+		txs[i] = signedTx
+		receipts[i] = types.NewReceipt(make([]byte, 32), false, tx.Gas())
+	}
+	for i := range uncles {
+		uncles[i] = &types.Header{
+			Difficulty: math.BigPow(11, 11),
+			Number:     math.BigPow(2, 9),
+			GasLimit:   12345678,
+			GasUsed:    1476322,
+			Time:       9876543,
+			Extra:      []byte("benchmark uncle"),
+		}
+	}
+	return types.NewBlock(header, txs, uncles, receipts, new(trie.Trie))
+}
+
+func TestBlock_MixDigestakeBenchBlock(t *testing.T) {
+	block := makeBenchBlock()
+
+	tri := types.DeriveShaHasher(block.Transactions(), new(trie.Trie))
+	keybuf := new(bytes.Buffer)
+	keybuf.Reset()
+	rlp.Encode(keybuf, uint(1))
+	proof := memorydb.New()
+	tri.Prove(keybuf.Bytes(), 0, proof)
+	_, err := trie.VerifyProof(block.TxHash(), keybuf.Bytes(), proof)
+	if err != nil {
+		fmt.Println("err ", err)
+	}
 }

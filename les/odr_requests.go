@@ -25,9 +25,9 @@ import (
 	"github.com/marcopoloprotoco/mouse/core/rawdb"
 	"github.com/marcopoloprotoco/mouse/core/types"
 	"github.com/marcopoloprotoco/mouse/crypto"
-	"github.com/marcopoloprotoco/mouse/mosdb"
 	"github.com/marcopoloprotoco/mouse/light"
 	"github.com/marcopoloprotoco/mouse/log"
+	"github.com/marcopoloprotoco/mouse/mosdb"
 	"github.com/marcopoloprotoco/mouse/rlp"
 	"github.com/marcopoloprotoco/mouse/trie"
 )
@@ -222,7 +222,7 @@ func (r *TrieRequest) Validate(db mosdb.Database, msg *Msg) error {
 	if msg.MsgType != MsgProofsV2 {
 		return errInvalidMessageType
 	}
-	proofs := msg.Obj.(light.NodeList)
+	proofs := msg.Obj.(types.NodeList)
 	// Verify the proof and store if checks out
 	nodeSet := proofs.NodeSet()
 	reads := &readTraceDB{db: nodeSet}
@@ -309,7 +309,7 @@ type HelperTrieReq struct {
 }
 
 type HelperTrieResps struct { // describes all responses, not just a single one
-	Proofs  light.NodeList
+	Proofs  types.NodeList
 	AuxData [][]byte
 }
 

@@ -54,6 +54,10 @@ func (h *testHasher) Hash() common.Hash {
 	return common.BytesToHash(h.hasher.Sum(nil))
 }
 
+func (h *testHasher) Prove(key []byte, fromLevel uint, proofDb mosdb.KeyValueWriter) error {
+	return nil
+}
+
 // Tests that positional lookup metadata can be stored and retrieved.
 func TestLookupStorage(t *testing.T) {
 	tests := []struct {

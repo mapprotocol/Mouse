@@ -5,6 +5,8 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"github.com/marcopoloprotoco/mouse/common"
+	"github.com/marcopoloprotoco/mouse/trie"
 	"math/big"
 	"sort"
 	// "github.com/marcopoloprotoco/mouse/common"
@@ -78,6 +80,7 @@ type ChainHeaderProofMsg struct {
 	Header []*types.Header
 	Right  *big.Int
 }
+
 func (b *ChainHeaderProofMsg) Datas() ([]byte, error) {
 	data, err := rlp.EncodeToBytes(b)
 	if err != nil {
@@ -93,6 +96,7 @@ func (b *ChainHeaderProofMsg) Parse(data []byte) error {
 	}
 	return err
 }
+
 type ChainInProofMsg struct {
 	Proof  *ProofInfo
 	Header []*types.Header
@@ -234,9 +238,9 @@ func (uv *SimpleUVLP) PushFirstMsg() ([]byte, error) {
 	heads = append([]*types.Header{genesis.Header(), cur.Header()}, heads...)
 
 	res := &ChainHeaderProofMsg{
-		Proof:		proof,
-		Header:		heads,
-		Right:		Right,
+		Proof:  proof,
+		Header: heads,
+		Right:  Right,
 	}
 	return res.Datas()
 }
@@ -332,7 +336,7 @@ func (uv *SimpleUVLP) HandleSimpleUvlpMsgReq(data []byte) ([]byte, error) {
 		res.SecondRes.Proof = proof2
 		res.SecondRes.Header = []*types.Header{b.Header()}
 	} else {
-		return nil, fmt.Errorf("cann't found the block:", blocks[0])
+		return nil, fmt.Errorf("cann't found the block: %v", blocks[0])
 	}
 
 	return res.Datas()
@@ -389,4 +393,37 @@ func getRightDifficult(localChain *BlockChain, curNum uint64, r *big.Int) (*big.
 		}
 	}
 	return right, heads
+}
+
+type ReceiptTrieResps struct { // describes all responses, not just a single one
+	Proofs      types.NodeList
+	Index       uint64
+	ReceiptHash common.Hash
+}
+
+func (uv *SimpleUVLP) GetReceiptProof(txHash common.Hash) (*ReceiptTrieResps, error) {
+
+	lookup := uv.localChain.GetTransactionLookup(txHash)
+	if uv.localChain.GetCanonicalHash(lookup.BlockIndex) != lookup.BlockHash {
+		return nil, errors.New("hash is not currently canonical")
+	}
+	block := uv.localChain.GetBlockByHash(lookup.BlockHash)
+
+	tri := types.DeriveShaHasher(uv.localChain.GetReceiptsByHash(lookup.BlockHash), new(trie.Trie))
+	keybuf := new(bytes.Buffer)
+	keybuf.Reset()
+	rlp.Encode(keybuf, lookup.Index)
+	proofs := types.NewNodeSet()
+
+	tri.Prove(keybuf.Bytes(), 0, proofs)
+
+	return &ReceiptTrieResps{Proofs: proofs.NodeList(), Index: lookup.Index, ReceiptHash: block.ReceiptHash()}, nil
+}
+
+func (uv *SimpleUVLP) VerifyReceiptProof(receiptPes *ReceiptTrieResps) (value []byte, err error) {
+	keybuf := new(bytes.Buffer)
+	keybuf.Reset()
+	rlp.Encode(keybuf, receiptPes.Index)
+	value, err = trie.VerifyProof(receiptPes.ReceiptHash, keybuf.Bytes(), receiptPes.Proofs.NodeSet())
+	return value, err
 }

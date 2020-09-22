@@ -84,7 +84,7 @@ func StorageTrieID(state *TrieID, addrHash, root common.Hash) *TrieID {
 type TrieRequest struct {
 	Id    *TrieID
 	Key   []byte
-	Proof *NodeSet
+	Proof *types.NodeSet
 }
 
 // StoreResult stores the retrieved data in local database
@@ -142,7 +142,7 @@ type ChtRequest struct {
 	ChtRoot          common.Hash
 	Header           *types.Header
 	Td               *big.Int
-	Proof            *NodeSet
+	Proof            *types.NodeSet
 }
 
 // StoreResult stores the retrieved data in local database
@@ -165,7 +165,7 @@ type BloomRequest struct {
 	SectionIndexList []uint64
 	BloomTrieRoot    common.Hash
 	BloomBits        [][]byte
-	Proofs           *NodeSet
+	Proofs           *types.NodeSet
 }
 
 // StoreResult stores the retrieved data in local database

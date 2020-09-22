@@ -30,11 +30,11 @@ import (
 	"github.com/marcopoloprotoco/mouse/common/mclock"
 	"github.com/marcopoloprotoco/mouse/core"
 	"github.com/marcopoloprotoco/mouse/core/types"
-	"github.com/marcopoloprotoco/mouse/mos"
 	"github.com/marcopoloprotoco/mouse/les/flowcontrol"
 	lpc "github.com/marcopoloprotoco/mouse/les/lespay/client"
 	"github.com/marcopoloprotoco/mouse/les/utils"
 	"github.com/marcopoloprotoco/mouse/light"
+	"github.com/marcopoloprotoco/mouse/mos"
 	"github.com/marcopoloprotoco/mouse/p2p"
 	"github.com/marcopoloprotoco/mouse/params"
 	"github.com/marcopoloprotoco/mouse/rlp"
@@ -853,7 +853,7 @@ func (p *clientPeer) replyReceiptsRLP(reqID uint64, receipts []rlp.RawValue) *re
 }
 
 // replyProofsV2 creates a reply with a batch of merkle proofs, corresponding to the ones requested.
-func (p *clientPeer) replyProofsV2(reqID uint64, proofs light.NodeList) *reply {
+func (p *clientPeer) replyProofsV2(reqID uint64, proofs types.NodeList) *reply {
 	data, _ := rlp.EncodeToBytes(proofs)
 	return &reply{p.rw, ProofsV2Msg, reqID, data}
 }

@@ -18,8 +18,8 @@ package types
 
 import (
 	"bytes"
-
 	"github.com/marcopoloprotoco/mouse/common"
+	"github.com/marcopoloprotoco/mouse/mosdb"
 	"github.com/marcopoloprotoco/mouse/rlp"
 )
 
@@ -34,6 +34,7 @@ type Hasher interface {
 	Reset()
 	Update([]byte, []byte)
 	Hash() common.Hash
+	Prove(key []byte, fromLevel uint, proofDb mosdb.KeyValueWriter) error
 }
 
 func DeriveSha(list DerivableList, hasher Hasher) common.Hash {
@@ -45,4 +46,15 @@ func DeriveSha(list DerivableList, hasher Hasher) common.Hash {
 		hasher.Update(keybuf.Bytes(), list.GetRlp(i))
 	}
 	return hasher.Hash()
+}
+
+func DeriveShaHasher(list DerivableList, hasher Hasher) Hasher {
+	hasher.Reset()
+	keybuf := new(bytes.Buffer)
+	for i := 0; i < list.Len(); i++ {
+		keybuf.Reset()
+		rlp.Encode(keybuf, uint(i))
+		hasher.Update(keybuf.Bytes(), list.GetRlp(i))
+	}
+	return hasher
 }

@@ -18,6 +18,7 @@ package types
 
 import (
 	"bytes"
+	"github.com/marcopoloprotoco/mouse/mosdb"
 	"hash"
 	"math/big"
 	"reflect"
@@ -114,6 +115,10 @@ func (h *testHasher) Update(key, val []byte) {
 
 func (h *testHasher) Hash() common.Hash {
 	return common.BytesToHash(h.hasher.Sum(nil))
+}
+
+func (h *testHasher) Prove(key []byte, fromLevel uint, proofDb mosdb.KeyValueWriter) error {
+	return nil
 }
 
 func makeBenchBlock() *Block {
