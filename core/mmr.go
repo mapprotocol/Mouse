@@ -210,6 +210,11 @@ type ProofInfo struct {
 	Elems          []*ProofElem
 	Checked        []uint64
 }
+type ProofInfo2 struct {
+	Proof			*ProofInfo
+	AggrWeight		[]*big.Float
+}
+
 func ProofInfoToBytes(info *ProofInfo) ([]byte,error) {
 	return rlp.EncodeToBytes(info)
 }
@@ -809,6 +814,122 @@ func (p *ProofInfo) VerifyProof(blocks []*ProofBlock) bool {
 	}
 	return false
 }
+func (p *ProofInfo) VerifyProof2(blocks []*ProofBlock) bool {
+	blocks = SortAndRemoveRepeatForProofBlocks(blocks)
+	blocks = reverseForProofBlocks(blocks)
+	proof_blocks := ProofBlocks(blocks)
+
+	proofs := ProofElems(p.Elems)
+	root_elem := proofs.pop_back()
+	if root_elem == nil || root_elem.Cat != 0 {
+		return false
+	}
+	if len(proofs) == 1 {
+		if it := proofs.pop_back(); it != nil {
+			if it.Cat == 2 {
+				return equal_hash(it.Res.h, root_elem.Res.h)
+			}
+		}
+		return false
+	}
+	nodes := VerifyElems([]*VerifyElem{})
+
+	for {
+		if !proofs.is_empty() {
+			proof_elem := proofs.pop_front()
+			if proof_elem.Cat == 2 {
+				proof_block := proof_blocks.pop()
+				number := proof_block.Number
+
+				if number%2 == 0 && number != (root_elem.LeafNum-1) {
+					right_node := proofs.pop_front()
+					right_node_hash, right_node_diff := right_node.Res.h, new(big.Int).Set(right_node.Res.td)
+					if right_node.Cat == 2 || right_node.Cat == 1 {
+						if right_node.Cat == 2 {
+							proof_blocks.pop()
+						}
+					} else {
+						// Expected ???
+						return false
+					}
+					hash := merge2(proof_elem.Res.h, right_node_hash)
+					nodes = append(nodes, &VerifyElem{
+						Res: &proofRes{
+							h:  hash,
+							td: new(big.Int).Add(proof_elem.Res.td, right_node_diff),
+						},
+						Index:      number / 2,
+						LeafNumber: root_elem.LeafNum / 2,
+					})
+				} else {
+					res0 := nodes.pop_back()
+					hash := merge2(res0.Res.h, proof_elem.Res.h)
+					nodes = append(nodes, &VerifyElem{
+						Res: &proofRes{
+							h:  hash,
+							td: new(big.Int).Add(proof_elem.Res.td, res0.Res.td),
+						},
+						Index:      number / 2,
+						LeafNumber: root_elem.LeafNum / 2,
+					})
+				}
+			} else if proof_elem.Cat == 1 {
+				if proof_elem.Right {
+					left_node := nodes.pop_back()
+					hash := merge2(left_node.Res.h, proof_elem.Res.h)
+					nodes = append(nodes, &VerifyElem{
+						Res: &proofRes{
+							h:  hash,
+							td: new(big.Int).Add(left_node.Res.td, proof_elem.Res.td),
+						},
+						Index:      left_node.Index / 2,
+						LeafNumber: left_node.LeafNumber / 2,
+					})
+				} else {
+					nodes = append(nodes, &VerifyElem{
+						Res:        proof_elem.Res,
+						Index:      math.MaxUint64, // UINT64(-1)
+						LeafNumber: math.MaxUint64, // UINT64(-1)
+					})
+				}
+			} else if proof_elem.Cat == 0 {
+				// do nothing
+			} else {
+				panic("invalid Cat...")
+			}
+			for {
+				if len(nodes) > 1 {
+					node2 := nodes.pop_back()
+					node1 := nodes.pop_back()
+					if node2.Index == math.MaxUint64 || (node2.Index%2 != 1 && !proofs.is_empty()) {
+						nodes = append(nodes, node1)
+						nodes = append(nodes, node2)
+						break
+					}
+					hash := merge2(node1.Res.h, node2.Res.h)
+					nodes = append(nodes, &VerifyElem{
+						Res: &proofRes{
+							h:  hash,
+							td: new(big.Int).Add(node1.Res.td, node2.Res.td),
+						},
+						Index:      node2.Index / 2,
+						LeafNumber: node2.LeafNumber / 2,
+					})
+				} else {
+					break
+				}
+			}
+		} else {
+			break
+		}
+	}
+
+	res0 := nodes.pop_back()
+	if res0 != nil {
+		return equal_hash(root_elem.Res.h, res0.Res.h) && root_elem.Res.td.Cmp(res0.Res.td) == 0
+	}
+	return false
+}
 func VerifyRequiredBlocks(info *ProofInfo, right_difficulty *big.Int) ([]*ProofBlock, error) {
 	blocks := info.Checked
 	root_hash := info.RootHash
@@ -868,8 +989,15 @@ func VerifyRequiredBlocks(info *ProofInfo, right_difficulty *big.Int) ([]*ProofB
 	}
 	return proof_blocks, nil
 }
-func VerifyRequiredBlocks2(info *ProofInfo,blocks []uint64) ([]*ProofBlock, error) {
-	return nil,nil
+func VerifyRequiredBlocks2(info *ProofInfo) ([]*ProofBlock, error) {
+	blocks := info.Checked
+	proof_blocks := []*ProofBlock{}
+	for _,v := range blocks {
+		proof_blocks = append(proof_blocks, &ProofBlock{
+			Number:     v,
+		})
+	}
+	return proof_blocks,nil
 }
 ///////////////////////////////////////////////////////////////////////////////////////
 func (m *Mmr) GenerateProof(blocks []uint64,right *big.Int) *ProofInfo {
@@ -879,6 +1007,23 @@ func (m *Mmr) GenerateProof(blocks []uint64,right *big.Int) *ProofInfo {
 	info := m.genProof(big.NewInt(0), blocks)
 	info.Checked = blocks
 	return info
+}
+
+func (m *Mmr) GenerateProof2(proofHeight,EndHeight uint64,diff *big.Int) *ProofInfo2 {
+	// sort.Slice(blocks, func(i, j int) bool {
+	// 	return blocks[i] < blocks[j]
+	// })
+	mmrClone := m.Copy()
+	// 
+	info := mmrClone.genProof(big.NewInt(0), []uint64{proofHeight})
+	info.Checked =  []uint64{proofHeight}
+	rootDidff := mmrClone.GetRootDifficulty()
+	wei := []*big.Float{new(big.Float).Quo(new(big.Float).SetInt(diff),new(big.Float).SetInt(rootDidff))}
+	
+	return &ProofInfo2{
+		Proof:			info,
+		AggrWeight:		wei,
+	}
 }
 
 func PushBlock(mm *Mmr,b *types.Block,time uint64) {

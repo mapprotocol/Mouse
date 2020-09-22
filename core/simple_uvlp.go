@@ -361,10 +361,15 @@ func (uv *SimpleUVLP) VerfiySimpleUvlpMsg(data []byte, secondBlocks []uint64) er
 				return err
 			}
 			// verify proof2
-			if pBlocks, err := VerifyRequiredBlocks2(msg.SecondRes.Proof, secondBlocks); err != nil {
+			if secondBlocks != nil {
+				if !Uint64SliceEqual(secondBlocks,msg.SecondRes.Proof.Checked) {
+					return fmt.Errorf("blocks not match,local:",secondBlocks,"remote:",msg.SecondRes.Proof.Checked)
+				}
+			}
+			if pBlocks, err := VerifyRequiredBlocks2(msg.SecondRes.Proof); err != nil {
 				return err
 			} else {
-				if !msg.SecondRes.Proof.VerifyProof(pBlocks) {
+				if !msg.SecondRes.Proof.VerifyProof2(pBlocks) {
 					return errors.New("Verify Proof2 Failed on first msg")
 				}
 				// check headers
