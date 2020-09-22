@@ -163,7 +163,7 @@ func (o *OtherChainAdapter) GenesisCheck(head *types.Header) error {
 	}
 	return nil
 }
-func (o *OtherChainAdapter) checkHeaders(heads []*types.Header, setcur bool) error {
+func (o *OtherChainAdapter) checkAndSetHeaders(heads []*types.Header, setcur bool) error {
 	if len(heads) == 0 {
 		return errors.New("invalid params")
 	}
@@ -326,7 +326,7 @@ func (uv *SimpleUVLP) VerfiySimpleUvlpMsg(data []byte, secondBlocks []uint64) er
 			if err := uv.RemoteChain.GenesisCheck(msg.FirstRes.Header[0]); err != nil {
 				return err
 			}
-			if err := uv.RemoteChain.checkHeaders(msg.FirstRes.Header, false); err != nil {
+			if err := uv.RemoteChain.checkAndSetHeaders(msg.FirstRes.Header, false); err != nil {
 				return err
 			}
 			// verify proof2
@@ -337,7 +337,7 @@ func (uv *SimpleUVLP) VerfiySimpleUvlpMsg(data []byte, secondBlocks []uint64) er
 					return errors.New("Verify Proof2 Failed on first msg")
 				}
 				// check headers
-				return uv.RemoteChain.checkHeaders(msg.SecondRes.Header, true)
+				return uv.RemoteChain.checkAndSetHeaders(msg.SecondRes.Header, true)
 			}
 		}
 	}
