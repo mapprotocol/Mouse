@@ -332,7 +332,7 @@ func (uv *SimpleUVLP) HandleSimpleUvlpMsgReq(data []byte) ([]byte, error) {
 	blocks = append(blocks, curNum)
 	// will send the block head with proofs to peer
 	if b := uv.localChain.GetBlockByNumber(blocks[0]); b != nil {
-		proof2 := uv.MmrInfo.GenerateProof(blocks, big.NewInt(0))
+		proof2 := uv.MmrInfo.GenerateProof2(blocks[0], curNum)
 		res.SecondRes.Proof = proof2
 		res.SecondRes.Header = []*types.Header{b.Header()}
 	} else {
@@ -401,9 +401,9 @@ func getRightDifficult(localChain *BlockChain, curNum uint64, r *big.Int) (*big.
 }
 
 type ReceiptTrieResps struct { // describes all responses, not just a single one
-	Proofs      types.NodeList
-	Index       uint64
-	ReceiptHash common.Hash
+	Proofs      	types.NodeList
+	Index       	uint64
+	ReceiptHash 	common.Hash
 }
 
 func (uv *SimpleUVLP) GetReceiptProof(txHash common.Hash) (*ReceiptTrieResps, error) {

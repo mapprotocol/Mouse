@@ -210,10 +210,6 @@ type ProofInfo struct {
 	Elems          []*ProofElem
 	Checked        []uint64
 }
-type ProofInfo2 struct {
-	Proof			*ProofInfo
-	AggrWeight		[]*big.Float
-}
 
 func ProofInfoToBytes(info *ProofInfo) ([]byte,error) {
 	return rlp.EncodeToBytes(info)
@@ -1009,7 +1005,7 @@ func (m *Mmr) GenerateProof(blocks []uint64,right *big.Int) *ProofInfo {
 	return info
 }
 
-func (m *Mmr) GenerateProof2(proofHeight,EndHeight uint64,diff *big.Int) *ProofInfo2 {
+func (m *Mmr) GenerateProof2(proofHeight,EndHeight uint64) *ProofInfo {
 	// sort.Slice(blocks, func(i, j int) bool {
 	// 	return blocks[i] < blocks[j]
 	// })
@@ -1017,13 +1013,8 @@ func (m *Mmr) GenerateProof2(proofHeight,EndHeight uint64,diff *big.Int) *ProofI
 	// 
 	info := mmrClone.genProof(big.NewInt(0), []uint64{proofHeight})
 	info.Checked =  []uint64{proofHeight}
-	rootDidff := mmrClone.GetRootDifficulty()
-	wei := []*big.Float{new(big.Float).Quo(new(big.Float).SetInt(diff),new(big.Float).SetInt(rootDidff))}
-	
-	return &ProofInfo2{
-		Proof:			info,
-		AggrWeight:		wei,
-	}
+
+	return info
 }
 
 func PushBlock(mm *Mmr,b *types.Block,time uint64) {
