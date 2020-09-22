@@ -78,6 +78,21 @@ type ChainHeaderProofMsg struct {
 	Header []*types.Header
 	Right  *big.Int
 }
+func (b *ChainHeaderProofMsg) Datas() ([]byte, error) {
+	data, err := rlp.EncodeToBytes(b)
+	if err != nil {
+		return nil, err
+	}
+	return data, nil
+}
+func (b *ChainHeaderProofMsg) Parse(data []byte) error {
+	obj := &ChainHeaderProofMsg{}
+	err := rlp.DecodeBytes(data, obj)
+	if err != nil {
+		b = obj
+	}
+	return err
+}
 type ChainInProofMsg struct {
 	Proof  *ProofInfo
 	Header []*types.Header
@@ -210,20 +225,32 @@ func (uv *SimpleUVLP) GetFirstMsg() *BaseReqUvlpMsg {
 	return makeFirstBaseUvlopMsg()
 }
 
-func (uv *SimpleUVLP) RecvFirstMsg(msg *BaseReqUvlpMsg) ([]byte, error) {
-	proof := uv.MmrInfo.GenerateProof(msg.Check, big.NewInt(0))
-	return ProofInfoToBytes(proof)
+func (uv *SimpleUVLP) PushFirstMsg() ([]byte, error) {
+	cur := uv.localChain.CurrentBlock()
+	curNum := cur.NumberU64()
+	genesis := uv.localChain.GetBlockByNumber(0)
+	Right, heads := getRightDifficult(uv.localChain, curNum, cur.Difficulty())
+	proof, _, _ := uv.MmrInfo.CreateNewProof(Right)
+	heads = append([]*types.Header{genesis.Header(), cur.Header()}, heads...)
+
+	res := &ChainHeaderProofMsg{
+		Proof:		proof,
+		Header:		heads,
+		Right:		Right,
+	}
+	return res.Datas()
 }
 
-func (uv *SimpleUVLP) VerifyFirstMsg(data []byte, first *BaseReqUvlpMsg) error {
-	proof, err := ProofInfoFromBytes(data)
-	if err != nil {
+func (uv *SimpleUVLP) VerifyFirstMsg(data []byte) error {
+	msg := &ChainHeaderProofMsg{}
+	if err := msg.Parse(data); err != nil {
 		return err
 	}
-	if pBlocks, err := VerifyRequiredBlocks(proof, first.Right); err != nil {
+
+	if pBlocks, err := VerifyRequiredBlocks(msg.Proof, msg.Right); err != nil {
 		return err
 	} else {
-		if !proof.VerifyProof(pBlocks) {
+		if !msg.Proof.VerifyProof(pBlocks) {
 			return errors.New("Verify Proof Failed on first msg")
 		}
 	}
