@@ -243,6 +243,7 @@ type conn struct {
 	caps      []Cap      // valid after the protocol handshake
 	name      string     // valid after the protocol handshake
 	chainType int
+	dial      bool
 }
 
 type transport interface {
@@ -1216,6 +1217,7 @@ func (srv *Server) setupConn(c *conn, flags connFlag, dialDest *enode.Node) erro
 
 	if dialDest != nil {
 		srv.ourHandshake.chainType = c.chainType
+		c.dial = true
 	}
 	// Run the capability negotiation handshake.
 	phs, err := c.doProtoHandshake(srv.ourHandshake)

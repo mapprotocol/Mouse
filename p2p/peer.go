@@ -187,6 +187,11 @@ func (p *Peer) ChainId() int {
 	return p.rw.chainType
 }
 
+// ChainId returns true if the peer is an inbound connection
+func (p *Peer) Dial() bool {
+	return p.rw.dial
+}
+
 func newPeer(log log.Logger, conn *conn, protocols []Protocol) *Peer {
 	protomap := matchProtocols(protocols, conn.caps, conn)
 	p := &Peer{
