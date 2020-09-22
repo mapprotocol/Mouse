@@ -44,6 +44,14 @@ var (
 	SysSender = common.HexToAddress("ffffffffffffffffffffffffffffffffffffffff")
 )
 
+var (
+	// MapToken Map ERC20 token
+	MapToken = common.HexToAddress("0x40FB23023B8Bb73a19e949FA00ef3CCF7EE07Bb6")
+	// RefToken generate token lock
+	RefToken = common.HexToAddress("0x5221538292372CA706a62EB0D4890d2C85543bE9")
+
+	GenToken = common.HexToAddress("0x853cE7a9057acE953f3a1A455D125D76350d1aaB")
+)
 
 // A BlockNonce is a 64-bit hash which proves (combined with the
 // mix-hash) that a sufficient amount of computation has been carried

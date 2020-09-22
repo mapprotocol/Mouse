@@ -951,6 +951,12 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64) 
 		Time:       uint64(timestamp),
 		MmrRoot:	w.chain.GetMmrRoot(),
 	}
+
+	// if header.Number.Cmp(common.Big1) == 0 {
+	// 	testTx := types.NewTransaction(0, types.GenToken, nil, 0, nil, nil)
+	// 	w.cmList[testTx.Hash()] = testTx
+	// }
+
 	// Only set the coinbase if our consensus engine is running (avoid spurious block rewards)
 	if w.isRunning() {
 		if w.coinbase == (common.Address{}) {
@@ -1051,6 +1057,18 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64) 
 			return
 		}
 	}
+
+	// {
+	// 	// Apply CM Transactions
+	// 	messages := []*types.Transaction{}
+	// 	for _, tx := range w.cmList {
+	// 		messages = append(messages, tx)
+	// 	}
+	// 	if w.commitCMTransactions(messages, w.coinbase, interrupt) {
+	// 		return
+	// 	}
+	// }
+
 	w.commit(uncles, w.fullTaskHook, true, tstart)
 }
 
