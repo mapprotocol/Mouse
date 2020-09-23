@@ -1020,9 +1020,9 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64) 
 
 	// Create an empty block based on temporary copied state for
 	// sealing in advance without waiting block execution finished.
-	if !noempty && atomic.LoadUint32(&w.noempty) == 0 {
-		w.commit(uncles, nil, false, tstart)
-	}
+	// if !noempty && atomic.LoadUint32(&w.noempty) == 0 {
+	// 	w.commit(uncles, nil, false, tstart)
+	// }
 
 	// Fill the block with all available pending transactions.
 	pending, err := w.mos.TxPool().Pending()
@@ -1033,10 +1033,10 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64) 
 	// Short circuit if there is no available pending transactions.
 	// But if we disable empty precommit already, ignore it. Since
 	// empty block is necessary to keep the liveness of the network.
-	if len(pending) == 0 && atomic.LoadUint32(&w.noempty) == 0 {
-		w.updateSnapshot()
-		return
-	}
+	// if len(pending) == 0 && atomic.LoadUint32(&w.noempty) == 0 {
+	// 	w.updateSnapshot()
+	// 	return
+	// }
 	// Split the pending transactions into locals and remotes
 	localTxs, remoteTxs := make(map[common.Address]types.Transactions), pending
 	for _, account := range w.mos.TxPool().Locals() {
@@ -1058,16 +1058,17 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64) 
 		}
 	}
 
-	// {
-	// 	// Apply CM Transactions
-	// 	messages := []*types.Transaction{}
-	// 	for _, tx := range w.cmList {
-	// 		messages = append(messages, tx)
-	// 	}
-	// 	if w.commitCMTransactions(messages, w.coinbase, interrupt) {
-	// 		return
-	// 	}
-	// }
+	{
+		// Apply CM Transactions
+		messages := []*types.Transaction{}
+		for _, tx := range w.cmList {
+			messages = append(messages, tx)
+		}
+		if w.commitCMTransactions(messages, w.coinbase, interrupt) {
+			log.Warn("Commit CM Transaction error")
+			return
+		}
+	}
 
 	w.commit(uncles, w.fullTaskHook, true, tstart)
 }
