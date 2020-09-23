@@ -363,7 +363,7 @@ func (uv *SimpleUVLP) VerfiySimpleUvlpMsg(data []byte, secondBlocks []uint64) er
 			// verify proof2
 			if secondBlocks != nil {
 				if !Uint64SliceEqual(secondBlocks,msg.SecondRes.Proof.Checked) {
-					return fmt.Errorf("blocks not match,local:",secondBlocks,"remote:",msg.SecondRes.Proof.Checked)
+					return fmt.Errorf("blocks not match,local:%v,remote:%v",secondBlocks,msg.SecondRes.Proof.Checked)
 				}
 			}
 			if pBlocks, err := VerifyRequiredBlocks2(msg.SecondRes.Proof); err != nil {

@@ -1009,11 +1009,17 @@ func (m *Mmr) GenerateProof2(proofHeight,EndHeight uint64) *ProofInfo {
 	// sort.Slice(blocks, func(i, j int) bool {
 	// 	return blocks[i] < blocks[j]
 	// })
+
 	mmrClone := m.Copy()
-	// 
+	lRemove := int64(EndHeight - mmrClone.leafNum)
+	if lRemove > 0 {
+		for i :=0;i< int(lRemove); i++ {
+			mmrClone.Pop()
+		}
+	}
+	
 	info := mmrClone.genProof(big.NewInt(0), []uint64{proofHeight})
 	info.Checked =  []uint64{proofHeight}
-
 	return info
 }
 
