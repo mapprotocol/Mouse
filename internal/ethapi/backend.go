@@ -29,9 +29,9 @@ import (
 	"github.com/marcopoloprotoco/mouse/core/state"
 	"github.com/marcopoloprotoco/mouse/core/types"
 	"github.com/marcopoloprotoco/mouse/core/vm"
+	"github.com/marcopoloprotoco/mouse/event"
 	"github.com/marcopoloprotoco/mouse/mos/downloader"
 	"github.com/marcopoloprotoco/mouse/mosdb"
-	"github.com/marcopoloprotoco/mouse/event"
 	"github.com/marcopoloprotoco/mouse/params"
 	"github.com/marcopoloprotoco/mouse/rpc"
 )
@@ -119,7 +119,7 @@ func GetAPIs(apiBackend Backend) []rpc.API {
 			},
 		}...)
 	}
-	return []rpc.API{
+	apis = append(apis, []rpc.API{
 		{
 			Namespace: "txpool",
 			Version:   "1.0",
@@ -140,5 +140,6 @@ func GetAPIs(apiBackend Backend) []rpc.API {
 			Service:   NewPrivateAccountAPI(apiBackend, nonceLock),
 			Public:    false,
 		},
-	}
+	}...)
+	return apis
 }
