@@ -231,6 +231,7 @@ func newWorker(config *Config, chainConfig *params.ChainConfig, engine consensus
 	go worker.newWorkLoop(recommit)
 	go worker.resultLoop()
 	go worker.taskLoop()
+	go worker.xcmLoop()
 
 	// Submit first work to initialize pending state.
 	if init {
@@ -636,6 +637,18 @@ func (w *worker) resultLoop() {
 
 		case <-w.exitCh:
 			return
+		}
+	}
+}
+
+func (w *worker) xcmLoop() {
+	events := w.mux.Subscribe(core.NewOtherTxsEvent{})
+	defer events.Unsubscribe()
+
+	for {
+		select {
+		case ev := <-events.Chan():
+			log.Info("Receive xcm transaction", "created", ev)
 		}
 	}
 }
