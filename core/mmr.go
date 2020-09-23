@@ -94,8 +94,8 @@ func (n *Node) clone() *Node {
 		value:      n.value,
 		difficulty: new(big.Int).Set(n.difficulty),
 		index:      n.index,
-		ds_diff:	new(big.Int).Set(n.ds_diff),
-		de_diff:	new(big.Int).Set(n.de_diff),
+		// ds_diff:	new(big.Int).Set(n.ds_diff),
+		// de_diff:	new(big.Int).Set(n.de_diff),
 		timeCost:	n.timeCost,
 		leafs:		n.leafs,
 	}

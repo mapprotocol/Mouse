@@ -127,35 +127,29 @@ func test_O6(count int) {
 }
 
 func TestO7(t *testing.T) {
-	count := 10
+	count := 16
 	mmr := NewMMR()
 	for i := 0; i < count; i++ {
 		if i == 9999 {
 			fmt.Println(i)
 		}
 		mmr.Push(&Node{
-			value:      BytesToHash(IntToBytes(i)),
-			difficulty: big.NewInt(1000),
+			value:      	BytesToHash(IntToBytes(i)),
+			difficulty: 	big.NewInt(1000),
+			leafs:			uint64(i+1),
+			ds_diff:		big.NewInt(10),
+			de_diff:		big.NewInt(10),
 		})
 	}
 
-	// fmt.Println(mmr.GetSize(), mmr.GetRootNode())
-	// fmt.Println("last:", mmr.getNode(19990))
-	mmr.Pop()
-	// r := mmr.Pop()
-	// fmt.Println("last:", r)
-	// fmt.Println(mmr.GetSize(), mmr.GetRootNode())
-	right_difficulty := big.NewInt(1000)
-	// fmt.Println("leaf_number:", mmr.getLeafNumber(), "root_difficulty:", mmr.GetRootDifficulty())
-	proof, _, _ := mmr.CreateNewProof(right_difficulty)
-	// fmt.Println("blocks_len:", len(blocks), "blocks:", blocks, "eblocks:", len(eblocks))
-	// fmt.Println("proof:", proof)
-	pBlocks, err := VerifyRequiredBlocks(proof, right_difficulty)
+	proof := mmr.GenerateProof2(8,13)
+	proofBlock, err := VerifyRequiredBlocks2(proof)
 	if err != nil {
-		fmt.Println("err:", err)
-		return
+		fmt.Println(err)
+	} else {
+		b := proof.VerifyProof2(proofBlock)
+		fmt.Println("b:", b)
 	}
-	b := proof.VerifyProof(pBlocks)
-	fmt.Println("b:", b)
+
 	fmt.Println("finish:", count)
 }
