@@ -40,7 +40,7 @@ func (e ethEntry) ENRKey() string {
 }
 
 // startEthEntryUpdate starts the ENR updater loop.
-func (mos *Ethereum) startEthEntryUpdate(ln *enode.LocalNode) {
+func (mos *Mouse) startEthEntryUpdate(ln *enode.LocalNode) {
 	var newHead = make(chan core.ChainHeadEvent, 10)
 	sub := mos.blockchain.SubscribeChainHeadEvent(newHead)
 
@@ -59,12 +59,12 @@ func (mos *Ethereum) startEthEntryUpdate(ln *enode.LocalNode) {
 	}()
 }
 
-func (mos *Ethereum) currentEthEntry() *ethEntry {
+func (mos *Mouse) currentEthEntry() *ethEntry {
 	return &ethEntry{ForkID: forkid.NewID(mos.blockchain)}
 }
 
 // setupDiscovery creates the node discovery source for the mos protocol.
-func (mos *Ethereum) setupDiscovery(cfg *p2p.Config) (enode.Iterator, error) {
+func (mos *Mouse) setupDiscovery(cfg *p2p.Config) (enode.Iterator, error) {
 	if cfg.NoDiscovery || len(mos.config.DiscoveryURLs) == 0 {
 		return nil, nil
 	}

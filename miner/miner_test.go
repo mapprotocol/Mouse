@@ -14,7 +14,7 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with the mouse library. If not, see <http://www.gnu.org/licenses/>.
 
-// Package miner implements Ethereum block creation and mining.
+// Package miner implements Mouse block creation and mining.
 package miner
 
 import (
@@ -167,7 +167,7 @@ func createMiner(t *testing.T) (*Miner, *event.TypeMux) {
 	isLocalBlock := func(block *types.Block) bool {
 		return true
 	}
-	// Create Ethereum backend
+	// Create Mouse backend
 	limit := uint64(1000)
 	bc, err := core.NewBlockChain(chainDB, new(core.CacheConfig), chainConfig, engine, vm.Config{}, isLocalBlock, &limit)
 	if err != nil {

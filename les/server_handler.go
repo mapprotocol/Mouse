@@ -109,7 +109,7 @@ func (h *serverHandler) runPeer(version uint, p *p2p.Peer, rw p2p.MsgReadWriter)
 }
 
 func (h *serverHandler) handle(p *clientPeer) error {
-	p.Log().Debug("Light Ethereum peer connected", "name", p.Name())
+	p.Log().Debug("Light Mouse peer connected", "name", p.Name())
 
 	// Execute the LES handshake
 	var (
@@ -119,7 +119,7 @@ func (h *serverHandler) handle(p *clientPeer) error {
 		td     = h.blockchain.GetTd(hash, number)
 	)
 	if err := p.Handshake(td, hash, number, h.blockchain.Genesis().Hash(), h.server); err != nil {
-		p.Log().Debug("Light Ethereum handshake failed", "err", err)
+		p.Log().Debug("Light Mouse handshake failed", "err", err)
 		return err
 	}
 	if p.server {
@@ -139,13 +139,13 @@ func (h *serverHandler) handle(p *clientPeer) error {
 
 	// Disconnect the inbound peer if it's rejected by clientPool
 	if !h.server.clientPool.connect(p, 0) {
-		p.Log().Debug("Light Ethereum peer registration failed", "err", errFullClientPool)
+		p.Log().Debug("Light Mouse peer registration failed", "err", errFullClientPool)
 		return errFullClientPool
 	}
 	// Register the peer locally
 	if err := h.server.peers.register(p); err != nil {
 		h.server.clientPool.disconnect(p)
-		p.Log().Error("Light Ethereum peer registration failed", "err", err)
+		p.Log().Error("Light Mouse peer registration failed", "err", err)
 		return err
 	}
 	clientConnectionGauge.Update(int64(h.server.peers.len()))
@@ -187,7 +187,7 @@ func (h *serverHandler) handleMsg(p *clientPeer, wg *sync.WaitGroup) error {
 	if err != nil {
 		return err
 	}
-	p.Log().Trace("Light Ethereum message arrived", "code", msg.Code, "bytes", msg.Size)
+	p.Log().Trace("Light Mouse message arrived", "code", msg.Code, "bytes", msg.Size)
 
 	// Discard large message which exceeds the limitation.
 	if msg.Size > ProtocolMaxMsgSize {

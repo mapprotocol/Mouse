@@ -102,8 +102,8 @@ type ProtocolManager struct {
 	ulVP                     *core.SimpleUVLP
 }
 
-// NewProtocolManager returns a new Ethereum sub protocol manager. The Ethereum sub protocol manages peers capable
-// with the Ethereum network.
+// NewProtocolManager returns a new Mouse sub protocol manager. The Mouse sub protocol manages peers capable
+// with the Mouse network.
 func NewProtocolManager(config *params.ChainConfig, checkpoint *params.TrustedCheckpoint, mode downloader.SyncMode, networkID uint64, mux *event.TypeMux, txpool txPool, engine consensus.Engine, blockchain *core.BlockChain, chaindb mosdb.Database, cacheLimit int, whitelist map[uint64]common.Hash) (*ProtocolManager, error) {
 	// Create the protocol manager with the base fields
 	manager := &ProtocolManager{
@@ -239,9 +239,9 @@ func (pm *ProtocolManager) removePeer(id string) {
 	if peer == nil {
 		return
 	}
-	log.Debug("Removing Ethereum peer", "peer", id)
+	log.Debug("Removing Mouse peer", "peer", id)
 
-	// Unregister the peer from the downloader and Ethereum peer set
+	// Unregister the peer from the downloader and Mouse peer set
 	pm.downloader.UnregisterPeer(id)
 	pm.txFetcher.Drop(id)
 
@@ -260,7 +260,7 @@ func (pm *ProtocolManager) removeOtherPeer(id string) {
 	if peer == nil {
 		return
 	}
-	log.Debug("Removing Other Ethereum peer", "peer", id)
+	log.Debug("Removing Other Mouse peer", "peer", id)
 
 	if err := pm.peersOther.Unregister(id); err != nil {
 		log.Error("Peer Other removal failed", "peer", id, "err", err)
@@ -312,7 +312,7 @@ func (pm *ProtocolManager) Stop() {
 	pm.peers.Close()
 	pm.peerWG.Wait()
 
-	log.Info("Ethereum protocol stopped")
+	log.Info("Mouse protocol stopped")
 }
 
 func (pm *ProtocolManager) newPeer(pv int, p *p2p.Peer, rw p2p.MsgReadWriter, getPooledTx func(hash common.Hash) *types.Transaction) *peer {
@@ -339,9 +339,9 @@ func (pm *ProtocolManager) handle(p *peer) error {
 	if pm.peers.Len() >= pm.maxPeers && !p.Peer.Info().Network.Trusted {
 		return p2p.DiscTooManyPeers
 	}
-	p.Log().Info("Ethereum peer connected", "name", p.Name())
+	p.Log().Info("Mouse peer connected", "name", p.Name())
 
-	// Execute the Ethereum handshake
+	// Execute the Mouse handshake
 	var (
 		genesis = pm.blockchain.Genesis()
 		head    = pm.blockchain.CurrentHeader()
@@ -350,12 +350,12 @@ func (pm *ProtocolManager) handle(p *peer) error {
 		td      = pm.blockchain.GetTd(hash, number)
 	)
 	if err := p.Handshake(pm.networkID, td, hash, genesis.Hash(), forkid.NewID(pm.blockchain), pm.forkFilter); err != nil {
-		p.Log().Debug("Ethereum handshake failed", "err", err)
+		p.Log().Debug("Mouse handshake failed", "err", err)
 		return err
 	}
 	// Register the peer locally
 	if err := pm.peers.Register(p, pm.removePeer); err != nil {
-		p.Log().Error("Ethereum peer registration failed", "err", err)
+		p.Log().Error("Mouse peer registration failed", "err", err)
 		return err
 	}
 	defer pm.removePeer(p.id)
@@ -398,7 +398,7 @@ func (pm *ProtocolManager) handle(p *peer) error {
 	// Handle incoming messages until the connection is torn down
 	for {
 		if err := pm.handleMsg(p); err != nil {
-			p.Log().Debug("Ethereum message handling failed", "err", err)
+			p.Log().Debug("Mouse message handling failed", "err", err)
 			return err
 		}
 	}
@@ -409,9 +409,9 @@ func (pm *ProtocolManager) handleOther(p *peer) error {
 	if pm.peersOther.Len() >= pm.maxPeers && !p.Peer.Info().Network.Trusted {
 		return p2p.DiscTooManyPeers
 	}
-	p.Log().Info("Ethereum Other peer connected", "name", p.Name())
+	p.Log().Info("Mouse Other peer connected", "name", p.Name())
 
-	// Execute the Ethereum handshake
+	// Execute the Mouse handshake
 	var (
 		genesis = pm.blockchain.Genesis()
 		head    = pm.blockchain.CurrentHeader()
@@ -421,13 +421,13 @@ func (pm *ProtocolManager) handleOther(p *peer) error {
 	)
 	dial := p.Dial()
 	if err := p.OtherHandshake(pm.networkID, td, hash, genesis.Hash(), pm.ulVP, dial); err != nil {
-		p.Log().Debug("Ethereum handshake failed", "err", err)
+		p.Log().Debug("Mouse handshake failed", "err", err)
 		return err
 	}
 
 	// Register the peer locally
 	if err := pm.peersOther.Register(p, pm.removeOtherPeer); err != nil {
-		p.Log().Error("Ethereum peer registration failed", "err", err)
+		p.Log().Error("Mouse peer registration failed", "err", err)
 		return err
 	}
 	defer pm.removeOtherPeer(p.id)
@@ -435,7 +435,7 @@ func (pm *ProtocolManager) handleOther(p *peer) error {
 	// Handle incoming messages until the connection is torn down
 	for {
 		if err := pm.handleOtherMsg(p); err != nil {
-			p.Log().Debug("Ethereum message handling failed", "err", err)
+			p.Log().Debug("Mouse message handling failed", "err", err)
 			return err
 		}
 	}
@@ -1188,10 +1188,10 @@ func (pm *ProtocolManager) txBroadcastLoop() {
 	}
 }
 
-// NodeInfo represents a short summary of the Ethereum sub-protocol metadata
+// NodeInfo represents a short summary of the Mouse sub-protocol metadata
 // known about the host peer.
 type NodeInfo struct {
-	Network    uint64              `json:"network"`    // Ethereum network ID (1=Frontier, 2=Morden, Ropsten=3, Rinkeby=4)
+	Network    uint64              `json:"network"`    // Mouse network ID (1=Frontier, 2=Morden, Ropsten=3, Rinkeby=4)
 	Difficulty *big.Int            `json:"difficulty"` // Total difficulty of the host's blockchain
 	Genesis    common.Hash         `json:"genesis"`    // SHA3 hash of the host's genesis block
 	Config     *params.ChainConfig `json:"config"`     // Chain configuration for the fork rules

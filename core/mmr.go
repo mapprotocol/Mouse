@@ -710,7 +710,7 @@ func (p *ProofInfo) VerifyProof(blocks []*ProofBlock) bool {
 
 				if !nodes.is_empty() {
 					//TODO: Verification of previous MMR should happen here
-					//weil in einem Ethereum block header kein mmr hash vorhanden ist, kann man
+					//weil in einem Mouse block header kein mmr hash vorhanden ist, kann man
 					//dies nicht überprüfen, wenn doch irgendwann vorhanden, dann einfach
 					//'block_header.mmr == old_root_hash' überprüfen
 					_, left_difficulty := get_root(nodes)

@@ -332,7 +332,7 @@ func GenesisBlockForTesting(db mosdb.Database, addr common.Address, balance *big
 	return g.MustCommit(db)
 }
 
-// DefaultGenesisBlock returns the Ethereum main net genesis block.
+// DefaultGenesisBlock returns the Mouse main net genesis block.
 func DefaultGenesisBlock() *Genesis {
 	i, _ := new(big.Int).SetString("90000000000000000000000", 10)
 	return &Genesis{

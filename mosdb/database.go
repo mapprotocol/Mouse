@@ -14,7 +14,7 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with the mouse library. If not, see <http://www.gnu.org/licenses/>.
 
-// Package mosdb defines the interfaces for an Ethereum data store.
+// Package mosdb defines the interfaces for an Mouse data store.
 package mosdb
 
 import "io"

@@ -99,7 +99,7 @@ func (h *clientHandler) handle(p *serverPeer) error {
 	if h.backend.peers.len() >= h.backend.config.LightPeers && !p.Peer.Info().Network.Trusted {
 		return p2p.DiscTooManyPeers
 	}
-	p.Log().Debug("Light Ethereum peer connected", "name", p.Name())
+	p.Log().Debug("Light Mouse peer connected", "name", p.Name())
 
 	// Execute the LES handshake
 	var (
@@ -109,12 +109,12 @@ func (h *clientHandler) handle(p *serverPeer) error {
 		td     = h.backend.blockchain.GetTd(hash, number)
 	)
 	if err := p.Handshake(td, hash, number, h.backend.blockchain.Genesis().Hash(), nil); err != nil {
-		p.Log().Debug("Light Ethereum handshake failed", "err", err)
+		p.Log().Debug("Light Mouse handshake failed", "err", err)
 		return err
 	}
 	// Register the peer locally
 	if err := h.backend.peers.register(p); err != nil {
-		p.Log().Error("Light Ethereum peer registration failed", "err", err)
+		p.Log().Error("Light Mouse peer registration failed", "err", err)
 		return err
 	}
 	serverConnectionGauge.Update(int64(h.backend.peers.len()))
@@ -134,7 +134,7 @@ func (h *clientHandler) handle(p *serverPeer) error {
 	// Spawn a main loop to handle all incoming messages.
 	for {
 		if err := h.handleMsg(p); err != nil {
-			p.Log().Debug("Light Ethereum message handling failed", "err", err)
+			p.Log().Debug("Light Mouse message handling failed", "err", err)
 			p.fcServer.DumpLogs()
 			return err
 		}
@@ -149,7 +149,7 @@ func (h *clientHandler) handleMsg(p *serverPeer) error {
 	if err != nil {
 		return err
 	}
-	p.Log().Trace("Light Ethereum message arrived", "code", msg.Code, "bytes", msg.Size)
+	p.Log().Trace("Light Mouse message arrived", "code", msg.Code, "bytes", msg.Size)
 
 	if msg.Size > ProtocolMaxMsgSize {
 		return errResp(ErrMsgTooLarge, "%v > %v", msg.Size, ProtocolMaxMsgSize)

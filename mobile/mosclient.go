@@ -14,7 +14,7 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with the mouse library. If not, see <http://www.gnu.org/licenses/>.
 
-// Contains a wrapper for the Ethereum client.
+// Contains a wrapper for the Mouse client.
 
 package gmos
 
@@ -25,7 +25,7 @@ import (
 	"github.com/marcopoloprotoco/mouse/mosclient"
 )
 
-// MouseClient provides access to the Ethereum APIs.
+// MouseClient provides access to the Mouse APIs.
 type MouseClient struct {
 	client *mosclient.Client
 }

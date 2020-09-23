@@ -42,7 +42,7 @@ import (
 // EthAPIBackend implements ethapi.Backend for full nodes
 type EthAPIBackend struct {
 	extRPCEnabled bool
-	mos           *Ethereum
+	mos           *Mouse
 	gpo           *gasprice.Oracle
 }
 

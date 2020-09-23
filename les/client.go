@@ -14,7 +14,7 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with the mouse library. If not, see <http://www.gnu.org/licenses/>.
 
-// Package les implements the Light Ethereum Subprotocol.
+// Package les implements the Light Mouse Subprotocol.
 package les
 
 import (
@@ -296,7 +296,7 @@ func (s *LightEthereum) Start() error {
 }
 
 // Stop implements node.Lifecycle, terminating all internal goroutines used by the
-// Ethereum protocol.
+// Mouse protocol.
 func (s *LightEthereum) Stop() error {
 	close(s.closeCh)
 	s.serverPool.stop()

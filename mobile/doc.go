@@ -16,7 +16,7 @@
 
 // Package gmos contains the simplified mobile APIs to mouse.
 //
-// The scope of this package is *not* to allow writing a custom Ethereum client
+// The scope of this package is *not* to allow writing a custom Mouse client
 // with pieces plucked from mouse, rather to allow writing native dapps on
 // mobile platforms. Keep this in mind when using or extending this package!
 //

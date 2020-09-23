@@ -1709,18 +1709,18 @@ func setDNSDiscoveryDefaults(cfg *mos.Config, genesis common.Hash) {
 	}
 }
 
-// RegisterEthService adds an Ethereum client to the stack.
+// RegisterEthService adds an Mouse client to the stack.
 func RegisterEthService(stack *node.Node, cfg *mos.Config) ethapi.Backend {
 	if cfg.SyncMode == downloader.LightSync {
 		backend, err := les.New(stack, cfg)
 		if err != nil {
-			Fatalf("Failed to register the Ethereum service: %v", err)
+			Fatalf("Failed to register the Mouse service: %v", err)
 		}
 		return backend.ApiBackend
 	} else {
 		backend, err := mos.New(stack, cfg)
 		if err != nil {
-			Fatalf("Failed to register the Ethereum service: %v", err)
+			Fatalf("Failed to register the Mouse service: %v", err)
 		}
 		if cfg.LightServ > 0 {
 			_, err := les.NewLesServer(stack, backend, cfg)
@@ -1732,11 +1732,11 @@ func RegisterEthService(stack *node.Node, cfg *mos.Config) ethapi.Backend {
 	}
 }
 
-// RegisterEthStatsService configures the Ethereum Stats daemon and adds it to
+// RegisterEthStatsService configures the Mouse Stats daemon and adds it to
 // the given node.
 func RegisterEthStatsService(stack *node.Node, backend ethapi.Backend, url string) {
 	if err := mosstats.New(stack, backend, backend.Engine(), url); err != nil {
-		Fatalf("Failed to register the Ethereum Stats service: %v", err)
+		Fatalf("Failed to register the Mouse Stats service: %v", err)
 	}
 }
 

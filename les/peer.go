@@ -1007,7 +1007,7 @@ type clientPeerSubscriber interface {
 }
 
 // clientPeerSet represents the set of active client peers currently
-// participating in the Light Ethereum sub-protocol.
+// participating in the Light Mouse sub-protocol.
 type clientPeerSet struct {
 	peers map[string]*clientPeer
 	// subscribers is a batch of subscribers and peerset will notify
@@ -1139,7 +1139,7 @@ func (ps *clientPeerSet) close() {
 }
 
 // serverPeerSet represents the set of active server peers currently
-// participating in the Light Ethereum sub-protocol.
+// participating in the Light Mouse sub-protocol.
 type serverPeerSet struct {
 	peers map[string]*serverPeer
 	// subscribers is a batch of subscribers and peerset will notify

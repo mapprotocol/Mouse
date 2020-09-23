@@ -14,7 +14,7 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with the mouse library. If not, see <http://www.gnu.org/licenses/>.
 
-// Package ethapi implements the general Ethereum API functions.
+// Package ethapi implements the general Mouse API functions.
 package ethapi
 
 import (
@@ -39,7 +39,7 @@ import (
 // Backend interface provides the common API services (that are provided by
 // both full and light clients) with access to necessary functions.
 type Backend interface {
-	// General Ethereum API
+	// General Mouse API
 	Downloader() *downloader.Downloader
 	ProtocolVersion() int
 	SuggestPrice(ctx context.Context) (*big.Int, error)
@@ -92,23 +92,35 @@ type Backend interface {
 
 func GetAPIs(apiBackend Backend) []rpc.API {
 	nonceLock := new(AddrLocker)
+	var apis []rpc.API
+	namespaces := []string{"mos", "eth"}
+	for _, name := range namespaces {
+		apis = append(apis, []rpc.API{
+			{
+				Namespace: name,
+				Version:   "1.0",
+				Service:   NewPublicEthereumAPI(apiBackend),
+				Public:    true,
+			}, {
+				Namespace: name,
+				Version:   "1.0",
+				Service:   NewPublicBlockChainAPI(apiBackend),
+				Public:    true,
+			}, {
+				Namespace: name,
+				Version:   "1.0",
+				Service:   NewPublicTransactionPoolAPI(apiBackend, nonceLock),
+				Public:    true,
+			}, {
+				Namespace: name,
+				Version:   "1.0",
+				Service:   NewPublicAccountAPI(apiBackend.AccountManager()),
+				Public:    true,
+			},
+		}...)
+	}
 	return []rpc.API{
 		{
-			Namespace: "mos",
-			Version:   "1.0",
-			Service:   NewPublicEthereumAPI(apiBackend),
-			Public:    true,
-		}, {
-			Namespace: "mos",
-			Version:   "1.0",
-			Service:   NewPublicBlockChainAPI(apiBackend),
-			Public:    true,
-		}, {
-			Namespace: "mos",
-			Version:   "1.0",
-			Service:   NewPublicTransactionPoolAPI(apiBackend, nonceLock),
-			Public:    true,
-		}, {
 			Namespace: "txpool",
 			Version:   "1.0",
 			Service:   NewPublicTxPoolAPI(apiBackend),
@@ -122,11 +134,6 @@ func GetAPIs(apiBackend Backend) []rpc.API {
 			Namespace: "debug",
 			Version:   "1.0",
 			Service:   NewPrivateDebugAPI(apiBackend),
-		}, {
-			Namespace: "mos",
-			Version:   "1.0",
-			Service:   NewPublicAccountAPI(apiBackend.AccountManager()),
-			Public:    true,
 		}, {
 			Namespace: "personal",
 			Version:   "1.0",

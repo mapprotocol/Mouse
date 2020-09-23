@@ -9,7 +9,7 @@
   <version>{{.Version}}</version>
   <packaging>aar</packaging>
 
-  <name>Android Ethereum Client</name>
+  <name>Android Mouse Client</name>
   <description>Android port of the mouse libraries and node</description>
   <url>https://github.com/ethereum/mouse</url>
   <inceptionYear>2015</inceptionYear>
@@ -23,7 +23,7 @@
   </licenses>
 
   <organization>
-    <name>Ethereum</name>
+    <name>Mouse</name>
     <url>https://ethereum.org</url>
   </organization>
 

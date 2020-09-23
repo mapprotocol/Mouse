@@ -64,7 +64,7 @@ type ID struct {
 // Filter is a fork id filter to validate a remotely advertised ID.
 type Filter func(id ID) error
 
-// NewID calculates the Ethereum fork ID from the chain config and head.
+// NewID calculates the Mouse fork ID from the chain config and head.
 func NewID(chain Blockchain) ID {
 	return newID(
 		chain.Config(),

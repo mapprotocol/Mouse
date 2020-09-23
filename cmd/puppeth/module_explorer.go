@@ -139,7 +139,7 @@ func (info *explorerInfos) Report() map[string]string {
 	report := map[string]string{
 		"Website address ":        info.host,
 		"Website listener port ":  strconv.Itoa(info.port),
-		"Ethereum listener port ": strconv.Itoa(info.node.port),
+		"Mouse listener port ": strconv.Itoa(info.node.port),
 		"Ethstats username":       info.node.mosstats,
 	}
 	return report

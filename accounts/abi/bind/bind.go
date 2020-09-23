@@ -14,10 +14,10 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with the mouse library. If not, see <http://www.gnu.org/licenses/>.
 
-// Package bind generates Ethereum contract Go bindings.
+// Package bind generates Mouse contract Go bindings.
 //
 // Detailed usage document and tutorial available on the mouse Wiki page:
-// https://github.com/marcopoloprotoco/mouse/wiki/Native-DApps:-Go-bindings-to-Ethereum-contracts
+// https://github.com/marcopoloprotoco/mouse/wiki/Native-DApps:-Go-bindings-to-Mouse-contracts
 package bind
 
 import (

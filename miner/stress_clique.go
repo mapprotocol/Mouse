@@ -61,7 +61,7 @@ func main() {
 	genesis := makeGenesis(faucets, sealers)
 
 	var (
-		nodes  []*mos.Ethereum
+		nodes  []*mos.Mouse
 		enodes []*enode.Node
 	)
 
@@ -165,8 +165,8 @@ func makeGenesis(faucets []*ecdsa.PrivateKey, sealers []*ecdsa.PrivateKey) *core
 	return genesis
 }
 
-func makeSealer(genesis *core.Genesis) (*node.Node, *mos.Ethereum, error) {
-	// Define the basic configurations for the Ethereum node
+func makeSealer(genesis *core.Genesis) (*node.Node, *mos.Mouse, error) {
+	// Define the basic configurations for the Mouse node
 	datadir, _ := ioutil.TempDir("", "")
 
 	config := &node.Config{
@@ -180,7 +180,7 @@ func makeSealer(genesis *core.Genesis) (*node.Node, *mos.Ethereum, error) {
 		},
 		NoUSB: true,
 	}
-	// Start the node and configure a full Ethereum node on it
+	// Start the node and configure a full Mouse node on it
 	stack, err := node.New(config)
 	if err != nil {
 		return nil, nil, err
