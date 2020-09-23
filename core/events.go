@@ -27,6 +27,15 @@ type NewTxsEvent struct{ Txs []*types.Transaction }
 // NewMinedBlockEvent is posted when a block has been imported.
 type NewMinedBlockEvent struct{ Block *types.Block }
 
+// NewOtherTxsEvent is posted when a batch of transactions enter the transaction pool.
+type NewOtherTxsEvent struct{ Txs []*types.Transaction }
+
+// NewRequestTxProofEvent is posted when a batch of transactions enter the transaction pool.
+type NewRequestTxProofEvent struct{ TxHash common.Hash }
+
+// NewProofEvent is posted when a block has been imported.
+type NewProofEvent struct{ MRProof *MMRReceiptProof }
+
 // RemovedLogsEvent is posted when a reorg happens
 type RemovedLogsEvent struct{ Logs []*types.Log }
 

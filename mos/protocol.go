@@ -69,6 +69,15 @@ const (
 	NewPooledTransactionHashesMsg = 0x08
 	GetPooledTransactionsMsg      = 0x09
 	PooledTransactionsMsg         = 0x0a
+
+	NewOtherBlockHashesMsg = 0x01
+	OtherTransactionMsg    = 0x02
+	GetBlockMMRMsg         = 0x03
+	BlockMMRMsg            = 0x04
+	GetOtherReceiptsMsg    = 0x0f
+	OtherReceiptsMsg       = 0x10
+	GetMMRReceiptProofMsg  = 0x03
+	MMRReceiptProofMsg     = 0x04
 )
 
 type errCode int
@@ -147,6 +156,7 @@ type statusData struct {
 type newBlockHashesData []struct {
 	Hash   common.Hash // Hash of one particular block being announced
 	Number uint64      // Number of one particular block being announced
+	TD     *big.Int
 }
 
 // getBlockHeadersData represents a block header query.
@@ -155,6 +165,11 @@ type getBlockHeadersData struct {
 	Amount  uint64       // Maximum number of headers to retrieve
 	Skip    uint64       // Blocks to skip between consecutive headers
 	Reverse bool         // Query direction (false = rising towards latest, true = falling towards genesis)
+}
+
+// getBlockHeadersData represents a block header query.
+type getBlockMMRData struct {
+	TxHash common.Hash
 }
 
 // hashOrNumber is a combined field for specifying an origin block.

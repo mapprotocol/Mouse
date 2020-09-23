@@ -141,7 +141,7 @@ func (p *peer) broadcastBlocks(removePeer func(string)) {
 			p.Log().Trace("Propagated block", "number", prop.block.Number(), "hash", prop.block.Hash(), "td", prop.td)
 
 		case block := <-p.queuedBlockAnns:
-			if err := p.SendNewBlockHashes([]common.Hash{block.Hash()}, []uint64{block.NumberU64()}); err != nil {
+			if err := p.SendNewBlockHashes([]common.Hash{block.Hash()}, []uint64{block.NumberU64()}, []*big.Int{block.Difficulty()}); err != nil {
 				removePeer(p.id)
 				return
 			}
@@ -431,7 +431,7 @@ func (p *peer) SendPooledTransactionsRLP(hashes []common.Hash, txs []rlp.RawValu
 
 // SendNewBlockHashes announces the availability of a number of blocks through
 // a hash notification.
-func (p *peer) SendNewBlockHashes(hashes []common.Hash, numbers []uint64) error {
+func (p *peer) SendNewBlockHashes(hashes []common.Hash, numbers []uint64, tds []*big.Int) error {
 	// Mark all the block hashes as known, but ensure we don't overflow our limits
 	for p.knownBlocks.Cardinality() > max(0, maxKnownBlocks-len(hashes)) {
 		p.knownBlocks.Pop()
@@ -443,6 +443,7 @@ func (p *peer) SendNewBlockHashes(hashes []common.Hash, numbers []uint64) error 
 	for i := 0; i < len(hashes); i++ {
 		request[i].Hash = hashes[i]
 		request[i].Number = numbers[i]
+		request[i].TD = tds[i]
 	}
 	return p2p.Send(p.rw, NewBlockHashesMsg, request)
 }
@@ -496,6 +497,11 @@ func (p *peer) SendBlockHeaders(headers []*types.Header) error {
 // SendBlockBodies sends a batch of block contents to the remote peer.
 func (p *peer) SendBlockBodies(bodies []*blockBody) error {
 	return p2p.Send(p.rw, BlockBodiesMsg, blockBodiesData(bodies))
+}
+
+// SendNewBlock propagates an entire block to a remote peer.
+func (p *peer) SendMMRReceiptProof(mtProof core.MMRReceiptProof) error {
+	return p2p.Send(p.rw, BlockMMRMsg, []interface{}{mtProof.MMRProof, mtProof.ReceiptProof, mtProof.End, mtProof.Header, mtProof.Result})
 }
 
 // SendBlockBodiesRLP sends a batch of block contents to the remote peer from
