@@ -357,7 +357,11 @@ func (p *peer) sendTransactions(txs types.Transactions) error {
 	for _, tx := range txs {
 		p.knownTxs.Add(tx.Hash())
 	}
-	return p2p.Send(p.rw, TransactionMsg, txs)
+	if p.ChainId() == p2p.ChainB {
+		return p2p.Send(p.rw, OtherTransactionMsg, txs)
+	} else {
+		return p2p.Send(p.rw, TransactionMsg, txs)
+	}
 }
 
 // AsyncSendTransactions queues a list of transactions (by hash) to eventually
@@ -445,7 +449,11 @@ func (p *peer) SendNewBlockHashes(hashes []common.Hash, numbers []uint64, tds []
 		request[i].Number = numbers[i]
 		request[i].TD = tds[i]
 	}
-	return p2p.Send(p.rw, NewBlockHashesMsg, request)
+	if p.ChainId() == p2p.ChainB {
+		return p2p.Send(p.rw, NewOtherBlockHashesMsg, request)
+	} else {
+		return p2p.Send(p.rw, NewBlockHashesMsg, request)
+	}
 }
 
 // AsyncSendNewBlockHash queues the availability of a block for propagation to a
@@ -497,11 +505,6 @@ func (p *peer) SendBlockHeaders(headers []*types.Header) error {
 // SendBlockBodies sends a batch of block contents to the remote peer.
 func (p *peer) SendBlockBodies(bodies []*blockBody) error {
 	return p2p.Send(p.rw, BlockBodiesMsg, blockBodiesData(bodies))
-}
-
-// SendNewBlock propagates an entire block to a remote peer.
-func (p *peer) SendMMRReceiptProof(mtProof core.MMRReceiptProof) error {
-	return p2p.Send(p.rw, BlockMMRMsg, []interface{}{mtProof.MMRProof, mtProof.ReceiptProof, mtProof.End, mtProof.Header, mtProof.Result})
 }
 
 // SendBlockBodiesRLP sends a batch of block contents to the remote peer from
@@ -561,6 +564,17 @@ func (p *peer) RequestNodeData(hashes []common.Hash) error {
 func (p *peer) RequestReceipts(hashes []common.Hash) error {
 	p.Log().Debug("Fetching batch of receipts", "count", len(hashes))
 	return p2p.Send(p.rw, GetReceiptsMsg, hashes)
+}
+
+// RequestReceipts fetches a batch of transaction receipts from a remote node.
+func (p *peer) RequestMMRReceipts(hashes []common.Hash) error {
+	p.Log().Debug("Fetching batch of mmr receipts", "count", len(hashes))
+	return p2p.Send(p.rw, GetMMRReceiptProofMsg, hashes)
+}
+
+// SendNewBlock propagates an entire block to a remote peer.
+func (p *peer) SendMMRReceiptProof(mtProof core.MMRReceiptProof) error {
+	return p2p.Send(p.rw, MMRReceiptProofMsg, []interface{}{mtProof.MMRProof, mtProof.ReceiptProof, mtProof.End, mtProof.Header, mtProof.Result})
 }
 
 // RequestTxs fetches a batch of transactions from a remote node.

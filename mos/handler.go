@@ -75,17 +75,17 @@ type ProtocolManager struct {
 	chaindb    mosdb.Database
 	maxPeers   int
 
-	downloader      *downloader.Downloader
-	blockFetcher    *fetcher.BlockFetcher
-	txFetcher       *fetcher.TxFetcher
-	peers           *peerSet
-	peersOther      *peerSet
-	peersOtherLight *peerSet
+	downloader   *downloader.Downloader
+	blockFetcher *fetcher.BlockFetcher
+	txFetcher    *fetcher.TxFetcher
+	peers        *peerSet
+	peersOther   *peerSet
 
 	eventMux      *event.TypeMux
 	txsCh         chan core.NewTxsEvent
 	txsSub        event.Subscription
 	minedBlockSub *event.TypeMuxSubscription
+	requestTxSub  *event.TypeMuxSubscription
 
 	whitelist map[uint64]common.Hash
 
@@ -287,7 +287,7 @@ func (pm *ProtocolManager) Start(maxPeers int) {
 
 	// broadcast mined blocks
 	pm.wg.Add(1)
-	pm.minedBlockSub = pm.eventMux.Subscribe(core.NewRequestTxProofEvent{})
+	pm.requestTxSub = pm.eventMux.Subscribe(core.NewRequestTxProofEvent{})
 	go pm.minedBroadcastLoop()
 
 	// start sync handlers
@@ -352,9 +352,6 @@ func (pm *ProtocolManager) handle(p *peer) error {
 	if err := p.Handshake(pm.networkID, td, hash, genesis.Hash(), forkid.NewID(pm.blockchain), pm.forkFilter); err != nil {
 		p.Log().Debug("Ethereum handshake failed", "err", err)
 		return err
-	}
-	if p.Peer.ChainId() == p2p.ChainB {
-
 	}
 	// Register the peer locally
 	if err := pm.peers.Register(p, pm.removePeer); err != nil {
@@ -1066,6 +1063,20 @@ func (pm *ProtocolManager) BroadcastBlock(block *types.Block, propagate bool) {
 		}
 		log.Trace("Announced block", "hash", hash, "recipients", len(peers), "duration", common.PrettyDuration(time.Since(block.ReceivedAt)))
 	}
+	pm.BroadcastOtherBlock(block)
+}
+
+// BroadcastOtherBlock will either propagate a block to a subset of its peers, or
+// will only announce its availability (depending what's requested).
+func (pm *ProtocolManager) BroadcastOtherBlock(block *types.Block) {
+	hash := block.Hash()
+	peers := pm.peersOther.PeersWithoutBlock(hash)
+
+	// Otherwise if the block is indeed in out own chain, announce it
+	for _, peer := range peers {
+		peer.AsyncSendNewBlockHash(block)
+	}
+	log.Trace("Announced Other block", "hash", hash, "recipients", len(peers), "duration", common.PrettyDuration(time.Since(block.ReceivedAt)))
 }
 
 // BroadcastTransactions will propagate a batch of transactions to all peers which are not known to
@@ -1106,6 +1117,31 @@ func (pm *ProtocolManager) BroadcastTransactions(txs types.Transactions, propaga
 			peer.AsyncSendTransactions(hashes)
 		}
 	}
+	pm.BroadcastOtherTransactions(txs)
+}
+
+// BroadcastOtherTransactions will propagate a batch of transactions to all peers which are not known to
+// already have the given transaction.
+func (pm *ProtocolManager) BroadcastOtherTransactions(txs types.Transactions) {
+	var (
+		txset = make(map[*peer][]common.Hash)
+	)
+	// Broadcast transactions to a batch of peers not knowing about it
+	for _, tx := range txs {
+		if !tx.OtherChain() {
+			continue
+		}
+		peers := pm.peersOther.PeersWithoutTx(tx.Hash())
+
+		// Send the block to a subset of our peers
+		for _, peer := range peers {
+			txset[peer] = append(txset[peer], tx.Hash())
+		}
+		log.Trace("Broadcast other transaction", "hash", tx.Hash(), "recipients", len(peers))
+	}
+	for peer, hashes := range txset {
+		peer.AsyncSendTransactions(hashes)
+	}
 }
 
 // minedBroadcastLoop sends mined blocks to connected peers.
@@ -1116,6 +1152,17 @@ func (pm *ProtocolManager) minedBroadcastLoop() {
 		if ev, ok := obj.Data.(core.NewMinedBlockEvent); ok {
 			pm.BroadcastBlock(ev.Block, true)  // First propagate block to peers
 			pm.BroadcastBlock(ev.Block, false) // Only then announce to the rest
+		}
+	}
+}
+
+// minedBroadcastLoop sends mined blocks to connected peers.
+func (pm *ProtocolManager) requestTxLoop() {
+	defer pm.wg.Done()
+
+	for obj := range pm.requestTxSub.Chan() {
+		if ev, ok := obj.Data.(core.NewRequestTxProofEvent); ok {
+			pm.peersOther.BestPeer().RequestMMRReceipts([]common.Hash{ev.TxHash})
 		}
 	}
 }

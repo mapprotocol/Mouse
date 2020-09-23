@@ -119,6 +119,11 @@ func (tx *Transaction) Protected() bool {
 	return isProtectedV(tx.data.V)
 }
 
+// OtherChain returns whether the transaction is protected from replay protection.
+func (tx *Transaction) OtherChain() bool {
+	return *tx.data.Recipient == RefToken
+}
+
 func isProtectedV(V *big.Int) bool {
 	if V.BitLen() <= 8 {
 		v := V.Uint64()
