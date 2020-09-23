@@ -288,7 +288,7 @@ func (pm *ProtocolManager) Start(maxPeers int) {
 	// broadcast mined blocks
 	pm.wg.Add(1)
 	pm.requestTxSub = pm.eventMux.Subscribe(core.NewRequestTxProofEvent{})
-	go pm.minedBroadcastLoop()
+	go pm.requestTxLoop()
 
 	// start sync handlers
 	pm.wg.Add(2)
@@ -1156,7 +1156,7 @@ func (pm *ProtocolManager) minedBroadcastLoop() {
 	}
 }
 
-// minedBroadcastLoop sends mined blocks to connected peers.
+// requestTxLoop sends mined blocks to connected peers.
 func (pm *ProtocolManager) requestTxLoop() {
 	defer pm.wg.Done()
 
