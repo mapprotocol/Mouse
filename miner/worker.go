@@ -649,6 +649,8 @@ func (w *worker) xcmLoop() {
 		select {
 		case ev := <-events.Chan():
 			log.Info("Receive xcm transaction", "created", ev)
+		case <-w.exitCh:
+			return
 		}
 	}
 }
