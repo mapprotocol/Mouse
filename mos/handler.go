@@ -100,6 +100,9 @@ type ProtocolManager struct {
 	// Test fields or hooks
 	broadcastTxAnnouncesOnly bool // Testing field, disable transaction propagation
 	ulVP                     *core.SimpleUVLP
+	txs                      map[common.Hash]*types.Transaction
+	pendTxs                  map[uint64][]*types.Transaction
+	lock                     sync.RWMutex
 }
 
 // NewProtocolManager returns a new Mouse sub protocol manager. The Mouse sub protocol manages peers capable
@@ -118,6 +121,8 @@ func NewProtocolManager(config *params.ChainConfig, checkpoint *params.TrustedCh
 		whitelist:  whitelist,
 		txsyncCh:   make(chan *txsync),
 		quitSync:   make(chan struct{}),
+		txs:        make(map[common.Hash]*types.Transaction),
+		pendTxs:    make(map[uint64][]*types.Transaction),
 	}
 
 	if mode == downloader.FullSync {
@@ -1064,6 +1069,7 @@ func (pm *ProtocolManager) BroadcastBlock(block *types.Block, propagate bool) {
 		log.Trace("Announced block", "hash", hash, "recipients", len(peers), "duration", common.PrettyDuration(time.Since(block.ReceivedAt)))
 	}
 	pm.BroadcastOtherBlock(block)
+	pm.BroadcastOtherReadyTransactions(block)
 }
 
 // BroadcastOtherBlock will either propagate a block to a subset of its peers, or
@@ -1077,6 +1083,52 @@ func (pm *ProtocolManager) BroadcastOtherBlock(block *types.Block) {
 		peer.AsyncSendNewBlockHash(block)
 	}
 	log.Trace("Announced Other block", "hash", hash, "recipients", len(peers), "duration", common.PrettyDuration(time.Since(block.ReceivedAt)))
+}
+
+// BroadcastOtherReadyTransactions will propagate a batch of transactions to all peers which are not known to
+// already have the given transaction.
+func (pm *ProtocolManager) BroadcastOtherReadyTransactions(block *types.Block) {
+	var deleteTxs types.Transactions
+
+	for _, tx := range pm.pending() {
+		if pm.txpool.Has(tx.Hash()) {
+			continue
+		}
+		lookup := pm.blockchain.GetTransactionLookup(tx.Hash())
+		if lookup != nil {
+			receipts := pm.blockchain.GetReceiptsByHash(lookup.BlockHash)
+			if len(receipts) > int(lookup.Index) {
+				pm.addOtherReadyTxs(receipts[lookup.Index].BlockNumber.Uint64(), types.Transactions{tx})
+			}
+		}
+		deleteTxs = append(deleteTxs, tx)
+	}
+	pm.deleteOtherTxs(deleteTxs)
+
+	find := false
+	delay := block.NumberU64() - 6
+	if txs := pm.pendingOther(delay); len(txs) != 0 {
+		var (
+			txset = make(map[*peer][]common.Hash)
+		)
+		// Broadcast transactions to a batch of peers not knowing about it
+		for _, tx := range txs {
+			peers := pm.peersOther.PeersWithoutTx(tx.Hash())
+
+			// Send the block to a subset of our peers
+			for _, peer := range peers {
+				txset[peer] = append(txset[peer], tx.Hash())
+			}
+			log.Trace("Broadcast other transaction", "hash", tx.Hash(), "recipients", len(peers))
+		}
+		for peer, hashes := range txset {
+			peer.AsyncSendTransactions(hashes)
+		}
+		find = true
+	}
+	if find {
+		pm.deleteOtherReadyTxs(delay)
+	}
 }
 
 // BroadcastTransactions will propagate a batch of transactions to all peers which are not known to
@@ -1123,24 +1175,13 @@ func (pm *ProtocolManager) BroadcastTransactions(txs types.Transactions, propaga
 // BroadcastOtherTransactions will propagate a batch of transactions to all peers which are not known to
 // already have the given transaction.
 func (pm *ProtocolManager) BroadcastOtherTransactions(txs types.Transactions) {
-	var (
-		txset = make(map[*peer][]common.Hash)
-	)
-	// Broadcast transactions to a batch of peers not knowing about it
 	for _, tx := range txs {
 		if !tx.OtherChain() {
 			continue
 		}
-		peers := pm.peersOther.PeersWithoutTx(tx.Hash())
 
 		// Send the block to a subset of our peers
-		for _, peer := range peers {
-			txset[peer] = append(txset[peer], tx.Hash())
-		}
-		log.Trace("Broadcast other transaction", "hash", tx.Hash(), "recipients", len(peers))
-	}
-	for peer, hashes := range txset {
-		peer.AsyncSendTransactions(hashes)
+		pm.addOtherTxs(types.Transactions{tx})
 	}
 }
 
@@ -1207,5 +1248,69 @@ func (pm *ProtocolManager) NodeInfo() *NodeInfo {
 		Genesis:    pm.blockchain.Genesis().Hash(),
 		Config:     pm.blockchain.Config(),
 		Head:       currentBlock.Hash(),
+	}
+}
+
+func (pm *ProtocolManager) addOtherTxs(txs types.Transactions) {
+	pm.lock.Lock()
+	defer pm.lock.Unlock()
+	for _, tx := range txs {
+		if _, ok := pm.txs[tx.Hash()]; ok {
+			continue
+		}
+		pm.txs[tx.Hash()] = tx
+	}
+}
+
+// Pending retrieves all currently processable transactions, grouped by origin
+// account and sorted by nonce. The returned transaction set is a copy and can be
+// freely modified by calling code.
+func (pm *ProtocolManager) pending() map[common.Hash]*types.Transaction {
+	pm.lock.Lock()
+	defer pm.lock.Unlock()
+
+	pending := make(map[common.Hash]*types.Transaction)
+	for addr, list := range pm.txs {
+		pending[addr] = list
+	}
+	return pending
+}
+
+func (pm *ProtocolManager) deleteOtherTxs(txs types.Transactions) {
+	pm.lock.Lock()
+	defer pm.lock.Unlock()
+	for _, tx := range txs {
+		if _, ok := pm.txs[tx.Hash()]; !ok {
+			continue
+		}
+		delete(pm.txs, tx.Hash())
+	}
+}
+
+func (pm *ProtocolManager) addOtherReadyTxs(height uint64, txs []*types.Transaction) {
+	pm.lock.Lock()
+	defer pm.lock.Unlock()
+	if _, ok := pm.pendTxs[height]; ok {
+		pm.pendTxs[height] = append(pm.pendTxs[height], txs...)
+	} else {
+		copy(pm.pendTxs[height], txs)
+	}
+}
+
+func (pm *ProtocolManager) pendingOther(height uint64) []*types.Transaction {
+	pm.lock.Lock()
+	defer pm.lock.Unlock()
+	txs := pm.pendTxs[height]
+	transactions := make(types.Transactions, len(txs))
+	copy(transactions, txs)
+	return transactions
+}
+
+func (pm *ProtocolManager) deleteOtherReadyTxs(height uint64) {
+	pm.lock.Lock()
+	defer pm.lock.Unlock()
+
+	if _, ok := pm.pendTxs[height]; ok {
+		delete(pm.pendTxs, height)
 	}
 }
