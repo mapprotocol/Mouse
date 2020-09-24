@@ -1073,19 +1073,30 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64) 
 		}
 	}
 
-	{
-		// Apply CM Transactions
-		messages := []*types.Transaction{}
-		for _, tx := range w.cmList {
-			messages = append(messages, tx)
-		}
-		if w.commitCMTransactions(messages, w.coinbase, interrupt) {
-			log.Warn("Commit CM Transaction error")
-			return
-		}
+	// Apply CM Transactions
+	messages := w.cmPending()
+	if w.commitCMTransactions(messages, w.coinbase, interrupt) {
+		log.Warn("Commit CM Transaction error")
+		return
 	}
 
 	w.commit(uncles, w.fullTaskHook, true, tstart)
+}
+
+func (w *worker) cmPending() types.Transactions {
+	// Apply CM Transactions
+	messages := []*types.Transaction{}
+	for _, tx := range w.cmList {
+		messages = append(messages, tx)
+	}
+
+	w.cmList = make(map[common.Hash]*types.Transaction)
+
+	return messages
+}
+
+func (w *worker) insertCM(tx *types.Transaction) {
+	w.cmList[tx.Hash()] = tx
 }
 
 // commit runs any post-transaction state modifications, assembles the final block
