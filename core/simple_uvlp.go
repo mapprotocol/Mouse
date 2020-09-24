@@ -291,7 +291,7 @@ func (uv *SimpleUVLP) HandleSimpleUvlpMsgReq(msg *UvlpMsgReq) (*UvlpMsgRes, erro
 	// blocks = append(blocks, curNum)
 	// will send the block head with proofs to peer
 	if b := uv.localChain.GetBlockByNumber(blocks[0]); b != nil {
-		proof2 := uv.MmrInfo.GenerateProof2(blocks[0], curNum)
+		proof2 := uv.MmrInfo.GenerateProof(blocks[0], curNum)
 		res.SecondRes.Proof = proof2
 		res.SecondRes.Header = []*types.Header{b.Header()}
 	} else {

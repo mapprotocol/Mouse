@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"strings"
-
+	"sync"
 	"errors"
 	"math"
 	"math/big"
@@ -101,7 +101,7 @@ func (n *Node) clone() *Node {
 	}
 }
 func (n *Node) hasChildren(m *Mmr) bool {
-	elem_node_number, curr_root_node_number, aggr_node_number := n.index, m.GetSize(), uint64(0)
+	elem_node_number, curr_root_node_number, aggr_node_number := n.index, m.getSize(), uint64(0)
 	for {
 		if curr_root_node_number > 2 {
 			leaf_number := node_to_leaf_number(curr_root_node_number)
@@ -126,7 +126,7 @@ func (n *Node) hasChildren(m *Mmr) bool {
 	return false
 }
 func (n *Node) getChildren(m *Mmr) (*Node, *Node) {
-	elem_node_number, curr_root_node_number, aggr_node_number := n.index, m.GetSize(), uint64(0)
+	elem_node_number, curr_root_node_number, aggr_node_number := n.index, m.getSize(), uint64(0)
 
 	for {
 		if curr_root_node_number > 2 {
@@ -307,6 +307,7 @@ type Mmr struct {
 	values  []*Node
 	curSize uint64 // unused
 	leafNum uint64
+	mu *sync.Mutex
 }
 
 func NewMMR() *Mmr {
@@ -314,6 +315,7 @@ func NewMMR() *Mmr {
 		values:  make([]*Node, 0, 0),
 		curSize: 0,
 		leafNum: 0,
+		mu: new(sync.Mutex),
 	}
 }
 func (m *Mmr) getNode(pos uint64) *Node {
@@ -325,7 +327,7 @@ func (m *Mmr) getNode(pos uint64) *Node {
 func (m *Mmr) getLeafNumber() uint64 {
 	return m.leafNum
 }
-func (m *Mmr) Pop() *Node {
+func (m *Mmr) pop() *Node {
 	if m.leafNum <= 0 {
 		return nil
 	}
@@ -340,7 +342,7 @@ func (m *Mmr) Pop() *Node {
 		peakNode.push(m.getNode(left_root_node_number))
 		curr_tree_number = right_tree_number
 	}
-	peakNode.push(m.GetRootNode())
+	peakNode.push(m.getRootNode())
 	lastPeak := peakNode.pop()
 	tmp, remove := m.splitPeak(lastPeak)
 	if remove == nil {
@@ -395,6 +397,9 @@ func (m *Mmr) removeLastLeafNode(leaf *Node) {
 }
 
 func (m *Mmr) Push(newElem *Node) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
 	if len(m.values) <= 0 {
 		m.values, m.leafNum, m.curSize = append(m.values, newElem), 1, 1
 		newElem.index = 0
@@ -411,7 +416,7 @@ func (m *Mmr) Push(newElem *Node) {
 			nodes_to_hash.push(m.getNode(left_root_node_number))
 			curr_tree_number = right_tree_number
 		}
-		nodes_to_hash.push(m.GetRootNode())
+		nodes_to_hash.push(m.getRootNode())
 		m.values = append(m.values, newElem)
 		newElem.index = uint64(len(m.values) - 1)
 		nodes_to_hash.push(newElem)
@@ -435,32 +440,37 @@ func (m *Mmr) removeLastElem() {
 	m.values = append(m.values[:index], m.values[index+1:]...)
 	return
 }
-func (m *Mmr) GetRootNode() *Node {
+func (m *Mmr) getRootNode() *Node {
 	if len(m.values) <= 0 {
 		return nil
 	}
 	return m.values[len(m.values)-1]
 }
-func (m *Mmr) GetRoot() common.Hash {
-	root := m.GetRootNode()
+func (m *Mmr) getRoot() common.Hash {
+	root := m.getRootNode()
 	if root == nil {
 		return common.Hash{0}
 	} else {
 		return root.getHash()
 	}
 }
-func (m *Mmr) GetSize() uint64 {
+func (m *Mmr) GetRoot2() common.Hash {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	return m.getRoot()
+}
+func (m *Mmr) getSize() uint64 {
 	return uint64(len(m.values))
 }
-func (m *Mmr) GetRootDifficulty() *big.Int {
-	root := m.GetRootNode()
+func (m *Mmr) getRootDifficulty() *big.Int {
+	root := m.getRootNode()
 	if root == nil {
 		return nil
 	} else {
 		return root.getDifficulty()
 	}
 }
-func (m *Mmr) GetChildByAggrWeightDisc(weight *big.Int) uint64 {
+func (m *Mmr) getChildByAggrWeightDisc(weight *big.Int) uint64 {
 	AggrWeight, aggr_node_number, curr_tree_number := big.NewInt(0), uint64(0), m.leafNum
 	for {
 		if curr_tree_number > 1 {
@@ -493,17 +503,19 @@ func (m *Mmr) GetChildByAggrWeightDisc(weight *big.Int) uint64 {
 	}
 	return aggr_node_number
 }
-func (m *Mmr) GetChildByAggrWeight(weight float64) uint64 {
-	root_weight := m.GetRootDifficulty()
+func (m *Mmr) getChildByAggrWeight(weight float64) uint64 {
+	root_weight := m.getRootDifficulty()
 	v1, _ := new(big.Float).Mul(new(big.Float).SetInt(root_weight), big.NewFloat(weight)).Int64()
 	weight_disc := big.NewInt(v1)
-	return m.GetChildByAggrWeightDisc(weight_disc)
+	return m.getChildByAggrWeightDisc(weight_disc)
 }
 
 func (m *Mmr) Copy() *Mmr {
 	tmp := NewMMR()
 	tmp.curSize = m.curSize
 	tmp.leafNum = m.leafNum
+	m.mu.Lock()
+	defer m.mu.Unlock()
 	for _, n := range m.values {
 		tmp.values = append(tmp.values, n.clone())
 	}
@@ -578,7 +590,7 @@ func generateProofRecursive(currentNode *Node, blocks []uint64, proofs []*ProofE
 
 func (m *Mmr) genProof(right_difficulty *big.Int, blocks []uint64) *ProofInfo {
 	blocks = SortAndRemoveRepeatForBlocks(blocks)
-	proofs, rootNode, depth := []*ProofElem{}, m.GetRootNode(), get_depth(m.getLeafNumber())
+	proofs, rootNode, depth := []*ProofElem{}, m.getRootNode(), get_depth(m.getLeafNumber())
 	max_leaf_num := uint64(math.Pow(float64(2), float64(depth-1)))
 	proofs = generateProofRecursive(rootNode, blocks, proofs, max_leaf_num, depth,
 		m.getLeafNumber(), 0, m)
@@ -593,30 +605,33 @@ func (m *Mmr) genProof(right_difficulty *big.Int, blocks []uint64) *ProofInfo {
 		},
 	})
 	return &ProofInfo{
-		RootHash:       m.GetRoot(),
-		RootDifficulty: m.GetRootDifficulty(),
+		RootHash:       m.getRoot(),
+		RootDifficulty: m.getRootDifficulty(),
 		LeafNumber:     m.getLeafNumber(),
 		Elems:          proofs,
 	}
 }
 
 func (m *Mmr) CreateNewProof(right_difficulty *big.Int) (*ProofInfo, []uint64, []uint64) {
-	root_hash := m.GetRoot()
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	root_hash := m.getRoot()
 	r1, _ := new(big.Float).SetInt(right_difficulty).Float64()
-	r2, _ := new(big.Float).SetInt(new(big.Int).Add(m.GetRootDifficulty(), right_difficulty)).Float64()
+	r2, _ := new(big.Float).SetInt(new(big.Int).Add(m.getRootDifficulty(), right_difficulty)).Float64()
 	required_queries := uint64(vd_calculate_m(float64(lambda), c, r1, r2, m.getLeafNumber()) + 1.0)
 
 	weights, blocks := []float64{}, []uint64{}
 	for i := 0; i < int(required_queries); i++ {
 		h := RlpHash([]interface{}{root_hash, uint64(i)})
 		random := Hash_to_f64(h)
-		r3, _ := new(big.Float).SetInt(m.GetRootDifficulty()).Float64()
+		r3, _ := new(big.Float).SetInt(m.getRootDifficulty()).Float64()
 		AggrWeight := cdf(random, vd_calculate_delta(r1, r3))
 		weights = append(weights, AggrWeight)
 	}
 	sort.Float64s(weights)
 	for _, v := range weights {
-		b := m.GetChildByAggrWeight(v)
+		b := m.getChildByAggrWeight(v)
 		blocks = append(blocks, b)
 	}
 	// Pick up at specific sync point
@@ -996,16 +1011,8 @@ func VerifyRequiredBlocks2(info *ProofInfo) ([]*ProofBlock, error) {
 	return proof_blocks,nil
 }
 ///////////////////////////////////////////////////////////////////////////////////////
-func (m *Mmr) GenerateProof(blocks []uint64,right *big.Int) *ProofInfo {
-	sort.Slice(blocks, func(i, j int) bool {
-		return blocks[i] < blocks[j]
-	})
-	info := m.genProof(big.NewInt(0), blocks)
-	info.Checked = blocks
-	return info
-}
 
-func (m *Mmr) GenerateProof2(proofHeight,EndHeight uint64) *ProofInfo {
+func (m *Mmr) GenerateProof(proofHeight,EndHeight uint64) *ProofInfo {
 	// sort.Slice(blocks, func(i, j int) bool {
 	// 	return blocks[i] < blocks[j]
 	// })
@@ -1014,7 +1021,7 @@ func (m *Mmr) GenerateProof2(proofHeight,EndHeight uint64) *ProofInfo {
 	lRemove := int64(EndHeight - mmrClone.leafNum)
 	if lRemove > 0 {
 		for i :=0;i< int(lRemove); i++ {
-			mmrClone.Pop()
+			mmrClone.pop()
 		}
 	}
 	

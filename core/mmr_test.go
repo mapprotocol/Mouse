@@ -142,7 +142,7 @@ func TestO7(t *testing.T) {
 		})
 	}
 
-	proof := mmr.GenerateProof2(8,13)
+	proof := mmr.GenerateProof(8,13)
 	proofBlock, err := VerifyRequiredBlocks2(proof)
 	if err != nil {
 		fmt.Println(err)

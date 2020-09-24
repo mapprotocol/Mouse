@@ -376,7 +376,7 @@ func (bc *BlockChain) LoadMMR() error {
 }
 // must be check the newwest height
 func (bc *BlockChain) GetMmrRoot() common.Hash {
-	return bc.mmrInfo.GetRoot()
+	return bc.mmrInfo.GetRoot2()
 }
 func (bc *BlockChain) PushBlockInMMR(block *types.Block) {
 	bc.chainmu.Lock()
@@ -1880,7 +1880,7 @@ func (bc *BlockChain) insertChain(chain types.Blocks, verifySeals bool) (int, er
 			timecost = bc.GetBlockByNumber(block.NumberU64() - 1).Time() - block.Time()
 		}
 		PushBlock(bc.mmrInfo,block,timecost)
-		mmrLocal,mmrRemote := bc.mmrInfo.GetRoot(),block.MmrRoot()
+		mmrLocal,mmrRemote := bc.mmrInfo.GetRoot2(),block.MmrRoot()
 		if bytes.Equal(mmrLocal[:],mmrRemote[:]) {
 			return it.index,errors.New(fmt.Sprintf("not match mmr root,height:%v,local:%v,remote:%v",block.NumberU64(),mmrLocal,mmrRemote))
 		}
