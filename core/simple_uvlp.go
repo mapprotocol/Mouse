@@ -123,12 +123,6 @@ func (b *UvlpMsgRes) Parse(data []byte) error {
 	return err
 }
 
-func makeSecondMsg(txInBlock, leatest uint64) *BaseReqUvlpMsg {
-	return &BaseReqUvlpMsg{
-		Check: []uint64{txInBlock, leatest},
-		Right: big.NewInt(0),
-	}
-}
 func Uint64SliceEqual(a, b []uint64) bool {
 	if len(a) != len(b) {
 		return false
@@ -174,6 +168,9 @@ func (o *OtherChainAdapter) originHeaderCheck(head []*types.Header) error {
 	// check difficult
 	return nil
 }
+func (o *OtherChainAdapter) setProofHeight(h uint64) {
+	o.ProofHeight = h
+}
 func (o *OtherChainAdapter) GenesisCheck(head *types.Header) error {
 	rHash, lHash := head.Hash(), o.Genesis.Header().Hash()
 	if !bytes.Equal(rHash[:], lHash[:]) {
@@ -182,19 +179,22 @@ func (o *OtherChainAdapter) GenesisCheck(head *types.Header) error {
 	}
 	return nil
 }
+
 func (o *OtherChainAdapter) checkAndSetHeaders(heads []*types.Header, setcur bool) error {
 	if len(heads) == 0 {
 		return errors.New("invalid params")
 	}
-	head := heads[0]
-	if head.Number.Uint64() != o.ProofHeight {
-		fmt.Println("height not match,l:", o.ProofHeight, "r:", head.Number)
-		return errors.New("height not match")
-	}
+	
 	if err := o.originHeaderCheck(heads); err != nil {
 		return err
 	}
+
 	if setcur {
+		head := heads[0]
+		if head.Number.Uint64() != o.ProofHeight {
+			fmt.Println("height not match,l:", o.ProofHeight, "r:", head.Number)
+			return errors.New("height not match")
+		}
 		o.setProofHeader(head)
 	} else {
 		o.setLeatestHeader(heads[1], heads[2:])
@@ -263,6 +263,7 @@ func (uv *SimpleUVLP) VerifyFirstMsg(data []byte) error {
 
 ///////////////////////////////////////////////////////////////////////////////////
 func (uv *SimpleUVLP) GetSimpleUvlpMsgReq(blocks []uint64) *UvlpMsgReq {
+	uv.RemoteChain.setProofHeight(blocks[0])
 	return makeUvlpMsgReq(blocks)
 }
 
@@ -274,11 +275,12 @@ func (uv *SimpleUVLP) HandleSimpleUvlpMsgReq(msg *UvlpMsgReq) (*UvlpMsgRes, erro
 	curNum := cur.NumberU64()
 	Right, heads := getRightDifficult(uv.localChain, curNum, cur.Difficulty())
 	proof, _, _ := uv.MmrInfo.CreateNewProof(Right)
-	heads = append([]*types.Header{genesis.Header(), cur.Header()}, heads...)
+	// heads[0]=genesis,heads[1]=confirmHeade and leatest header
+	heads = append([]*types.Header{genesis.Header()}, heads...)
 	res.FirstRes.Proof, res.FirstRes.Header = proof, heads
 	res.FirstRes.Right = new(big.Int).Set(Right)
-	// handle next req
 
+	// handle next req
 	blocks := msg.SecondReq.Check
 	sort.Slice(blocks, func(i, j int) bool {
 		return blocks[i] < blocks[j]
@@ -286,7 +288,7 @@ func (uv *SimpleUVLP) HandleSimpleUvlpMsgReq(msg *UvlpMsgReq) (*UvlpMsgRes, erro
 	if blocks[len(blocks)-1] > curNum {
 		return nil, errors.New("the proof point over the leatest localChain height")
 	}
-	blocks = append(blocks, curNum)
+	// blocks = append(blocks, curNum)
 	// will send the block head with proofs to peer
 	if b := uv.localChain.GetBlockByNumber(blocks[0]); b != nil {
 		proof2 := uv.MmrInfo.GenerateProof2(blocks[0], curNum)
