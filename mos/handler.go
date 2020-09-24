@@ -1105,7 +1105,6 @@ func (pm *ProtocolManager) BroadcastOtherReadyTransactions(block *types.Block) {
 	}
 	pm.deleteOtherTxs(deleteTxs)
 
-	find := false
 	delay := block.NumberU64() - 6
 	if txs := pm.pendingOther(delay); len(txs) != 0 {
 		var (
@@ -1124,9 +1123,6 @@ func (pm *ProtocolManager) BroadcastOtherReadyTransactions(block *types.Block) {
 		for peer, hashes := range txset {
 			peer.AsyncSendTransactions(hashes)
 		}
-		find = true
-	}
-	if find {
 		pm.deleteOtherReadyTxs(delay)
 	}
 }
