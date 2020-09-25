@@ -114,6 +114,16 @@ func (tx *Transaction) ChainId() *big.Int {
 	return deriveChainId(tx.data.V)
 }
 
+// OtherFrom returns which chain id this transaction was signed for (if at all)
+func (tx *Transaction) OtherFrom() (common.Address, error) {
+	if !tx.OtherChain() {
+		return common.Address{}, errors.New("not other chain")
+	}
+
+	signer := NewEIP155Signer(deriveChainId(tx.data.V))
+	return Sender(signer, tx)
+}
+
 // Protected returns whether the transaction is protected from replay protection.
 func (tx *Transaction) Protected() bool {
 	return isProtectedV(tx.data.V)
