@@ -207,7 +207,6 @@ type BlockChain struct {
 	prefetcher Prefetcher // Block state prefetcher interface
 	processor  Processor  // Block transaction processor interface
 	vmConfig   vm.Config
-	mmrInfo 	*Mmr
 
 	badBlocks       *lru.Cache                     // Bad block cache
 	shouldPreserve  func(*types.Block) bool        // Function used to determine whether should preserve the given block.
@@ -250,7 +249,6 @@ func NewBlockChain(db mosdb.Database, cacheConfig *CacheConfig, chainConfig *par
 	bc.validator = NewBlockValidator(chainConfig, bc, engine)
 	bc.prefetcher = newStatePrefetcher(chainConfig, bc, engine)
 	bc.processor = NewStateProcessor(chainConfig, bc, engine)
-	bc.mmrInfo = NewMMR()
 
 	var err error
 	bc.hc, err = NewHeaderChain(db, chainConfig, engine, bc.insertStopped)
@@ -363,7 +361,8 @@ func NewBlockChain(db mosdb.Database, cacheConfig *CacheConfig, chainConfig *par
 			triedb.SaveCachePeriodically(bc.cacheConfig.TrieCleanJournal, bc.cacheConfig.TrieCleanRejournal, bc.quit)
 		}()
 	}
-	return bc, nil
+	
+	return bc, bc.LoadMMR()
 }
 
 // GetVMConfig returns the block chain VM config.
@@ -372,22 +371,31 @@ func (bc *BlockChain) GetVMConfig() *vm.Config {
 }
 
 func (bc *BlockChain) LoadMMR() error {
+	head := bc.CurrentBlock()
+	for i:=uint64(0);i < head.NumberU64(); i++ {
+		b := bc.GetBlockByNumber(i)
+		if b == nil {
+			return fmt.Errorf("cann't block by number,i:",i)
+		}
+		bc.PushBlockInMMR(b)
+	} 
 	return nil
 }
 // must be check the newwest height
 func (bc *BlockChain) GetMmrRoot() common.Hash {
-	return bc.mmrInfo.GetRoot2()
+	return Ulvp.MmrInfo.GetRoot2()
 }
 func (bc *BlockChain) PushBlockInMMR(block *types.Block) {
-	bc.chainmu.Lock()
-	defer bc.chainmu.Unlock()
-
+	// bc.chainmu.Lock()
+	// defer bc.chainmu.Unlock()
+	
 	timecost := uint64(0)
 	if block.NumberU64() > 0 {
 		timecost = bc.GetBlockByNumber(block.NumberU64() - 1).Time() - block.Time()
 	}
-	PushBlock(bc.mmrInfo,block,timecost)
+	PushBlock(Ulvp.MmrInfo,block,timecost)
 } 
+
 // empty returns an indicator whether the blockchain is empty.
 // Note, it's a special case that we connect a non-empty ancient
 // database with an empty node, so that we can plugin the ancient
@@ -455,7 +463,7 @@ func (bc *BlockChain) loadLastState() error {
 	if pivot := rawdb.ReadLastPivotNumber(bc.db); pivot != nil {
 		log.Info("Loaded last fast-sync pivot marker", "number", *pivot)
 	}
-	return bc.LoadMMR()
+	return nil
 }
 
 // SetHead rewinds the local chain to a new head. Depending on whether the node
@@ -1879,8 +1887,8 @@ func (bc *BlockChain) insertChain(chain types.Blocks, verifySeals bool) (int, er
 		if block.NumberU64() > 0 {
 			timecost = bc.GetBlockByNumber(block.NumberU64() - 1).Time() - block.Time()
 		}
-		PushBlock(bc.mmrInfo,block,timecost)
-		mmrLocal,mmrRemote := bc.mmrInfo.GetRoot2(),block.MmrRoot()
+		PushBlock(Ulvp.MmrInfo,block,timecost)
+		mmrLocal,mmrRemote := Ulvp.MmrInfo.GetRoot2(),block.MmrRoot()
 		if bytes.Equal(mmrLocal[:],mmrRemote[:]) {
 			return it.index,errors.New(fmt.Sprintf("not match mmr root,height:%v,local:%v,remote:%v",block.NumberU64(),mmrLocal,mmrRemote))
 		}

@@ -17,6 +17,7 @@ import (
 
 var (
 	K = 6
+	Ulvp *SimpleULVP = nil
 )
 
 type BaseReqUlvpMsg struct {
@@ -171,6 +172,7 @@ func (o *OtherChainAdapter) originHeaderCheck(head []*types.Header) error {
 func (o *OtherChainAdapter) setProofHeight(h uint64) {
 	o.ProofHeight = h
 }
+
 func (o *OtherChainAdapter) GenesisCheck(head *types.Header) error {
 	rHash, lHash := head.Hash(), o.Genesis.Header().Hash()
 	if !bytes.Equal(rHash[:], lHash[:]) {
@@ -179,7 +181,6 @@ func (o *OtherChainAdapter) GenesisCheck(head *types.Header) error {
 	}
 	return nil
 }
-
 func (o *OtherChainAdapter) checkAndSetHeaders(heads []*types.Header, setcur bool) error {
 	if len(heads) == 0 {
 		return errors.New("invalid params")
