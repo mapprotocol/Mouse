@@ -1622,18 +1622,21 @@ func SetEthConfig(ctx *cli.Context, stack *node.Node, cfg *mos.Config) {
 			cfg.NetworkId = 3
 		}
 		cfg.Genesis = core.DefaultRopstenGenesisBlock()
+		cfg.OtherGenesis = core.DefaultOtherRopstenGenesisBlock()
 		setDNSDiscoveryDefaults(cfg, params.RopstenGenesisHash)
 	case ctx.GlobalBool(RinkebyFlag.Name):
 		if !ctx.GlobalIsSet(NetworkIdFlag.Name) {
 			cfg.NetworkId = 4
 		}
 		cfg.Genesis = core.DefaultRinkebyGenesisBlock()
+		cfg.OtherGenesis = core.DefaultOtherRinkebyGenesisBlock()
 		setDNSDiscoveryDefaults(cfg, params.RinkebyGenesisHash)
 	case ctx.GlobalBool(GoerliFlag.Name):
 		if !ctx.GlobalIsSet(NetworkIdFlag.Name) {
 			cfg.NetworkId = 5
 		}
 		cfg.Genesis = core.DefaultGoerliGenesisBlock()
+		cfg.OtherGenesis = core.DefaultOtherGoerliGenesisBlock()
 		setDNSDiscoveryDefaults(cfg, params.GoerliGenesisHash)
 	case ctx.GlobalBool(YoloV1Flag.Name):
 		if !ctx.GlobalIsSet(NetworkIdFlag.Name) {

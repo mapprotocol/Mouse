@@ -16,7 +16,7 @@ import (
 )
 
 var (
-	K = 6
+	K                = 6
 	Ulvp *SimpleULVP = nil
 )
 
@@ -185,7 +185,7 @@ func (o *OtherChainAdapter) checkAndSetHeaders(heads []*types.Header, setcur boo
 	if len(heads) == 0 {
 		return errors.New("invalid params")
 	}
-	
+
 	if err := o.originHeaderCheck(heads); err != nil {
 		return err
 	}
@@ -222,11 +222,12 @@ type SimpleULVP struct {
 	RemoteChain *OtherChainAdapter
 }
 
-func NewSimpleULVP(l *BlockChain,r *OtherChainAdapter) *SimpleULVP {
+func NewSimpleULVP(l *BlockChain, other *types.Block) *SimpleULVP {
+	r := &OtherChainAdapter{Genesis: other}
 	return &SimpleULVP{
-		MmrInfo:		NewMMR(),
-		localChain:		l,
-		RemoteChain:	r,
+		MmrInfo:     NewMMR(),
+		localChain:  l,
+		RemoteChain: r,
 	}
 }
 

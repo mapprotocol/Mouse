@@ -27,9 +27,9 @@ import (
 	"github.com/marcopoloprotoco/mouse/common"
 	"github.com/marcopoloprotoco/mouse/consensus/ethash"
 	"github.com/marcopoloprotoco/mouse/core"
+	"github.com/marcopoloprotoco/mouse/miner"
 	"github.com/marcopoloprotoco/mouse/mos/downloader"
 	"github.com/marcopoloprotoco/mouse/mos/gasprice"
-	"github.com/marcopoloprotoco/mouse/miner"
 	"github.com/marcopoloprotoco/mouse/params"
 )
 
@@ -108,6 +108,8 @@ type Config struct {
 	// The genesis block, which is inserted if the database is empty.
 	// If nil, the Mouse main net block is used.
 	Genesis *core.Genesis `toml:",omitempty"`
+
+	OtherGenesis *core.Genesis `toml:",omitempty"`
 
 	// Protocol options
 	NetworkId uint64 // Network ID to use for selecting peers to connect to

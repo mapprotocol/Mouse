@@ -122,6 +122,8 @@ func New(stack *node.Node, config *Config) (*Mouse, error) {
 	if _, ok := genesisErr.(*params.ConfigCompatError); genesisErr != nil && !ok {
 		return nil, genesisErr
 	}
+	_, block, _ := core.SetupOtherGenesisBlock(config.OtherGenesis)
+
 	log.Info("Initialised chain configuration", "config", chainConfig)
 
 	mos := &Mouse{
@@ -183,6 +185,8 @@ func New(stack *node.Node, config *Config) (*Mouse, error) {
 	}
 	mos.bloomIndexer.Start(mos.blockchain)
 
+	ulvp := core.NewSimpleULVP(mos.blockchain, block)
+
 	if config.TxPool.Journal != "" {
 		config.TxPool.Journal = stack.ResolvePath(config.TxPool.Journal)
 	}
@@ -194,10 +198,10 @@ func New(stack *node.Node, config *Config) (*Mouse, error) {
 	if checkpoint == nil {
 		checkpoint = params.TrustedCheckpoints[genesisHash]
 	}
-	if mos.protocolManager, err = NewProtocolManager(chainConfig, checkpoint, config.SyncMode, config.NetworkId, mos.eventMux, mos.txPool, mos.engine, mos.blockchain, chainDb, cacheLimit, config.Whitelist); err != nil {
+	if mos.protocolManager, err = NewProtocolManager(chainConfig, checkpoint, config.SyncMode, config.NetworkId, mos.eventMux, mos.txPool, mos.engine, mos.blockchain, chainDb, cacheLimit, config.Whitelist, ulvp); err != nil {
 		return nil, err
 	}
-	mos.miner = miner.New(mos, &config.Miner, chainConfig, mos.EventMux(), mos.engine, mos.isLocalBlock)
+	mos.miner = miner.New(mos, &config.Miner, chainConfig, mos.EventMux(), mos.engine, mos.isLocalBlock, ulvp)
 	mos.miner.SetExtra(makeExtraData(config.Miner.ExtraData))
 
 	mos.APIBackend = &EthAPIBackend{stack.Config().ExtRPCEnabled(), mos, nil}
@@ -313,7 +317,7 @@ func (s *Mouse) APIs() []rpc.API {
 			Version:   "1.0",
 			Service:   NewPrivateMinerAPI(s),
 			Public:    false,
-		},{
+		}, {
 			Namespace: "admin",
 			Version:   "1.0",
 			Service:   NewPrivateAdminAPI(s),

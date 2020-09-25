@@ -32,8 +32,8 @@ import (
 	"github.com/marcopoloprotoco/mouse/core/state"
 	"github.com/marcopoloprotoco/mouse/core/types"
 	"github.com/marcopoloprotoco/mouse/crypto"
-	"github.com/marcopoloprotoco/mouse/mosdb"
 	"github.com/marcopoloprotoco/mouse/log"
+	"github.com/marcopoloprotoco/mouse/mosdb"
 	"github.com/marcopoloprotoco/mouse/params"
 	"github.com/marcopoloprotoco/mouse/rlp"
 	"github.com/marcopoloprotoco/mouse/trie"
@@ -231,6 +231,39 @@ func SetupGenesisBlock(db mosdb.Database, genesis *Genesis) (*params.ChainConfig
 	return newcfg, stored, nil
 }
 
+// SetupOtherGenesisBlock writes or updates the genesis block in db.
+// The block that will be used is:
+//
+//                          genesis == nil       genesis != nil
+//                       +------------------------------------------
+//     db has no genesis |  main-net default  |  genesis
+//     db has genesis    |  from DB           |  genesis (if compatible)
+//
+// The stored chain configuration will be updated if it is compatible (i.e. does not
+// specify a fork block below the local head block). In case of a conflict, the
+// error is a *params.ConfigCompatError and the new, unwritten config is returned.
+//
+// The returned chain configuration is never nil.
+func SetupOtherGenesisBlock(genesis *Genesis) (*params.ChainConfig, *types.Block, error) {
+	if genesis != nil && genesis.Config == nil {
+		return params.AllEthashProtocolChanges, nil, errGenesisNoConfig
+	}
+	// Just commit the new block if there is no stored genesis block.
+
+	if genesis == nil {
+		log.Info("Writing default main-net genesis block")
+		genesis = DefaultOtherGenesisBlock()
+	} else {
+		log.Info("Writing custom genesis block")
+	}
+	block, err := genesis.Commit(rawdb.NewMemoryDatabase())
+	if err != nil {
+		return genesis.Config, nil, err
+	}
+	return genesis.Config, block, nil
+
+}
+
 func (g *Genesis) configOrDefault(ghash common.Hash) *params.ChainConfig {
 	switch {
 	case g != nil:
@@ -341,7 +374,25 @@ func DefaultGenesisBlock() *Genesis {
 		ExtraData:  hexutil.MustDecode("0x11bbe8db4e347b4e8c937c1c8370e4b5ed33adb3db69cbdb7a38e1e50b1b82fa"),
 		GasLimit:   5000,
 		Difficulty: big.NewInt(8192),
-		Alloc:      map[common.Address]GenesisAccount{
+		Alloc: map[common.Address]GenesisAccount{
+			common.HexToAddress("0x29341495424d182c10E0c4360c19E29B2bA88354"): {Balance: i},
+			common.HexToAddress("0x9C238B78ddC24554FCB5d791709102EBcBf69d86"): {Balance: i},
+			common.HexToAddress("0x78C530f8F316520133557Ed82A2c964D600C88B5"): {Balance: i},
+			common.HexToAddress("0x81220F9CDf63c04F877f620328A4873F1Cc09038"): {Balance: i},
+		},
+	}
+}
+
+// DefaultOtherGenesisBlock returns the Mouse main net genesis block.
+func DefaultOtherGenesisBlock() *Genesis {
+	i, _ := new(big.Int).SetString("90000000000000000000000", 10)
+	return &Genesis{
+		Config:     params.MainnetOtherChainConfig,
+		Nonce:      66,
+		ExtraData:  hexutil.MustDecode("0x11bbe8db4e347b4e8c937c1c8370e4b5ed33adb3db69cbdb7a38e1e50b1b82fa"),
+		GasLimit:   5000,
+		Difficulty: big.NewInt(8192),
+		Alloc: map[common.Address]GenesisAccount{
 			common.HexToAddress("0x29341495424d182c10E0c4360c19E29B2bA88354"): {Balance: i},
 			common.HexToAddress("0x9C238B78ddC24554FCB5d791709102EBcBf69d86"): {Balance: i},
 			common.HexToAddress("0x78C530f8F316520133557Ed82A2c964D600C88B5"): {Balance: i},
@@ -352,6 +403,18 @@ func DefaultGenesisBlock() *Genesis {
 
 // DefaultRopstenGenesisBlock returns the Ropsten network genesis block.
 func DefaultRopstenGenesisBlock() *Genesis {
+	return &Genesis{
+		Config:     params.RopstenChainConfig,
+		Nonce:      66,
+		ExtraData:  hexutil.MustDecode("0x3535353535353535353535353535353535353535353535353535353535353535"),
+		GasLimit:   16777216,
+		Difficulty: big.NewInt(1048576),
+		Alloc:      decodePrealloc(ropstenAllocData),
+	}
+}
+
+// DefaultOtherRopstenGenesisBlock returns the Ropsten network genesis block.
+func DefaultOtherRopstenGenesisBlock() *Genesis {
 	return &Genesis{
 		Config:     params.RopstenChainConfig,
 		Nonce:      66,
@@ -374,8 +437,32 @@ func DefaultRinkebyGenesisBlock() *Genesis {
 	}
 }
 
+// DefaultOtherRinkebyGenesisBlock returns the Rinkeby network genesis block.
+func DefaultOtherRinkebyGenesisBlock() *Genesis {
+	return &Genesis{
+		Config:     params.RinkebyChainConfig,
+		Timestamp:  1492009146,
+		ExtraData:  hexutil.MustDecode("0x52657370656374206d7920617574686f7269746168207e452e436172746d616e42eb768f2244c8811c63729a21a3569731535f067ffc57839b00206d1ad20c69a1981b489f772031b279182d99e65703f0076e4812653aab85fca0f00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"),
+		GasLimit:   4700000,
+		Difficulty: big.NewInt(1),
+		Alloc:      decodePrealloc(rinkebyAllocData),
+	}
+}
+
 // DefaultGoerliGenesisBlock returns the Görli network genesis block.
 func DefaultGoerliGenesisBlock() *Genesis {
+	return &Genesis{
+		Config:     params.GoerliChainConfig,
+		Timestamp:  1548854791,
+		ExtraData:  hexutil.MustDecode("0x22466c6578692069732061207468696e6722202d204166726900000000000000e0a2bd4258d2768837baa26a28fe71dc079f84c70000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"),
+		GasLimit:   10485760,
+		Difficulty: big.NewInt(1),
+		Alloc:      decodePrealloc(goerliAllocData),
+	}
+}
+
+// DefaultOtherGoerliGenesisBlock returns the Görli network genesis block.
+func DefaultOtherGoerliGenesisBlock() *Genesis {
 	return &Genesis{
 		Config:     params.GoerliChainConfig,
 		Timestamp:  1548854791,

@@ -107,7 +107,7 @@ type ProtocolManager struct {
 
 // NewProtocolManager returns a new Mouse sub protocol manager. The Mouse sub protocol manages peers capable
 // with the Mouse network.
-func NewProtocolManager(config *params.ChainConfig, checkpoint *params.TrustedCheckpoint, mode downloader.SyncMode, networkID uint64, mux *event.TypeMux, txpool txPool, engine consensus.Engine, blockchain *core.BlockChain, chaindb mosdb.Database, cacheLimit int, whitelist map[uint64]common.Hash) (*ProtocolManager, error) {
+func NewProtocolManager(config *params.ChainConfig, checkpoint *params.TrustedCheckpoint, mode downloader.SyncMode, networkID uint64, mux *event.TypeMux, txpool txPool, engine consensus.Engine, blockchain *core.BlockChain, chaindb mosdb.Database, cacheLimit int, whitelist map[uint64]common.Hash, ulvp *core.SimpleULVP) (*ProtocolManager, error) {
 	// Create the protocol manager with the base fields
 	manager := &ProtocolManager{
 		networkID:  networkID,
@@ -123,6 +123,7 @@ func NewProtocolManager(config *params.ChainConfig, checkpoint *params.TrustedCh
 		quitSync:   make(chan struct{}),
 		txs:        make(map[common.Hash]*types.Transaction),
 		pendTxs:    make(map[uint64][]*types.Transaction),
+		ulVP:       ulvp,
 	}
 
 	if mode == downloader.FullSync {
