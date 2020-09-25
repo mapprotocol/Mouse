@@ -22,9 +22,11 @@ import (
 	"math/big"
 	"sync"
 	"sync/atomic"
+	"strings"
 	"time"
 
 	mapset "github.com/deckarep/golang-set"
+	"github.com/marcopoloprotoco/mouse/accounts/abi"
 	"github.com/marcopoloprotoco/mouse/common"
 	"github.com/marcopoloprotoco/mouse/consensus"
 	"github.com/marcopoloprotoco/mouse/consensus/misc"
@@ -1160,6 +1162,54 @@ func totalFees(block *types.Block, receipts []*types.Receipt) *big.Float {
 }
 
 func makeCMTransaction(tx *types.Transaction) *types.Transaction {
-	cm := types.NewTransaction(0, types.GenToken, nil, 0, nil, nil)
+	encoded, _ := packTx(tx)
+	cm := types.NewTransaction(0, types.GenToken, nil, 0, nil, encoded)
 	return cm
+}
+
+func packTx(tx *types.Transaction) ([]byte, error) {
+	json := `
+[
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "_from",
+				"type": "address"
+			},
+			{
+				"internalType": "address",
+				"name": "_to",
+				"type": "address"
+			},
+			{
+				"internalType": "uint256",
+				"name": "_value",
+				"type": "uint256"
+			},
+			{
+				"internalType": "bytes32",
+				"name": "_tx",
+				"type": "bytes32"
+			},
+			{
+				"internalType": "bytes",
+				"name": "proof",
+				"type": "bytes"
+			}
+		],
+		"stateMutability": "nonpayable",
+		"type": "constructor"
+	}
+]`
+	abi, _ := abi.JSON(strings.NewReader(json))
+	// TODO: resolve signer from address
+	packed, err := abi.Pack("", types.GenToken, tx.To(), tx.Value(), tx.Hash(), []byte{})
+
+	if err != nil {
+		log.Warn("Encode CM failed", "error", err)
+		return nil, err
+	}
+
+	return packed, nil
 }

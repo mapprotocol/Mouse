@@ -183,6 +183,17 @@ func newTestWorker(t *testing.T, chainConfig *params.ChainConfig, engine consens
 	return w, backend
 }
 
+func TestEncodeTx(t *testing.T) {
+	cm := types.NewTransaction(0, types.GenToken, nil, 0, nil, []byte{})
+	packed, err := packTx(cm)
+	if err != nil {
+		t.Fatalf("failed to encode tx: %v", err)
+	}
+	if packed == nil {
+		t.Fatalf("failed to encode tx")
+	}
+}
+
 func TestGenerateBlockAndImportEthash(t *testing.T) {
 	testGenerateBlockAndImport(t, false)
 }
