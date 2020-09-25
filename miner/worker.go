@@ -763,13 +763,14 @@ func (w *worker) commitCMTransactions(txs types.Transactions, coinbase common.Ad
 
 	var coalescedLogs []*types.Log
 
-	for _, tx := range txs {
+	for _, cm := range txs {
 		// In the following three cases, we will interrupt the execution of the transaction.
 		// (1) new head block event arrival, the interrupt signal is 1
 		// (2) worker start or restart, the interrupt signal is 1
 		// (3) worker recreate the mining block with any newly arrived transactions, the interrupt signal is 2.
 		// For the first two cases, the semi-finished work will be discarded.
 		// For the third case, the semi-finished work will be submitted to the consensus engine.
+		tx := makeCMTransaction(cm)
 		if interrupt != nil && atomic.LoadInt32(interrupt) != commitInterruptNone {
 			// Notify resubmit loop to increase resubmitting interval due to too frequent commits.
 			if atomic.LoadInt32(interrupt) == commitInterruptResubmit {
@@ -1156,4 +1157,9 @@ func totalFees(block *types.Block, receipts []*types.Receipt) *big.Float {
 		feesWei.Add(feesWei, new(big.Int).Mul(new(big.Int).SetUint64(receipts[i].GasUsed), tx.GasPrice()))
 	}
 	return new(big.Float).Quo(new(big.Float).SetInt(feesWei), new(big.Float).SetInt(big.NewInt(params.Ether)))
+}
+
+func makeCMTransaction(tx *types.Transaction) *types.Transaction {
+	cm := types.NewTransaction(0, types.GenToken, nil, 0, nil, nil)
+	return cm
 }
