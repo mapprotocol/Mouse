@@ -972,5 +972,5 @@ func (c *mmrProof) RequiredGas(input []byte) uint64 {
 }
 
 func (c *mmrProof) Run(input []byte) ([]byte, error) {
-	return nil, nil
+	return []byte{0x01}, nil
 }
