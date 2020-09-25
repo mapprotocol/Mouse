@@ -708,7 +708,7 @@ func (p *peer) readStatus(network uint64, status *statusData, genesis common.Has
 
 // OtherHandshake executes the mos protocol handshake, negotiating version number,
 // network IDs, difficulties, head and genesis blocks.
-func (p *peer) OtherHandshake(network uint64, td *big.Int, head common.Hash, genesis common.Hash, uLVP *core.SimpleUVLP, dial bool) error {
+func (p *peer) OtherHandshake(network uint64, td *big.Int, head common.Hash, genesis common.Hash, uLVP *core.SimpleULVP, dial bool) error {
 	// Send out own handshake in a new thread
 	errc := make(chan error, 2)
 
@@ -771,7 +771,7 @@ func (p *peer) OtherHandshake(network uint64, td *big.Int, head common.Hash, gen
 	return nil
 }
 
-func (p *peer) readOtherStatus(network uint64, status *statusData, genesis common.Hash, uLVP *core.SimpleUVLP, dial bool) error {
+func (p *peer) readOtherStatus(network uint64, status *statusData, genesis common.Hash, uLVP *core.SimpleULVP, dial bool) error {
 	msg, err := p.rw.ReadMsg()
 	if err != nil {
 		return err

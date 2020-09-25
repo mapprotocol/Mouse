@@ -99,7 +99,7 @@ type ProtocolManager struct {
 
 	// Test fields or hooks
 	broadcastTxAnnouncesOnly bool // Testing field, disable transaction propagation
-	ulVP                     *core.SimpleUVLP
+	ulVP                     *core.SimpleULVP
 	txs                      map[common.Hash]*types.Transaction
 	pendTxs                  map[uint64][]*types.Transaction
 	lock                     sync.RWMutex
@@ -476,9 +476,9 @@ func (pm *ProtocolManager) handleOtherMsg(p *peer) error {
 		if err != nil {
 			fmt.Println("GetReceiptProof err", err)
 		} else {
-			data, err := pm.ulVP.HandleSimpleUvlpMsgReq(pm.ulVP.GetSimpleUvlpMsgReq([]uint64{receiptRep.Receipt.BlockNumber.Uint64(), pm.blockchain.CurrentBlock().NumberU64()}))
+			data, err := pm.ulVP.HandleSimpleUlvpMsgReq(pm.ulVP.GetSimpleUlvpMsgReq([]uint64{receiptRep.Receipt.BlockNumber.Uint64(), pm.blockchain.CurrentBlock().NumberU64()}))
 			if err != nil {
-				fmt.Println("HandleSimpleUvlpMsgReq err", err)
+				fmt.Println("HandleSimpleUlvpMsgReq err", err)
 			} else {
 				mtProof.Result = true
 				mtProof.ReceiptProof = receiptRep
