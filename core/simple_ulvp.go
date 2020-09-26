@@ -222,14 +222,17 @@ type SimpleULVP struct {
 	RemoteChain *OtherChainAdapter
 }
 
-func NewSimpleULVP(l *BlockChain, other *types.Block) *SimpleULVP {
-	r := &OtherChainAdapter{Genesis: other}
+func NewSimpleULVP(l *BlockChain) *SimpleULVP {
 	Ulvp = &SimpleULVP{
-		MmrInfo:     NewMMR(),
-		localChain:  l,
-		RemoteChain: r,
+		MmrInfo:    NewMMR(),
+		localChain: l,
 	}
 	return Ulvp
+}
+
+func (uv *SimpleULVP) InitOtherChain(other *types.Block) {
+	r := &OtherChainAdapter{Genesis: other}
+	uv.RemoteChain = r
 }
 
 func (uv *SimpleULVP) GetFirstMsg() *BaseReqUlvpMsg {
@@ -240,6 +243,15 @@ func (uv *SimpleULVP) PushFirstMsg() ([]byte, error) {
 	cur := uv.localChain.CurrentBlock()
 	curNum := cur.NumberU64()
 	genesis := uv.localChain.GetBlockByNumber(0)
+	if curNum == 0 {
+		res := &ChainHeaderProofMsg{
+			Proof:  &ProofInfo{},
+			Header: []*types.Header{genesis.Header()},
+			Right:  new(big.Int).SetUint64(0),
+		}
+		return res.Datas()
+	}
+
 	Right, heads := getRightDifficult(uv.localChain, curNum, cur.Difficulty())
 	proof, _, _ := uv.MmrInfo.CreateNewProof(Right)
 	heads = append([]*types.Header{genesis.Header(), cur.Header()}, heads...)
@@ -258,6 +270,9 @@ func (uv *SimpleULVP) VerifyFirstMsg(data []byte) error {
 		return err
 	}
 
+	if len(msg.Header) == 1 && msg.Header[0].Number.Uint64() == 0 {
+		return nil
+	}
 	if pBlocks, err := VerifyRequiredBlocks(msg.Proof, msg.Right); err != nil {
 		return err
 	} else {

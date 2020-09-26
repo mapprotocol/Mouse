@@ -18,6 +18,7 @@
 package core
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
 	"io"
@@ -27,8 +28,8 @@ import (
 	"sync"
 	"sync/atomic"
 	"time"
-	"bytes"
 
+	lru "github.com/hashicorp/golang-lru"
 	"github.com/marcopoloprotoco/mouse/common"
 	"github.com/marcopoloprotoco/mouse/common/mclock"
 	"github.com/marcopoloprotoco/mouse/common/prque"
@@ -38,14 +39,13 @@ import (
 	"github.com/marcopoloprotoco/mouse/core/state/snapshot"
 	"github.com/marcopoloprotoco/mouse/core/types"
 	"github.com/marcopoloprotoco/mouse/core/vm"
-	"github.com/marcopoloprotoco/mouse/mosdb"
 	"github.com/marcopoloprotoco/mouse/event"
 	"github.com/marcopoloprotoco/mouse/log"
 	"github.com/marcopoloprotoco/mouse/metrics"
+	"github.com/marcopoloprotoco/mouse/mosdb"
 	"github.com/marcopoloprotoco/mouse/params"
 	"github.com/marcopoloprotoco/mouse/rlp"
 	"github.com/marcopoloprotoco/mouse/trie"
-	lru "github.com/hashicorp/golang-lru"
 )
 
 var (
@@ -211,6 +211,7 @@ type BlockChain struct {
 	badBlocks       *lru.Cache                     // Bad block cache
 	shouldPreserve  func(*types.Block) bool        // Function used to determine whether should preserve the given block.
 	terminateInsert func(common.Hash, uint64) bool // Testing hook used to terminate ancient receipt chain insertion.
+	UlVP            *SimpleULVP
 }
 
 // NewBlockChain returns a fully initialised block chain using information
@@ -361,7 +362,7 @@ func NewBlockChain(db mosdb.Database, cacheConfig *CacheConfig, chainConfig *par
 			triedb.SaveCachePeriodically(bc.cacheConfig.TrieCleanJournal, bc.cacheConfig.TrieCleanRejournal, bc.quit)
 		}()
 	}
-	
+	bc.UlVP = NewSimpleULVP(bc)
 	return bc, bc.LoadMMR()
 }
 
@@ -372,15 +373,16 @@ func (bc *BlockChain) GetVMConfig() *vm.Config {
 
 func (bc *BlockChain) LoadMMR() error {
 	head := bc.CurrentBlock()
-	for i:=uint64(0);i < head.NumberU64(); i++ {
+	for i := uint64(0); i < head.NumberU64(); i++ {
 		b := bc.GetBlockByNumber(i)
 		if b == nil {
-			return fmt.Errorf("cann't block by number,i:",i)
+			return fmt.Errorf("cann't block by number,i:", i)
 		}
 		bc.PushBlockInMMR(b)
-	} 
+	}
 	return nil
 }
+
 // must be check the newwest height
 func (bc *BlockChain) GetMmrRoot() common.Hash {
 	return Ulvp.MmrInfo.GetRoot2()
@@ -388,13 +390,13 @@ func (bc *BlockChain) GetMmrRoot() common.Hash {
 func (bc *BlockChain) PushBlockInMMR(block *types.Block) {
 	// bc.chainmu.Lock()
 	// defer bc.chainmu.Unlock()
-	
+
 	timecost := uint64(0)
 	if block.NumberU64() > 0 {
-		timecost = bc.GetBlockByNumber(block.NumberU64() - 1).Time() - block.Time()
+		timecost = bc.GetBlockByNumber(block.NumberU64()-1).Time() - block.Time()
 	}
-	PushBlock(Ulvp.MmrInfo,block,timecost)
-} 
+	PushBlock(Ulvp.MmrInfo, block, timecost)
+}
 
 // empty returns an indicator whether the blockchain is empty.
 // Note, it's a special case that we connect a non-empty ancient
@@ -1885,12 +1887,12 @@ func (bc *BlockChain) insertChain(chain types.Blocks, verifySeals bool) (int, er
 		}
 		timecost := uint64(0)
 		if block.NumberU64() > 0 {
-			timecost = bc.GetBlockByNumber(block.NumberU64() - 1).Time() - block.Time()
+			timecost = bc.GetBlockByNumber(block.NumberU64()-1).Time() - block.Time()
 		}
-		PushBlock(Ulvp.MmrInfo,block,timecost)
-		mmrLocal,mmrRemote := Ulvp.MmrInfo.GetRoot2(),block.MmrRoot()
-		if bytes.Equal(mmrLocal[:],mmrRemote[:]) {
-			return it.index,errors.New(fmt.Sprintf("not match mmr root,height:%v,local:%v,remote:%v",block.NumberU64(),mmrLocal,mmrRemote))
+		PushBlock(Ulvp.MmrInfo, block, timecost)
+		mmrLocal, mmrRemote := Ulvp.MmrInfo.GetRoot2(), block.MmrRoot()
+		if bytes.Equal(mmrLocal[:], mmrRemote[:]) {
+			return it.index, errors.New(fmt.Sprintf("not match mmr root,height:%v,local:%v,remote:%v", block.NumberU64(), mmrLocal, mmrRemote))
 		}
 		// Update the metrics touched during block commit
 		accountCommitTimer.Update(statedb.AccountCommits)   // Account commits are complete, we can mark them

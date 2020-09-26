@@ -187,8 +187,7 @@ func New(stack *node.Node, config *Config) (*Mouse, error) {
 	}
 	mos.bloomIndexer.Start(mos.blockchain)
 
-	ulvp := core.NewSimpleULVP(mos.blockchain, block)
-
+	mos.blockchain.UlVP.InitOtherChain(block)
 	if config.TxPool.Journal != "" {
 		config.TxPool.Journal = stack.ResolvePath(config.TxPool.Journal)
 	}
@@ -200,10 +199,10 @@ func New(stack *node.Node, config *Config) (*Mouse, error) {
 	if checkpoint == nil {
 		checkpoint = params.TrustedCheckpoints[genesisHash]
 	}
-	if mos.protocolManager, err = NewProtocolManager(chainConfig, checkpoint, config.SyncMode, config.NetworkId, mos.eventMux, mos.txPool, mos.engine, mos.blockchain, chainDb, cacheLimit, config.Whitelist, ulvp); err != nil {
+	if mos.protocolManager, err = NewProtocolManager(chainConfig, checkpoint, config.SyncMode, config.NetworkId, mos.eventMux, mos.txPool, mos.engine, mos.blockchain, chainDb, cacheLimit, config.Whitelist, mos.blockchain.UlVP); err != nil {
 		return nil, err
 	}
-	mos.miner = miner.New(mos, &config.Miner, chainConfig, mos.EventMux(), mos.engine, mos.isLocalBlock, ulvp)
+	mos.miner = miner.New(mos, &config.Miner, chainConfig, mos.EventMux(), mos.engine, mos.isLocalBlock, mos.blockchain.UlVP)
 	mos.miner.SetExtra(makeExtraData(config.Miner.ExtraData))
 
 	mos.APIBackend = &EthAPIBackend{stack.Config().ExtRPCEnabled(), mos, nil}
