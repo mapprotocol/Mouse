@@ -20,9 +20,9 @@ import (
 	"bytes"
 	"errors"
 	"math/big"
+	"strings"
 	"sync"
 	"sync/atomic"
-	"strings"
 	"time"
 
 	mapset "github.com/deckarep/golang-set"
@@ -233,7 +233,6 @@ func newWorker(config *Config, chainConfig *params.ChainConfig, engine consensus
 	go worker.newWorkLoop(recommit)
 	go worker.resultLoop()
 	go worker.taskLoop()
-	go worker.xcmLoop()
 
 	// Submit first work to initialize pending state.
 	if init {
@@ -433,9 +432,18 @@ func (w *worker) mainLoop() {
 	defer w.txsSub.Unsubscribe()
 	defer w.chainHeadSub.Unsubscribe()
 	defer w.chainSideSub.Unsubscribe()
+	events := w.mux.Subscribe(core.NewOtherTxsEvent{})
+	defer events.Unsubscribe()
 
 	for {
 		select {
+		case ev := <-events.Chan():
+			if ev == nil {
+				return
+			}
+			if ev, ok := ev.Data.(core.NewOtherTxsEvent); ok {
+				log.Info("Receive xcm transaction", "created", ev.Txs)
+			}
 		case req := <-w.newWorkCh:
 			w.commitNewWork(req.interrupt, req.noempty, req.timestamp)
 
@@ -637,20 +645,6 @@ func (w *worker) resultLoop() {
 			// Insert the block into the set of pending ones to resultLoop for confirmations
 			w.unconfirmed.Insert(block.NumberU64(), block.Hash())
 
-		case <-w.exitCh:
-			return
-		}
-	}
-}
-
-func (w *worker) xcmLoop() {
-	events := w.mux.Subscribe(core.NewOtherTxsEvent{})
-	defer events.Unsubscribe()
-
-	for {
-		select {
-		case ev := <-events.Chan():
-			log.Info("Receive xcm transaction", "created", ev)
 		case <-w.exitCh:
 			return
 		}
@@ -967,7 +961,7 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64) 
 		GasLimit:   core.CalcGasLimit(parent, w.config.GasFloor, w.config.GasCeil),
 		Extra:      w.extra,
 		Time:       uint64(timestamp),
-		MmrRoot:	w.chain.GetMmrRoot(),
+		MmrRoot:    w.chain.GetMmrRoot(),
 	}
 
 	// if header.Number.Cmp(common.Big1) == 0 {

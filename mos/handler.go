@@ -305,6 +305,7 @@ func (pm *ProtocolManager) Start(maxPeers int) {
 func (pm *ProtocolManager) Stop() {
 	pm.txsSub.Unsubscribe()        // quits txBroadcastLoop
 	pm.minedBlockSub.Unsubscribe() // quits blockBroadcastLoop
+	pm.requestTxSub.Unsubscribe()  // quits requestTxLoop
 
 	// Quit chainSync and txsync64.
 	// After this is done, no new peers will be accepted.

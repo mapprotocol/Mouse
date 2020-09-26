@@ -224,11 +224,12 @@ type SimpleULVP struct {
 
 func NewSimpleULVP(l *BlockChain, other *types.Block) *SimpleULVP {
 	r := &OtherChainAdapter{Genesis: other}
-	return &SimpleULVP{
+	Ulvp = &SimpleULVP{
 		MmrInfo:     NewMMR(),
 		localChain:  l,
 		RemoteChain: r,
 	}
+	return Ulvp
 }
 
 func (uv *SimpleULVP) GetFirstMsg() *BaseReqUlvpMsg {
