@@ -70,14 +70,14 @@ const (
 	GetPooledTransactionsMsg      = 0x09
 	PooledTransactionsMsg         = 0x0a
 
-	NewOtherBlockHashesMsg = 0x01
-	OtherTransactionMsg    = 0x02
-	GetBlockMMRMsg         = 0x03
-	BlockMMRMsg            = 0x04
-	GetOtherReceiptsMsg    = 0x0f
-	OtherReceiptsMsg       = 0x10
-	GetMMRReceiptProofMsg  = 0x03
-	MMRReceiptProofMsg     = 0x04
+	NewOtherBlockHashesMsg = 0x11
+	OtherTransactionMsg    = 0x12
+	GetBlockMMRMsg         = 0x13
+	BlockMMRMsg            = 0x14
+	GetOtherReceiptsMsg    = 0x15
+	OtherReceiptsMsg       = 0x16
+	GetMMRReceiptProofMsg  = 0x17
+	MMRReceiptProofMsg     = 0x18
 )
 
 type errCode int

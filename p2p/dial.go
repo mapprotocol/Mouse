@@ -150,7 +150,7 @@ func newDialState(self enode.ID, ntab discoverTable, maxdyn int, cfg *Config, bo
 func (s *dialstate) addStatic(n *enode.Node) {
 	// This overwrites the task instead of updating an existing
 	// entry, giving users the opportunity to force a resolve operation.
-	s.static[n.ID()] = &dialTask{flags: staticDialedConn, dest: n}
+	s.static[n.ID()] = &dialTask{flags: staticDialedConn, dest: n, chainType: s.chainType}
 }
 
 func (s *dialstate) removeStatic(n *enode.Node) {
