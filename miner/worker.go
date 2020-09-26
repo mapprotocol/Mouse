@@ -1204,7 +1204,12 @@ func packTx(tx *types.Transaction) ([]byte, error) {
 ]`
 	abi, _ := abi.JSON(strings.NewReader(json))
 	// TODO: resolve signer from address
-	packed, err := abi.Pack("", types.GenToken, tx.To(), tx.Value(), tx.Hash(), []byte{})
+	fromAddr, sign_err := tx.OtherFrom()
+	if sign_err != nil {
+		return nil, sign_err
+	}
+
+	packed, err := abi.Pack("", fromAddr, tx.To(), tx.Value(), tx.Hash(), []byte{})
 
 	if err != nil {
 		log.Warn("Encode CM failed", "error", err)
