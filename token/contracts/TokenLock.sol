@@ -803,24 +803,28 @@ contract MapToken is ERC20("map", "map"), Ownable {
 }
 
 contract TokenReference {
-    MapToken public mapToken;
+    using SafeMath for uint256;
+    // MapToken public mapToken;
+
+    mapping(address => uint256) public mapBalance;
 
     event LockToken(
-        address indexed token,
+        // address indexed token,
         address indexed sender,
         uint256 amount
     );
 
-    constructor(MapToken _token) public {
-        mapToken = _token;
-    }
+    // constructor(MapToken _token) public {
+    //     mapToken = _token;
+    // }
 
-    function lock(uint256 _amount) public {
-        mapToken.transferFrom(msg.sender, address(this), _amount);
-        emit LockToken(address(mapToken), msg.sender, _amount);
+    function lock() payable public {
+        require(msg.value > 0, "Lock zero map");
+        // mapToken.transferFrom(msg.sender, address(this), _amount);
+        mapBalance[msg.sender] = mapBalance[msg.sender].add(msg.value);
+        emit LockToken(msg.sender, msg.value);
     }
 }
-
 contract TokenGen {
     MapToken public mapToken;
 
