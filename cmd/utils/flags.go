@@ -131,6 +131,11 @@ var (
 		Usage: "Network identifier (integer, 1=Frontier, 3=Ropsten, 4=Rinkeby, 5=Görli)",
 		Value: mos.DefaultConfig.NetworkId,
 	}
+	ChainIdFlag = cli.Uint64Flag{
+		Name:  "chainid",
+		Usage: "Network identifier (integer, 1=Frontier, 3=Ropsten, 4=Rinkeby, 5=Görli)",
+		Value: mos.DefaultConfig.ChainId,
+	}
 	GoerliFlag = cli.BoolFlag{
 		Name:  "goerli",
 		Usage: "Görli network: pre-configured proof-of-authority test network",
@@ -1541,6 +1546,9 @@ func SetEthConfig(ctx *cli.Context, stack *node.Node, cfg *mos.Config) {
 	if ctx.GlobalIsSet(NetworkIdFlag.Name) {
 		cfg.NetworkId = ctx.GlobalUint64(NetworkIdFlag.Name)
 	}
+	if ctx.GlobalIsSet(ChainIdFlag.Name) {
+		cfg.ChainId = ctx.GlobalUint64(ChainIdFlag.Name)
+	}
 	if ctx.GlobalIsSet(CacheFlag.Name) || ctx.GlobalIsSet(CacheDatabaseFlag.Name) {
 		cfg.DatabaseCache = ctx.GlobalInt(CacheFlag.Name) * ctx.GlobalInt(CacheDatabaseFlag.Name) / 100
 	}
@@ -1692,6 +1700,11 @@ func SetEthConfig(ctx *cli.Context, stack *node.Node, cfg *mos.Config) {
 	default:
 		if cfg.NetworkId == 1 {
 			setDNSDiscoveryDefaults(cfg, params.MainnetGenesisHash)
+		}
+	}
+	if cfg.Genesis != nil {
+		if ctx.GlobalIsSet(ChainIdFlag.Name) {
+			cfg.Genesis.Config.ChainID = new(big.Int).SetUint64(cfg.ChainId)
 		}
 	}
 }

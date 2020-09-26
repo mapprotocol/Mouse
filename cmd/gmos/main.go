@@ -32,14 +32,14 @@ import (
 	"github.com/marcopoloprotoco/mouse/cmd/utils"
 	"github.com/marcopoloprotoco/mouse/common"
 	"github.com/marcopoloprotoco/mouse/console/prompt"
-	"github.com/marcopoloprotoco/mouse/mos"
-	"github.com/marcopoloprotoco/mouse/mos/downloader"
-	"github.com/marcopoloprotoco/mouse/mosclient"
 	"github.com/marcopoloprotoco/mouse/internal/debug"
 	"github.com/marcopoloprotoco/mouse/internal/ethapi"
 	"github.com/marcopoloprotoco/mouse/internal/flags"
 	"github.com/marcopoloprotoco/mouse/log"
 	"github.com/marcopoloprotoco/mouse/metrics"
+	"github.com/marcopoloprotoco/mouse/mos"
+	"github.com/marcopoloprotoco/mouse/mos/downloader"
+	"github.com/marcopoloprotoco/mouse/mosclient"
 	"github.com/marcopoloprotoco/mouse/node"
 	gopsutil "github.com/shirou/gopsutil/mem"
 	cli "gopkg.in/urfave/cli.v1"
@@ -147,6 +147,7 @@ var (
 		utils.YoloV1Flag,
 		utils.VMEnableDebugFlag,
 		utils.NetworkIdFlag,
+		utils.ChainIdFlag,
 		utils.EthStatsURLFlag,
 		utils.FakePoWFlag,
 		utils.NoCompactionFlag,

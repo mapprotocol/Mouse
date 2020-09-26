@@ -113,7 +113,10 @@ type Config struct {
 
 	// Protocol options
 	NetworkId uint64 // Network ID to use for selecting peers to connect to
-	SyncMode  downloader.SyncMode
+
+	// Chain options
+	ChainId  uint64 // Chain ID to use for selecting peers to connect to
+	SyncMode downloader.SyncMode
 
 	// This can be set to list of enrtree:// URLs which will be queried for
 	// for nodes to connect to.
