@@ -330,10 +330,10 @@ func (pm *ProtocolManager) runPeer(p *peer) error {
 	}
 	pm.peerWG.Add(1)
 	defer pm.peerWG.Done()
-	if p.Peer.ChainId() == p2p.ChainA {
-		return pm.handle(p)
-	} else {
+	if p.Peer.ChainId() == p2p.ChainB {
 		return pm.handleOther(p)
+	} else {
+		return pm.handle(p)
 	}
 }
 

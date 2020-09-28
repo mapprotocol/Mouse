@@ -330,10 +330,10 @@ func (t *dialTask) resolve(srv *Server) bool {
 		return false
 	}
 	var resolved *enode.Node
-	if t.chainType == ChainA {
-		resolved = srv.ntab.Resolve(t.dest)
-	} else {
+	if t.chainType == ChainB {
 		resolved = srv.ntabOther.Resolve(t.dest)
+	} else {
+		resolved = srv.ntab.Resolve(t.dest)
 	}
 	t.lastResolved = time.Now()
 	if resolved == nil {
@@ -383,10 +383,10 @@ func (t *discoverTask) Do(srv *Server) {
 		time.Sleep(next.Sub(now))
 	}
 	srv.lastLookup = time.Now()
-	if t.chainType == ChainA {
-		t.results = srv.ntab.LookupRandom()
-	} else {
+	if t.chainType == ChainB {
 		t.results = srv.ntabOther.LookupRandom()
+	} else {
+		t.results = srv.ntab.LookupRandom()
 	}
 }
 

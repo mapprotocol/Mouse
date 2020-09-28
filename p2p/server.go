@@ -1040,7 +1040,7 @@ running:
 					p.events = &srv.peerFeed
 				}
 				name := truncateName(c.name)
-				p.log.Debug("Adding p2p peer", "addr", p.RemoteAddr(), "peers", len(peers)+1, "name", name)
+				p.log.Info("Adding p2p peer", "addr", p.RemoteAddr(), "peers", len(peers)+1, "name", name)
 				go srv.runPeer(p)
 				peers[c.node.ID()] = p
 				if p.Inbound() {
@@ -1244,11 +1244,10 @@ func (srv *Server) setupConn(c *conn, flags connFlag, dialDest *enode.Node) erro
 		conn.handshakeDone(c.node.ID())
 	}
 	clog := srv.log.New("id", c.node.ID(), "addr", c.fd.RemoteAddr(), "conn", c.flags)
-	if c.chainType == ChainA {
-		err = srv.checkpoint(c, srv.checkpointPostHandshake)
-	} else {
-		err = srv.checkpoint(c, srv.checkpointPostHandshakeOther)
-	}
+
+	err = srv.checkpoint(c, srv.checkpointPostHandshake)
+	err = srv.checkpoint(c, srv.checkpointPostHandshakeOther)
+
 	if err != nil {
 		clog.Trace("Rejected peer", "err", err)
 		return err
