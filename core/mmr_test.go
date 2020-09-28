@@ -121,10 +121,19 @@ func test_O6(count int) {
 		Header:		nil,
 		Right:		big.NewInt(100),
 	}
-	data,_ := tmp.Datas()
-	tmp2 := &ChainHeaderProofMsg {
+
+	msg1 := &UvlpMsgRes{
+		FirstRes:	tmp,
+		SecondRes: 	&ChainInProofMsg{
+			Proof:	proof,
+			Header:	nil,
+		},
 	}
-	tmp2.Parse(data)
+	data2,_ := msg1.Datas()
+	res1,_ := ParseUvlpMsgRes(data2)
+	if res1 == nil {
+		fmt.Println("error")
+	}
 	// fmt.Println("blocks_len:", len(blocks), "blocks:", blocks, "eblocks:", len(eblocks))
 	// fmt.Println("proof:", proof)
 	pBlocks, err := VerifyRequiredBlocks(proof, right_difficulty)

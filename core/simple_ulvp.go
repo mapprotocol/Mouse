@@ -32,13 +32,10 @@ func (b *BaseReqUlvpMsg) Datas() ([]byte, error) {
 	}
 	return data, nil
 }
-func (b *BaseReqUlvpMsg) Parse(data []byte) error {
+func ParseBaseReqUlvpMsg(data []byte) (*BaseReqUlvpMsg,error) {
 	obj := &BaseReqUlvpMsg{}
 	err := rlp.DecodeBytes(data, obj)
-	if err != nil {
-		b = obj
-	}
-	return err
+	return obj,err
 }
 func makeFirstBaseUlvpMsg() *BaseReqUlvpMsg {
 	return &BaseReqUlvpMsg{
@@ -59,13 +56,10 @@ func (b *UlvpMsgReq) Datas() ([]byte, error) {
 	}
 	return data, nil
 }
-func (b *UlvpMsgReq) Parse(data []byte) error {
+func ParseUlvpMsgReq(data []byte) (*UlvpMsgReq,error) {
 	obj := &UlvpMsgReq{}
 	err := rlp.DecodeBytes(data, obj)
-	if err != nil {
-		b = obj
-	}
-	return err
+	return obj,err
 }
 func makeUlvpMsgReq(blocks []uint64) *UlvpMsgReq {
 	return &UlvpMsgReq{
@@ -89,7 +83,7 @@ func (b *ChainHeaderProofMsg) Datas() ([]byte, error) {
 	}
 	return data, nil
 }
-func (b *ChainHeaderProofMsg) Parse(data []byte) (*ChainHeaderProofMsg,error) {
+func ParseProofMsg(data []byte) (*ChainHeaderProofMsg,error) {
 	obj := &ChainHeaderProofMsg{}
 	err := rlp.DecodeBytes(data, obj)
 	return obj,err
@@ -112,13 +106,10 @@ func (b *UvlpMsgRes) Datas() ([]byte, error) {
 	}
 	return data, nil
 }
-func (b *UvlpMsgRes) Parse(data []byte) error {
+func ParseUvlpMsgRes(data []byte) (*UvlpMsgRes,error) {
 	obj := &UvlpMsgRes{}
 	err := rlp.DecodeBytes(data, obj)
-	if err != nil {
-		b = obj
-	}
-	return err
+	return obj,err
 }
 
 func Uint64SliceEqual(a, b []uint64) bool {
@@ -264,8 +255,7 @@ func (uv *SimpleULVP) PushFirstMsg() ([]byte, error) {
 
 func (uv *SimpleULVP) VerifyFirstMsg(data []byte) error {
 	fmt.Println("VerifyFirstMsg data:",len(data))
-	msg0 := &ChainHeaderProofMsg{}
-	msg,err := msg0.Parse(data)
+	msg,err := ParseProofMsg(data)
 	if err != nil {
 		return err
 	}
