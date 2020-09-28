@@ -10,25 +10,25 @@ import (
 	"github.com/marcopoloprotoco/mouse/rpc"
 )
 
-type gethrpc struct {
+type gmosrpc struct {
 	name     string
 	rpc      *rpc.Client
 	gmos     *testgeth
 	nodeInfo *p2p.NodeInfo
 }
 
-func (g *gethrpc) killAndWait() {
+func (g *gmosrpc) killAndWait() {
 	g.gmos.Kill()
 	g.gmos.WaitExit()
 }
 
-func (g *gethrpc) callRPC(result interface{}, method string, args ...interface{}) {
+func (g *gmosrpc) callRPC(result interface{}, method string, args ...interface{}) {
 	if err := g.rpc.Call(&result, method, args...); err != nil {
 		g.gmos.Fatalf("callRPC %v: %v", method, err)
 	}
 }
 
-func (g *gethrpc) addPeer(peer *gethrpc) {
+func (g *gmosrpc) addPeer(peer *gmosrpc) {
 	g.gmos.Logf("%v.addPeer(%v)", g.name, peer.name)
 	enode := peer.getNodeInfo().Enode
 	peerCh := make(chan *p2p.PeerEvent)
@@ -51,7 +51,7 @@ func (g *gethrpc) addPeer(peer *gethrpc) {
 }
 
 // Use this function instead of `g.nodeInfo` directly
-func (g *gethrpc) getNodeInfo() *p2p.NodeInfo {
+func (g *gmosrpc) getNodeInfo() *p2p.NodeInfo {
 	if g.nodeInfo != nil {
 		return g.nodeInfo
 	}
@@ -60,7 +60,7 @@ func (g *gethrpc) getNodeInfo() *p2p.NodeInfo {
 	return g.nodeInfo
 }
 
-func (g *gethrpc) waitSynced() {
+func (g *gmosrpc) waitSynced() {
 	// Check if it's synced now
 	var result interface{}
 	g.callRPC(&result, "eth_syncing")
@@ -95,11 +95,11 @@ func (g *gethrpc) waitSynced() {
 	}
 }
 
-func startGethWithIpc(t *testing.T, name string, args ...string) *gethrpc {
-	g := &gethrpc{name: name}
+func startGethWithIpc(t *testing.T, name string, args ...string) *gmosrpc {
+	g := &gmosrpc{name: name}
 	args = append([]string{"--networkid=42", "--port=0", "--nousb"}, args...)
 	t.Logf("Starting %v with rpc: %v", name, args)
-	g.gmos = runGeth(t, args...)
+	g.gmos = runGmos(t, args...)
 	// wait before we can attach to it. TODO: probe for it properly
 	time.Sleep(1 * time.Second)
 	var err error
@@ -112,21 +112,21 @@ func startGethWithIpc(t *testing.T, name string, args ...string) *gethrpc {
 }
 
 func initGeth(t *testing.T) string {
-	g := runGeth(t, "--nousb", "--networkid=42", "init", "./testdata/clique.json")
+	g := runGmos(t, "--nousb", "--networkid=42", "init", "./testdata/clique.json")
 	datadir := g.Datadir
 	g.WaitExit()
 	return datadir
 }
 
-func startLightServer(t *testing.T) *gethrpc {
+func startLightServer(t *testing.T) *gmosrpc {
 	datadir := initGeth(t)
-	runGeth(t, "--nousb", "--datadir", datadir, "--password", "./testdata/password.txt", "account", "import", "./testdata/key.prv").WaitExit()
+	runGmos(t, "--nousb", "--datadir", datadir, "--password", "./testdata/password.txt", "account", "import", "./testdata/key.prv").WaitExit()
 	account := "0x02f0d131f1f97aef08aec6e3291b957d9efe7105"
 	server := startGethWithIpc(t, "lightserver", "--allow-insecure-unlock", "--datadir", datadir, "--password", "./testdata/password.txt", "--unlock", account, "--mine", "--light.serve=100", "--light.maxpeers=1", "--nodiscover", "--nat=extip:127.0.0.1")
 	return server
 }
 
-func startClient(t *testing.T, name string) *gethrpc {
+func startClient(t *testing.T, name string) *gmosrpc {
 	datadir := initGeth(t)
 	return startGethWithIpc(t, name, "--datadir", datadir, "--nodiscover", "--syncmode=light", "--nat=extip:127.0.0.1")
 }
@@ -161,7 +161,7 @@ func TestPriorityClient(t *testing.T) {
 		t.Errorf("Expected: # of prio peers == 1, actual: %v", len(peers))
 	}
 
-	nodes := map[string]*gethrpc{
+	nodes := map[string]*gmosrpc{
 		lightServer.getNodeInfo().ID: lightServer,
 		freeCli.getNodeInfo().ID:     freeCli,
 		prioCli.getNodeInfo().ID:     prioCli,

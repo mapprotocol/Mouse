@@ -43,13 +43,13 @@ func tmpDatadirWithKeystore(t *testing.T) string {
 }
 
 func TestAccountListEmpty(t *testing.T) {
-	gmos := runGeth(t, "account", "list")
+	gmos := runGmos(t, "account", "list")
 	gmos.ExpectExit()
 }
 
 func TestAccountList(t *testing.T) {
 	datadir := tmpDatadirWithKeystore(t)
-	gmos := runGeth(t, "account", "list", "--datadir", datadir)
+	gmos := runGmos(t, "account", "list", "--datadir", datadir)
 	defer gmos.ExpectExit()
 	if runtime.GOOS == "windows" {
 		gmos.Expect(`
@@ -67,7 +67,7 @@ Account #2: {289d485d9771714cce91d3393d764e1311907acc} keystore://{{.Datadir}}/k
 }
 
 func TestAccountNew(t *testing.T) {
-	gmos := runGeth(t, "account", "new", "--lightkdf")
+	gmos := runGmos(t, "account", "new", "--lightkdf")
 	defer gmos.ExpectExit()
 	gmos.Expect(`
 Your new account is locked with a password. Please give a password. Do not forget this password.
@@ -119,13 +119,13 @@ func importAccountWithExpect(t *testing.T, key string, expected string) {
 	if err := ioutil.WriteFile(passwordFile, []byte("foobar"), 0600); err != nil {
 		t.Error(err)
 	}
-	gmos := runGeth(t, "account", "import", keyfile, "-password", passwordFile)
+	gmos := runGmos(t, "account", "import", keyfile, "-password", passwordFile)
 	defer gmos.ExpectExit()
 	gmos.Expect(expected)
 }
 
 func TestAccountNewBadRepeat(t *testing.T) {
-	gmos := runGeth(t, "account", "new", "--lightkdf")
+	gmos := runGmos(t, "account", "new", "--lightkdf")
 	defer gmos.ExpectExit()
 	gmos.Expect(`
 Your new account is locked with a password. Please give a password. Do not forget this password.
@@ -138,7 +138,7 @@ Fatal: Passwords do not match
 
 func TestAccountUpdate(t *testing.T) {
 	datadir := tmpDatadirWithKeystore(t)
-	gmos := runGeth(t, "account", "update",
+	gmos := runGmos(t, "account", "update",
 		"--datadir", datadir, "--lightkdf",
 		"f466859ead1932d743d622cb74fc058882e8648a")
 	defer gmos.ExpectExit()
@@ -153,7 +153,7 @@ Repeat password: {{.InputLine "foobar2"}}
 }
 
 func TestWalletImport(t *testing.T) {
-	gmos := runGeth(t, "wallet", "import", "--lightkdf", "testdata/guswallet.json")
+	gmos := runGmos(t, "wallet", "import", "--lightkdf", "testdata/guswallet.json")
 	defer gmos.ExpectExit()
 	gmos.Expect(`
 !! Unsupported terminal, password will be echoed.
@@ -168,7 +168,7 @@ Address: {d4584b5f6229b7be90727b0fc8c6b91bb427821f}
 }
 
 func TestWalletImportBadPassword(t *testing.T) {
-	gmos := runGeth(t, "wallet", "import", "--lightkdf", "testdata/guswallet.json")
+	gmos := runGmos(t, "wallet", "import", "--lightkdf", "testdata/guswallet.json")
 	defer gmos.ExpectExit()
 	gmos.Expect(`
 !! Unsupported terminal, password will be echoed.
@@ -179,7 +179,7 @@ Fatal: could not decrypt key with given password
 
 func TestUnlockFlag(t *testing.T) {
 	datadir := tmpDatadirWithKeystore(t)
-	gmos := runGeth(t,
+	gmos := runGmos(t,
 		"--datadir", datadir, "--nat", "none", "--nodiscover", "--maxpeers", "0", "--port", "0",
 		"--unlock", "f466859ead1932d743d622cb74fc058882e8648a",
 		"js", "testdata/empty.js")
@@ -203,7 +203,7 @@ Password: {{.InputLine "foobar"}}
 
 func TestUnlockFlagWrongPassword(t *testing.T) {
 	datadir := tmpDatadirWithKeystore(t)
-	gmos := runGeth(t,
+	gmos := runGmos(t,
 		"--datadir", datadir, "--nat", "none", "--nodiscover", "--maxpeers", "0", "--port", "0",
 		"--unlock", "f466859ead1932d743d622cb74fc058882e8648a")
 	defer gmos.ExpectExit()
@@ -222,7 +222,7 @@ Fatal: Failed to unlock account f466859ead1932d743d622cb74fc058882e8648a (could 
 // https://github.com/marcopoloprotoco/mouse/issues/1785
 func TestUnlockFlagMultiIndex(t *testing.T) {
 	datadir := tmpDatadirWithKeystore(t)
-	gmos := runGeth(t,
+	gmos := runGmos(t,
 		"--datadir", datadir, "--nat", "none", "--nodiscover", "--maxpeers", "0", "--port", "0",
 		"--unlock", "0,2",
 		"js", "testdata/empty.js")
@@ -249,7 +249,7 @@ Password: {{.InputLine "foobar"}}
 
 func TestUnlockFlagPasswordFile(t *testing.T) {
 	datadir := tmpDatadirWithKeystore(t)
-	gmos := runGeth(t,
+	gmos := runGmos(t,
 		"--datadir", datadir, "--nat", "none", "--nodiscover", "--maxpeers", "0", "--port", "0",
 		"--password", "testdata/passwords.txt", "--unlock", "0,2",
 		"js", "testdata/empty.js")
@@ -269,7 +269,7 @@ func TestUnlockFlagPasswordFile(t *testing.T) {
 
 func TestUnlockFlagPasswordFileWrongPassword(t *testing.T) {
 	datadir := tmpDatadirWithKeystore(t)
-	gmos := runGeth(t,
+	gmos := runGmos(t,
 		"--datadir", datadir, "--nat", "none", "--nodiscover", "--maxpeers", "0", "--port", "0",
 		"--password", "testdata/wrong-passwords.txt", "--unlock", "0,2")
 	defer gmos.ExpectExit()
@@ -280,7 +280,7 @@ Fatal: Failed to unlock account 0 (could not decrypt key with given password)
 
 func TestUnlockFlagAmbiguous(t *testing.T) {
 	store := filepath.Join("..", "..", "accounts", "keystore", "testdata", "dupes")
-	gmos := runGeth(t,
+	gmos := runGmos(t,
 		"--keystore", store, "--nat", "none", "--nodiscover", "--maxpeers", "0", "--port", "0",
 		"--unlock", "f466859ead1932d743d622cb74fc058882e8648a",
 		"js", "testdata/empty.js")
@@ -318,7 +318,7 @@ In order to avoid this warning, you need to remove the following duplicate key f
 
 func TestUnlockFlagAmbiguousWrongPassword(t *testing.T) {
 	store := filepath.Join("..", "..", "accounts", "keystore", "testdata", "dupes")
-	gmos := runGeth(t,
+	gmos := runGmos(t,
 		"--keystore", store, "--nat", "none", "--nodiscover", "--maxpeers", "0", "--port", "0",
 		"--unlock", "f466859ead1932d743d622cb74fc058882e8648a")
 	defer gmos.ExpectExit()

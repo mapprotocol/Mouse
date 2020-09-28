@@ -13,7 +13,7 @@ PageEx license
 PageExEnd
 
 # Install gmos binary
-Section "Gmos" GETH_IDX
+Section "Gmos" GMOS_IDX
   SetOutPath $INSTDIR
   file {{.Gmos}}
 
@@ -54,8 +54,8 @@ Var GetInstalledSize.total
 Function GetInstalledSize
   StrCpy $GetInstalledSize.total 0
 
-  ${if} ${SectionIsSelected} ${GETH_IDX}
-    SectionGetSize ${GETH_IDX} $0
+  ${if} ${SectionIsSelected} ${GMOS_IDX}
+    SectionGetSize ${GMOS_IDX} $0
     IntOp $GetInstalledSize.total $GetInstalledSize.total + $0
   ${endif}
 

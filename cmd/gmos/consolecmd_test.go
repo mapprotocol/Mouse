@@ -41,7 +41,7 @@ func TestConsoleWelcome(t *testing.T) {
 	coinbase := "0x8605cdbbdb6d264aa742e77020dcbc58fcdce182"
 
 	// Start a gmos console, make sure it's cleaned up and terminate the console
-	gmos := runGeth(t,
+	gmos := runGmos(t,
 		"--port", "0", "--maxpeers", "0", "--nodiscover", "--nat", "none",
 		"--etherbase", coinbase,
 		"console")
@@ -83,7 +83,7 @@ func TestIPCAttachWelcome(t *testing.T) {
 		defer os.RemoveAll(ws)
 		ipc = filepath.Join(ws, "gmos.ipc")
 	}
-	gmos := runGeth(t,
+	gmos := runGmos(t,
 		"--port", "0", "--maxpeers", "0", "--nodiscover", "--nat", "none",
 		"--etherbase", coinbase, "--ipcpath", ipc)
 
@@ -100,7 +100,7 @@ func TestIPCAttachWelcome(t *testing.T) {
 func TestHTTPAttachWelcome(t *testing.T) {
 	coinbase := "0x8605cdbbdb6d264aa742e77020dcbc58fcdce182"
 	port := strconv.Itoa(trulyRandInt(1024, 65536)) // Yeah, sometimes this will fail, sorry :P
-	gmos := runGeth(t,
+	gmos := runGmos(t,
 		"--port", "0", "--maxpeers", "0", "--nodiscover", "--nat", "none",
 		"--etherbase", coinbase, "--http", "--http.port", port)
 	defer func() {
@@ -117,7 +117,7 @@ func TestWSAttachWelcome(t *testing.T) {
 	coinbase := "0x8605cdbbdb6d264aa742e77020dcbc58fcdce182"
 	port := strconv.Itoa(trulyRandInt(1024, 65536)) // Yeah, sometimes this will fail, sorry :P
 
-	gmos := runGeth(t,
+	gmos := runGmos(t,
 		"--port", "0", "--maxpeers", "0", "--nodiscover", "--nat", "none",
 		"--etherbase", coinbase, "--ws", "--ws.port", port)
 	defer func() {
@@ -132,7 +132,7 @@ func TestWSAttachWelcome(t *testing.T) {
 
 func testAttachWelcome(t *testing.T, gmos *testgeth, endpoint, apis string) {
 	// Attach to a running gmos note and terminate immediately
-	attach := runGeth(t, "attach", endpoint)
+	attach := runGmos(t, "attach", endpoint)
 	defer attach.ExpectExit()
 	attach.CloseStdin()
 
