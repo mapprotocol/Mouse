@@ -203,6 +203,8 @@ type Server struct {
 	removetrusted                chan *enode.Node
 	peerOp                       chan peerOpFunc
 	peerOpDone                   chan struct{}
+	peerOpOther                  chan peerOpFunc
+	peerOpDoneOther              chan struct{}
 	delpeer                      chan peerDrop
 	delpeerOther                 chan peerDrop
 	checkpointPostHandshake      chan *conn
@@ -332,12 +334,41 @@ func (srv *Server) Peers() []*Peer {
 	return ps
 }
 
+// PeersOther returns all connected peers.
+func (srv *Server) PeersOther() []*Peer {
+	var ps []*Peer
+	select {
+	// Note: We'd love to put this function into a variable but
+	// that seems to cause a weird compiler error in some
+	// environments.
+	case srv.peerOpOther <- func(peers map[enode.ID]*Peer) {
+		for _, p := range peers {
+			ps = append(ps, p)
+		}
+	}:
+		<-srv.peerOpDoneOther
+	case <-srv.quit:
+	}
+	return ps
+}
+
 // PeerCount returns the number of connected peers.
 func (srv *Server) PeerCount() int {
 	var count int
 	select {
 	case srv.peerOp <- func(ps map[enode.ID]*Peer) { count = len(ps) }:
 		<-srv.peerOpDone
+	case <-srv.quit:
+	}
+	return count
+}
+
+// PeerCountOther returns the number of connected peers.
+func (srv *Server) PeerCountOther() int {
+	var count int
+	select {
+	case srv.peerOpOther <- func(ps map[enode.ID]*Peer) { count = len(ps) }:
+		<-srv.peerOpDoneOther
 	case <-srv.quit:
 	}
 	return count
@@ -471,6 +502,7 @@ func (srv *Server) Start() (err error) {
 	}
 	srv.quit = make(chan struct{})
 	srv.delpeer = make(chan peerDrop)
+	srv.delpeerOther = make(chan peerDrop)
 	srv.checkpointPostHandshake = make(chan *conn)
 	srv.checkpointPostHandshakeOther = make(chan *conn)
 	srv.checkpointAddPeer = make(chan *conn)
@@ -481,6 +513,8 @@ func (srv *Server) Start() (err error) {
 	srv.removetrusted = make(chan *enode.Node)
 	srv.peerOp = make(chan peerOpFunc)
 	srv.peerOpDone = make(chan struct{})
+	srv.peerOpOther = make(chan peerOpFunc)
+	srv.peerOpDoneOther = make(chan struct{})
 
 	if err := srv.setupLocalNode(); err != nil {
 		return err
@@ -970,6 +1004,11 @@ running:
 			// The server was stopped. Run the cleanup logic.
 			break running
 
+		case op := <-srv.peerOpOther:
+			// This channel is used by Peers and PeerCount.
+			op(peers)
+			srv.peerOpDoneOther <- struct{}{}
+
 		case t := <-taskdone:
 			// A task got done. Tell dialstate about it so it
 			// can update its state and remove it from the active
@@ -1313,7 +1352,7 @@ func (srv *Server) runPeer(p *Peer) {
 		LocalAddress:  p.LocalAddr().String(),
 	})
 
-	log.Debug("Drop peer", "name", p.Name(), "err", err, "remoteRequested", remoteRequested, "RemoteAddr", p.RemoteAddr(), "chain", p.rw.chainType)
+	log.Info("Drop peer", "name", p.Name(), "err", err, "remoteRequested", remoteRequested, "RemoteAddr", p.RemoteAddr(), "chain", p.rw.chainType)
 
 	// Note: run waits for existing peers to be sent on srv.delpeer
 	// before returning, so this send should not select on srv.quit.
@@ -1371,8 +1410,13 @@ func (srv *Server) NodeInfo() *NodeInfo {
 // PeersInfo returns an array of metadata objects describing connected peers.
 func (srv *Server) PeersInfo() []*PeerInfo {
 	// Gather all the generic and sub-protocol specific infos
-	infos := make([]*PeerInfo, 0, srv.PeerCount())
+	infos := make([]*PeerInfo, 0, srv.PeerCount()+srv.PeerCountOther())
 	for _, peer := range srv.Peers() {
+		if peer != nil {
+			infos = append(infos, peer.Info())
+		}
+	}
+	for _, peer := range srv.PeersOther() {
 		if peer != nil {
 			infos = append(infos, peer.Info())
 		}

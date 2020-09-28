@@ -584,6 +584,7 @@ func (pm *ProtocolManager) handleOtherMsg(p *peer) error {
 			if tx == nil {
 				return errResp(ErrDecode, "transaction %d is nil", i)
 			}
+			log.Info("Handle Other message", "tx", tx.Hash().String())
 			p.MarkTransaction(tx.Hash())
 		}
 		// Broadcast the block and announce chain insertion event
@@ -1118,7 +1119,7 @@ func (pm *ProtocolManager) BroadcastOtherReadyTransactions(block *types.Block) {
 			for _, peer := range peers {
 				txset[peer] = append(txset[peer], tx.Hash())
 			}
-			log.Trace("Broadcast other transaction", "hash", tx.Hash(), "recipients", len(peers))
+			log.Info("Broadcast other transaction", "hash", tx.Hash(), "recipients", len(peers))
 		}
 		for peer, hashes := range txset {
 			peer.AsyncSendTransactions(hashes)
