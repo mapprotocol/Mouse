@@ -1156,14 +1156,38 @@ func totalFees(block *types.Block, receipts []*types.Receipt) *big.Float {
 }
 
 func makeCMTransaction(tx *types.Transaction) *types.Transaction {
+	jsondata := `
+	[
+	{
+		"inputs": [
+			{
+				"internalType": "bytes",
+				"name": "_proofData",
+				"type": "bytes"
+			}
+		],
+		"name": "unlock",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	}
+	]
+	`
+	abiMint, _ := abi.JSON(strings.NewReader(jsondata))
+
 	encoded, _ := packTx(tx)
-	cm := types.NewTransaction(0, types.GenToken, nil, 0, nil, encoded)
+	data, err := abiMint.Pack("unlock", encoded)
+	if err != nil {
+		log.Error("Mint transaction encode error", "tx", tx.Hash())
+	}
+
+	cm := types.NewTransaction(0, types.GenToken, nil, 0, nil, data)
 	return cm
 }
 
 func packTx(tx *types.Transaction) ([]byte, error) {
 	json := `
-[
+	[
 	{
 		"inputs": [
 			{
@@ -1195,7 +1219,8 @@ func packTx(tx *types.Transaction) ([]byte, error) {
 		"stateMutability": "nonpayable",
 		"type": "constructor"
 	}
-]`
+	]
+`
 	abi, _ := abi.JSON(strings.NewReader(json))
 	// TODO: resolve signer from address
 	fromAddr, sign_err := tx.OtherFrom()
