@@ -149,7 +149,7 @@ type statusData struct {
 	Head            common.Hash
 	Genesis         common.Hash
 	ForkID          forkid.ID
-	Proof           []byte
+	Proof           [][]byte
 }
 
 // newBlockHashesData is the network packet for the block announcements.

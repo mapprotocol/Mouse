@@ -735,7 +735,7 @@ func (p *peer) OtherHandshake(network uint64, td *big.Int, head common.Hash, gen
 					TD:              td,
 					Head:            head,
 					Genesis:         genesis,
-					Proof:           proof,
+					Proof:           [][]byte{proof},
 				})
 			}
 		default:
@@ -796,7 +796,7 @@ func (p *peer) readOtherStatus(network uint64, status *statusData, genesis commo
 		return errResp(ErrGenesisMismatch, "other %x (== %x)", status.Genesis, genesis)
 	}
 	if dial {
-		if err := uLVP.VerifyFirstMsg(status.Proof); err != nil {
+		if err := uLVP.VerifyFirstMsg(status.Proof[0]); err != nil {
 			return err
 		}
 	}
