@@ -89,13 +89,10 @@ func (b *ChainHeaderProofMsg) Datas() ([]byte, error) {
 	}
 	return data, nil
 }
-func (b *ChainHeaderProofMsg) Parse(data []byte) error {
+func (b *ChainHeaderProofMsg) Parse(data []byte) (*ChainHeaderProofMsg,error) {
 	obj := &ChainHeaderProofMsg{}
 	err := rlp.DecodeBytes(data, obj)
-	if err != nil {
-		b = obj
-	}
-	return err
+	return obj,err
 }
 
 type ChainInProofMsg struct {
@@ -261,18 +258,27 @@ func (uv *SimpleULVP) PushFirstMsg() ([]byte, error) {
 		Header: heads,
 		Right:  Right,
 	}
+	fmt.Println("PushFirstMsg proof.check",len(proof.Checked))
 	return res.Datas()
 }
 
 func (uv *SimpleULVP) VerifyFirstMsg(data []byte) error {
-	msg := &ChainHeaderProofMsg{}
-	if err := msg.Parse(data); err != nil {
+	fmt.Println("VerifyFirstMsg data:",len(data))
+	msg0 := &ChainHeaderProofMsg{}
+	msg,err := msg0.Parse(data)
+	if err != nil {
 		return err
 	}
 
 	if len(msg.Header) == 1 && msg.Header[0].Number.Uint64() == 0 {
 		return nil
 	}
+	if msg.Proof != nil {
+		fmt.Println("PushFirstMsg proof.check",len(msg.Proof.Checked))
+	} else {
+		fmt.Println("PushFirstMsg proof.check is nil")
+	}
+	
 	if pBlocks, err := VerifyRequiredBlocks(msg.Proof, msg.Right); err != nil {
 		return err
 	} else {

@@ -74,7 +74,7 @@ func Test05(t *testing.T) {
 		})
 	}
 	right_difficulty := big.NewInt(1000)
-	fmt.Println("leaf_number:", mmr.getLeafNumber(), "root_difficulty:", mmr.GetRootDifficulty())
+	fmt.Println("leaf_number:", mmr.getLeafNumber(), "root_difficulty:", mmr.getRootDifficulty())
 	proof, blocks, eblocks := mmr.CreateNewProof(right_difficulty)
 	fmt.Println("blocks_len:", len(blocks), "blocks:", blocks, "eblocks:", len(eblocks))
 	fmt.Println("proof:", proof)
@@ -88,9 +88,10 @@ func Test05(t *testing.T) {
 	fmt.Println("finish")
 }
 func TestO6(t *testing.T) {
-	for i := 10; i < 20000; i++ {
-		test_O6(i)
-	}
+	// for i := 10; i < 10; i++ {
+	// 	test_O6(i)
+	// }
+	test_O6(10)
 	fmt.Println("finish")
 }
 func test_O6(count int) {
@@ -107,13 +108,23 @@ func test_O6(count int) {
 
 	// fmt.Println(mmr.GetSize(), mmr.GetRootNode())
 	// fmt.Println("last:", mmr.getNode(19990))
-	mmr.Pop()
+	// mmr.Pop()
 	// r := mmr.Pop()
 	// fmt.Println("last:", r)
 	// fmt.Println(mmr.GetSize(), mmr.GetRootNode())
 	right_difficulty := big.NewInt(1000)
 	// fmt.Println("leaf_number:", mmr.getLeafNumber(), "root_difficulty:", mmr.GetRootDifficulty())
 	proof, _, _ := mmr.CreateNewProof(right_difficulty)
+
+	tmp := &ChainHeaderProofMsg {
+		Proof:		proof,
+		Header:		nil,
+		Right:		big.NewInt(100),
+	}
+	data,_ := tmp.Datas()
+	tmp2 := &ChainHeaderProofMsg {
+	}
+	tmp2.Parse(data)
 	// fmt.Println("blocks_len:", len(blocks), "blocks:", blocks, "eblocks:", len(eblocks))
 	// fmt.Println("proof:", proof)
 	pBlocks, err := VerifyRequiredBlocks(proof, right_difficulty)

@@ -376,7 +376,7 @@ func (bc *BlockChain) LoadMMR() error {
 	for i := uint64(0); i < head.NumberU64(); i++ {
 		b := bc.GetBlockByNumber(i)
 		if b == nil {
-			return fmt.Errorf("cann't block by number,i:", i)
+			return fmt.Errorf("cann't block by number,i:%v", i)
 		}
 		bc.PushBlockInMMR(b)
 	}
