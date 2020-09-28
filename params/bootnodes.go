@@ -28,7 +28,6 @@ var MainnetBootnodes = []string{
 var MainnetOtherBootnodes = []string{
 	// Mouse Foundation Go Bootnodes
 	"enode://8dcb15ac2de32ddb326b207b235d156c9ee315da933e7bd3f85f9b02eefa7aba2ca77d540621f2472f9c28bf2954c7d9aa56b226c87a0dd8a8b87771a26f23db@43.227.254.198:30303", // bootnode-aws-ap-southeast-1-001
-	"enode://aa5878f66de86467e8f8b8b899d28a41b0e77c1235f273e62f43bb91734709eea7eb7c4351266eeab9b6b507eea06a473d4d8d0bf548dc3c6ff919dbd30fd091@39.98.214.163.1:30164",
 }
 
 // RopstenBootnodes are the enode URLs of the P2P bootstrap nodes running on the

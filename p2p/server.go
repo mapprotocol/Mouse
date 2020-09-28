@@ -553,6 +553,7 @@ func (srv *Server) setupLocalNode() error {
 	srv.ourHandshake = &protoHandshake{Version: baseProtocolVersion, Name: srv.Name, ID: pubkey[1:]}
 	for _, p := range srv.Protocols {
 		srv.ourHandshake.Caps = append(srv.ourHandshake.Caps, p.cap())
+		srv.ourHandshake.networkID = p.NetworkId
 		log.Debug("Setup local node", "cap", p.cap(), "database", srv.Config.NodeDatabase)
 	}
 	sort.Sort(capsByNameAndVersion(srv.ourHandshake.Caps))
@@ -1272,10 +1273,15 @@ func (srv *Server) setupConn(c *conn, flags connFlag, dialDest *enode.Node) erro
 	if dialDest == nil && phs.chainType == ChainB {
 		c.chainType = phs.chainType
 	}
-	if c.chainType == ChainA {
-		err = srv.checkpoint(c, srv.checkpointAddPeer)
-	} else {
+
+	if phs.networkID != srv.ourHandshake.networkID {
+		c.chainType = ChainB
+	}
+
+	if c.chainType == ChainB {
 		err = srv.checkpoint(c, srv.checkpointAddPeerOther)
+	} else {
+		err = srv.checkpoint(c, srv.checkpointAddPeer)
 	}
 	if err != nil {
 		clog.Trace("Rejected peer", "err", err)
@@ -1355,7 +1361,7 @@ func (srv *Server) runPeer(p *Peer) {
 
 	// Note: run waits for existing peers to be sent on srv.delpeer
 	// before returning, so this send should not select on srv.quit.
-	if p.rw.chainType == ChainA {
+	if p.rw.chainType == ChainB {
 		srv.delpeer <- peerDrop{p, err, remoteRequested}
 	} else {
 		srv.delpeerOther <- peerDrop{p, err, remoteRequested}
