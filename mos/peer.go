@@ -792,8 +792,8 @@ func (p *peer) readOtherStatus(network uint64, status *statusData, genesis commo
 	if int(status.ProtocolVersion) != p.version {
 		return errResp(ErrProtocolVersionMismatch, "%d (!= %d)", status.ProtocolVersion, p.version)
 	}
-	if status.Genesis != genesis {
-		return errResp(ErrGenesisMismatch, "%x (!= %x)", status.Genesis, genesis)
+	if status.Genesis == genesis {
+		return errResp(ErrGenesisMismatch, "other %x (== %x)", status.Genesis, genesis)
 	}
 	if dial {
 		if err := uLVP.VerifyFirstMsg(status.Proof); err != nil {
