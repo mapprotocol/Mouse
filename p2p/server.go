@@ -1362,9 +1362,9 @@ func (srv *Server) runPeer(p *Peer) {
 	// Note: run waits for existing peers to be sent on srv.delpeer
 	// before returning, so this send should not select on srv.quit.
 	if p.rw.chainType == ChainB {
-		srv.delpeer <- peerDrop{p, err, remoteRequested}
-	} else {
 		srv.delpeerOther <- peerDrop{p, err, remoteRequested}
+	} else {
+		srv.delpeer <- peerDrop{p, err, remoteRequested}
 	}
 }
 
