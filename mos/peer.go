@@ -728,7 +728,7 @@ func (p *peer) OtherHandshake(network uint64, td *big.Int, head common.Hash, gen
 				})
 			} else {
 				proof, err := uLVP.PushFirstMsg()
-				fmt.Println("OtherHandshake PushFirstMsg", err)
+				fmt.Println("OtherHandshake PushFirstMsg", err, "", len(proof))
 				errc <- p2p.Send(p.rw, StatusMsg, &statusData{
 					ProtocolVersion: uint32(p.version),
 					NetworkID:       network,
@@ -792,8 +792,8 @@ func (p *peer) readOtherStatus(network uint64, status *statusData, genesis commo
 	if int(status.ProtocolVersion) != p.version {
 		return errResp(ErrProtocolVersionMismatch, "%d (!= %d)", status.ProtocolVersion, p.version)
 	}
-	if status.Genesis == genesis {
-		return errResp(ErrGenesisMismatch, "other %x (== %x)", status.Genesis, genesis)
+	if status.Genesis != genesis {
+		return errResp(ErrGenesisMismatch, "other %x (!= %x)", status.Genesis, genesis)
 	}
 	if dial {
 		if err := uLVP.VerifyFirstMsg(status.Proof[0]); err != nil {

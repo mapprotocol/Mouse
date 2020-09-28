@@ -122,7 +122,9 @@ func New(stack *node.Node, config *Config) (*Mouse, error) {
 	if _, ok := genesisErr.(*params.ConfigCompatError); genesisErr != nil && !ok {
 		return nil, genesisErr
 	}
-	chainConfig.ChainID = new(big.Int).SetUint64(config.ChainId)
+	if config.ChainId != 0 {
+		chainConfig.ChainID = new(big.Int).SetUint64(config.ChainId)
+	}
 
 	_, block, _ := core.SetupOtherGenesisBlock(config.OtherGenesis)
 
