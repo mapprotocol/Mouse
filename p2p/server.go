@@ -1215,7 +1215,7 @@ func (srv *Server) setupConn(c *conn, flags connFlag, dialDest *enode.Node) erro
 		return err
 	}
 
-	if dialDest != nil {
+	if crossChain(c, dialDest) {
 		srv.ourHandshake.chainType = c.chainType
 		c.dial = true
 	}
@@ -1231,7 +1231,7 @@ func (srv *Server) setupConn(c *conn, flags connFlag, dialDest *enode.Node) erro
 	}
 	c.caps, c.name, c.chainType = phs.Caps, phs.Name, phs.chainType
 
-	if dialDest == nil {
+	if dialDest == nil && phs.chainType == ChainB {
 		c.chainType = phs.chainType
 	}
 	if c.chainType == ChainA {
@@ -1248,6 +1248,13 @@ func (srv *Server) setupConn(c *conn, flags connFlag, dialDest *enode.Node) erro
 	// runPeer has been launched.
 	clog.Trace("Connection set up", "inbound", dialDest == nil)
 	return nil
+}
+
+func crossChain(c *conn, dialDest *enode.Node) bool {
+	if c.chainType == ChainB && dialDest != nil {
+		return true
+	}
+	return false
 }
 
 func nodeFromConn(pubkey *ecdsa.PublicKey, conn net.Conn) *enode.Node {
