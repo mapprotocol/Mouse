@@ -28,7 +28,7 @@ android:
 ios:
 	$(GORUN) build/ci.go xcode --local
 	@echo "Done building."
-	@echo "Import \"$(GOBIN)/Geth.framework\" to use the library."
+	@echo "Import \"$(GOBIN)/Gmos.framework\" to use the library."
 
 test: all
 	$(GORUN) build/ci.go test

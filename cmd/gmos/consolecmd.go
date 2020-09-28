@@ -41,7 +41,7 @@ var (
 		Flags:    append(append(append(nodeFlags, rpcFlags...), consoleFlags...), whisperFlags...),
 		Category: "CONSOLE COMMANDS",
 		Description: `
-The Geth console is an interactive shell for the JavaScript runtime environment
+The Gmos console is an interactive shell for the JavaScript runtime environment
 which exposes a node admin interface as well as the Ðapp JavaScript API.
 See https://github.com/marcopoloprotoco/mouse/wiki/JavaScript-Console.`,
 	}
@@ -54,7 +54,7 @@ See https://github.com/marcopoloprotoco/mouse/wiki/JavaScript-Console.`,
 		Flags:     append(consoleFlags, utils.DataDirFlag),
 		Category:  "CONSOLE COMMANDS",
 		Description: `
-The Geth console is an interactive shell for the JavaScript runtime environment
+The Gmos console is an interactive shell for the JavaScript runtime environment
 which exposes a node admin interface as well as the Ðapp JavaScript API.
 See https://github.com/marcopoloprotoco/mouse/wiki/JavaScript-Console.
 This command allows to open a console on a running gmos node.`,
@@ -124,7 +124,7 @@ func remoteConsole(ctx *cli.Context) error {
 		}
 		if path != "" {
 			if ctx.GlobalBool(utils.LegacyTestnetFlag.Name) || ctx.GlobalBool(utils.RopstenFlag.Name) {
-				// Maintain compatibility with older Geth configurations storing the
+				// Maintain compatibility with older Gmos configurations storing the
 				// Ropsten database in `testnet` instead of `ropsten`.
 				legacyPath := filepath.Join(path, "testnet")
 				if _, err := os.Stat(legacyPath); !os.IsNotExist(err) {

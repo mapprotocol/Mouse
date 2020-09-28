@@ -23,7 +23,7 @@ dependencies:
 
 test:
   override:
-    # Build Geth and move into a known folder
+    # Build Gmos and move into a known folder
     - make gmos
     - cp ./build/bin/gmos $HOME/gmos
 

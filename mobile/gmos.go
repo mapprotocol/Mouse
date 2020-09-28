@@ -37,7 +37,7 @@ import (
 	"github.com/marcopoloprotoco/mouse/params"
 )
 
-// NodeConfig represents the collection of configuration values to fine tune the Geth
+// NodeConfig represents the collection of configuration values to fine tune the Gmos
 // node embedded into a mobile process. The available values are a subset of the
 // entire API provided by mouse to reduce the maintenance surface and dev
 // complexity.
@@ -90,12 +90,12 @@ func NewNodeConfig() *NodeConfig {
 	return &config
 }
 
-// Node represents a Geth Mouse node instance.
+// Node represents a Gmos Mouse node instance.
 type Node struct {
 	node *node.Node
 }
 
-// NewNode creates and configures a new Geth node.
+// NewNode creates and configures a new Gmos node.
 func NewNode(datadir string, config *NodeConfig) (stack *Node, _ error) {
 	// If no or partial configurations were specified, use defaults
 	if config == nil {

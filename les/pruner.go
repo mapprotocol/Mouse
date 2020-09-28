@@ -53,7 +53,7 @@ func (p *pruner) close() {
 }
 
 // loop periodically queries the status of chain indexers and prunes useless
-// historical chain data. Notably, whenever Geth restarts, it will iterate
+// historical chain data. Notably, whenever Gmos restarts, it will iterate
 // all historical sections even they don't exist at all(below checkpoint) so
 // that light client can prune cached chain data that was ODRed after pruning
 // that section.

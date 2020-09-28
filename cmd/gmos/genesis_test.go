@@ -68,7 +68,7 @@ var customGenesisTests = []struct {
 	},
 }
 
-// Tests that initializing Geth with a custom genesis block and chain definitions
+// Tests that initializing Gmos with a custom genesis block and chain definitions
 // work properly.
 func TestCustomGenesis(t *testing.T) {
 	for i, tt := range customGenesisTests {

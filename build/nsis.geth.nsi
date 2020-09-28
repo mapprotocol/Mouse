@@ -30,7 +30,7 @@
 CRCCheck on
 
 !define GROUPNAME "Mouse"
-!define APPNAME "Geth"
+!define APPNAME "Gmos"
 !define DESCRIPTION "Official Go implementation of the Mouse protocol"
 !addplugindir .\
 

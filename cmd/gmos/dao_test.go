@@ -109,7 +109,7 @@ func testDAOForkBlockNewChain(t *testing.T, test int, genesis string, expectBloc
 	datadir := tmpdir(t)
 	defer os.RemoveAll(datadir)
 
-	// Start a Geth instance with the requested flags set and immediately terminate
+	// Start a Gmos instance with the requested flags set and immediately terminate
 	if genesis != "" {
 		json := filepath.Join(datadir, "genesis.json")
 		if err := ioutil.WriteFile(json, []byte(genesis), 0600); err != nil {

@@ -735,7 +735,7 @@ var (
 func MakeDataDir(ctx *cli.Context) string {
 	if path := ctx.GlobalString(DataDirFlag.Name); path != "" {
 		if ctx.GlobalBool(LegacyTestnetFlag.Name) || ctx.GlobalBool(RopstenFlag.Name) {
-			// Maintain compatibility with older Geth configurations storing the
+			// Maintain compatibility with older Gmos configurations storing the
 			// Ropsten database in `testnet` instead of `ropsten`.
 			legacyPath := filepath.Join(path, "testnet")
 			if _, err := os.Stat(legacyPath); !os.IsNotExist(err) {
@@ -1078,7 +1078,7 @@ func setLes(ctx *cli.Context, cfg *mos.Config) {
 }
 
 // makeDatabaseHandles raises out the number of allowed file handles per process
-// for Geth and returns half of the allowance to assign to the database.
+// for Gmos and returns half of the allowance to assign to the database.
 func makeDatabaseHandles() int {
 	limit, err := fdlimit.Maximum()
 	if err != nil {
@@ -1293,7 +1293,7 @@ func setDataDir(ctx *cli.Context, cfg *node.Config) {
 	case ctx.GlobalBool(DeveloperFlag.Name):
 		cfg.DataDir = "" // unless explicitly requested, use memory databases
 	case (ctx.GlobalBool(LegacyTestnetFlag.Name) || ctx.GlobalBool(RopstenFlag.Name)) && cfg.DataDir == node.DefaultDataDir():
-		// Maintain compatibility with older Geth configurations storing the
+		// Maintain compatibility with older Gmos configurations storing the
 		// Ropsten database in `testnet` instead of `ropsten`.
 		legacyPath := filepath.Join(node.DefaultDataDir(), "testnet")
 		if _, err := os.Stat(legacyPath); !os.IsNotExist(err) {
