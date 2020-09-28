@@ -366,7 +366,7 @@ func getRightDifficult(localChain *BlockChain, curNum uint64, r *big.Int) (*big.
 	}
 
 	right := new(big.Int).Set(r)
-	for ; i < int(K); i++ {
+	for ; i < int(curNum); i++ {
 		b := localChain.GetBlockByNumber(uint64(i))
 		if b != nil {
 			heads = append(heads, b.Header())
