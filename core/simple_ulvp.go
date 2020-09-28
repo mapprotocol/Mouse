@@ -162,6 +162,8 @@ func (o *OtherChainAdapter) setProofHeight(h uint64) {
 }
 
 func (o *OtherChainAdapter) GenesisCheck(head *types.Header) error {
+	return nil
+	
 	rHash, lHash := head.Hash(), o.Genesis.Header().Hash()
 	if !bytes.Equal(rHash[:], lHash[:]) {
 		fmt.Println("genesis not match,loack:", hex.EncodeToString(lHash[:]), "remote:", hex.EncodeToString(rHash[:]))
@@ -254,7 +256,6 @@ func (uv *SimpleULVP) PushFirstMsg() ([]byte, error) {
 }
 
 func (uv *SimpleULVP) VerifyFirstMsg(data []byte) error {
-	fmt.Println("VerifyFirstMsg data:",len(data))
 	msg,err := ParseProofMsg(data)
 	if err != nil {
 		return err
@@ -262,11 +263,6 @@ func (uv *SimpleULVP) VerifyFirstMsg(data []byte) error {
 
 	if len(msg.Header) == 1 && msg.Header[0].Number.Uint64() == 0 {
 		return nil
-	}
-	if msg.Proof != nil {
-		fmt.Println("PushFirstMsg proof.check",len(msg.Proof.Checked))
-	} else {
-		fmt.Println("PushFirstMsg proof.check is nil")
 	}
 	
 	if pBlocks, err := VerifyRequiredBlocks(msg.Proof, msg.Right); err != nil {
