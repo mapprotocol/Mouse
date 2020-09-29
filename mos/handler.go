@@ -235,6 +235,9 @@ func (pm *ProtocolManager) makeProtocol(version uint) p2p.Protocol {
 			if p := pm.peers.Peer(fmt.Sprintf("%x", id[:8])); p != nil {
 				return p.Info()
 			}
+			if p := pm.peersOther.Peer(fmt.Sprintf("%x", id[:8])); p != nil {
+				return p.Info()
+			}
 			return nil
 		},
 	}
@@ -1229,22 +1232,24 @@ func (pm *ProtocolManager) txBroadcastLoop() {
 // NodeInfo represents a short summary of the Mouse sub-protocol metadata
 // known about the host peer.
 type NodeInfo struct {
-	Network    uint64              `json:"network"`    // Mouse network ID (1=Frontier, 2=Morden, Ropsten=3, Rinkeby=4)
-	Difficulty *big.Int            `json:"difficulty"` // Total difficulty of the host's blockchain
-	Genesis    common.Hash         `json:"genesis"`    // SHA3 hash of the host's genesis block
-	Config     *params.ChainConfig `json:"config"`     // Chain configuration for the fork rules
-	Head       common.Hash         `json:"head"`       // SHA3 hash of the host's best owned block
+	Network      uint64              `json:"network"`       // Mouse network ID (1=Frontier, 2=Morden, Ropsten=3, Rinkeby=4)
+	Difficulty   *big.Int            `json:"difficulty"`    // Total difficulty of the host's blockchain
+	Genesis      common.Hash         `json:"genesis"`       // SHA3 hash of the host's genesis block
+	OtherGenesis common.Hash         `json:"other_genesis"` // SHA3 hash of the host's genesis block
+	Config       *params.ChainConfig `json:"config"`        // Chain configuration for the fork rules
+	Head         common.Hash         `json:"head"`          // SHA3 hash of the host's best owned block
 }
 
 // NodeInfo retrieves some protocol metadata about the running host node.
 func (pm *ProtocolManager) NodeInfo() *NodeInfo {
 	currentBlock := pm.blockchain.CurrentBlock()
 	return &NodeInfo{
-		Network:    pm.networkID,
-		Difficulty: pm.blockchain.GetTd(currentBlock.Hash(), currentBlock.NumberU64()),
-		Genesis:    pm.blockchain.Genesis().Hash(),
-		Config:     pm.blockchain.Config(),
-		Head:       currentBlock.Hash(),
+		Network:      pm.networkID,
+		Difficulty:   pm.blockchain.GetTd(currentBlock.Hash(), currentBlock.NumberU64()),
+		Genesis:      pm.blockchain.Genesis().Hash(),
+		OtherGenesis: pm.ulVP.RemoteChain.Genesis.Hash(),
+		Config:       pm.blockchain.Config(),
+		Head:         currentBlock.Hash(),
 	}
 }
 
