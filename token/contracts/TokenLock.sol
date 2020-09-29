@@ -833,6 +833,10 @@ contract TokenGen {
     }
 
     function unlock(bytes memory _proofData) public {
+        address x = 0x0000000000000000000000000000000000010000;
+        (bool success, bytes memory _) = x.staticcall(_proofData);
+        require(success == true, "MMR proof error");
+
         (address _from, address _to, uint256 _value, bytes32 _tx, bytes memory _proof) = abi.decode(_proofData, (address, address, uint256, bytes32, bytes));
         mapToken.mint(address(_from), _value);
     }
