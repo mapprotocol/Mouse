@@ -24,6 +24,8 @@ import (
 	"sync"
 	"sync/atomic"
 	"time"
+	"fmt"
+	"encoding/hex"
 
 	mapset "github.com/deckarep/golang-set"
 	"github.com/marcopoloprotoco/mouse/accounts/abi"
@@ -960,15 +962,16 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64) 
 	}
 
 	num := parent.Number()
+	root := w.chain.GetMmrRoot()
 	header := &types.Header{
 		ParentHash: parent.Hash(),
 		Number:     num.Add(num, common.Big1),
 		GasLimit:   core.CalcGasLimit(parent, w.config.GasFloor, w.config.GasCeil),
 		Extra:      w.extra,
 		Time:       uint64(timestamp),
-		MmrRoot:    w.chain.GetMmrRoot(),
+		MmrRoot:    root,
 	}
-
+	fmt.Println("miner num",num,"root",hex.EncodeToString(root[:]))
 	// if header.Number.Cmp(common.Big1) == 0 {
 	// 	testTx := types.NewTransaction(0, types.GenToken, nil, 0, nil, nil)
 	// 	w.cmList[testTx.Hash()] = testTx
