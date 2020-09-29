@@ -22,6 +22,7 @@ import (
 	"fmt"
 	"math"
 	"math/big"
+	"runtime/debug"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -263,6 +264,7 @@ func (pm *ProtocolManager) removePeer(id string) {
 }
 
 func (pm *ProtocolManager) removeOtherPeer(id string) {
+	debug.PrintStack()
 	// Short circuit if the peer was already removed
 	peer := pm.peersOther.Peer(id)
 	if peer == nil {
