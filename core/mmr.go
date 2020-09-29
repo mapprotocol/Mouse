@@ -165,7 +165,7 @@ func (n *Node) getChildren(m *Mmr) (*Node, *Node) {
 func (n *Node) String() string {
 	return fmt.Sprintf("{value:%s, index:%v,difficulty:%v}", n.value.Hex(), n.index, n.difficulty)
 }
-func (r *proofRes) String() string {
+func (r *ProofRes) String() string {
 	return fmt.Sprintf("{hash:%s, TD:%v}", r.H.Hex(), r.TD)
 }
 func (p *ProofElem) String() string {
@@ -187,19 +187,19 @@ func (p *ProofInfo) String() string {
 }
 
 /////////////////////////////////////////////////////////////////////////////////
-type proofRes struct {
+type ProofRes struct {
 	H  common.Hash
 	TD *big.Int
 }
 type VerifyElem struct {
-	Res        *proofRes
+	Res        *ProofRes
 	Index      uint64
 	LeafNumber uint64
 }
 
 type ProofElem struct {
 	Cat     uint8 // 0--root,1--node,2 --child
-	Res     *proofRes
+	Res     *ProofRes
 	Right   bool
 	LeafNum uint64
 }
@@ -537,7 +537,7 @@ func generateProofRecursive(currentNode *Node, blocks []uint64, proofs []*ProofE
 			Cat:     2,
 			Right:   false,
 			LeafNum: 0,
-			Res: &proofRes{
+			Res: &ProofRes{
 				H:  currentNode.getHash(),
 				TD: currentNode.getDifficulty(),
 			},
@@ -563,7 +563,7 @@ func generateProofRecursive(currentNode *Node, blocks []uint64, proofs []*ProofE
 			Cat:     1,
 			Right:   false,
 			LeafNum: 0,
-			Res: &proofRes{
+			Res: &ProofRes{
 				H:  left_node.getHash(),
 				TD: left_node.getDifficulty(),
 			},
@@ -584,7 +584,7 @@ func generateProofRecursive(currentNode *Node, blocks []uint64, proofs []*ProofE
 			Cat:     1,
 			Right:   true,
 			LeafNum: 0,
-			Res: &proofRes{
+			Res: &ProofRes{
 				H:  right_node.getHash(),
 				TD: right_node.getDifficulty(),
 			},
@@ -604,7 +604,7 @@ func (m *Mmr) genProof(right_difficulty *big.Int, blocks []uint64) *ProofInfo {
 		Cat:     0,
 		Right:   false,
 		LeafNum: m.getLeafNumber(),
-		Res: &proofRes{
+		Res: &ProofRes{
 			H:  rootNode.getHash(),
 			TD: rootNode.getDifficulty(),
 		},
@@ -686,7 +686,7 @@ func get_root(nodes []*VerifyElem) (common.Hash, *big.Int) {
 			node1 := tmp_nodes.pop_back()
 			hash := merge2(node1.Res.H, node2.Res.H)
 			tmp_nodes = append(tmp_nodes, &VerifyElem{
-				Res: &proofRes{
+				Res: &ProofRes{
 					H:  hash,
 					TD: new(big.Int).Add(node1.Res.TD, node2.Res.TD),
 				},
@@ -754,7 +754,7 @@ func (p *ProofInfo) VerifyProof(blocks []*ProofBlock) bool {
 					}
 					hash := merge2(proof_elem.Res.H, right_node_hash)
 					nodes = append(nodes, &VerifyElem{
-						Res: &proofRes{
+						Res: &ProofRes{
 							H:  hash,
 							TD: new(big.Int).Add(proof_elem.Res.TD, right_node_diff),
 						},
@@ -765,7 +765,7 @@ func (p *ProofInfo) VerifyProof(blocks []*ProofBlock) bool {
 					res0 := nodes.pop_back()
 					hash := merge2(res0.Res.H, proof_elem.Res.H)
 					nodes = append(nodes, &VerifyElem{
-						Res: &proofRes{
+						Res: &ProofRes{
 							H:  hash,
 							TD: new(big.Int).Add(proof_elem.Res.TD, res0.Res.TD),
 						},
@@ -778,7 +778,7 @@ func (p *ProofInfo) VerifyProof(blocks []*ProofBlock) bool {
 					left_node := nodes.pop_back()
 					hash := merge2(left_node.Res.H, proof_elem.Res.H)
 					nodes = append(nodes, &VerifyElem{
-						Res: &proofRes{
+						Res: &ProofRes{
 							H:  hash,
 							TD: new(big.Int).Add(left_node.Res.TD, proof_elem.Res.TD),
 						},
@@ -808,7 +808,7 @@ func (p *ProofInfo) VerifyProof(blocks []*ProofBlock) bool {
 					}
 					hash := merge2(node1.Res.H, node2.Res.H)
 					nodes = append(nodes, &VerifyElem{
-						Res: &proofRes{
+						Res: &ProofRes{
 							H:  hash,
 							TD: new(big.Int).Add(node1.Res.TD, node2.Res.TD),
 						},
@@ -870,7 +870,7 @@ func (p *ProofInfo) VerifyProof2(blocks []*ProofBlock) bool {
 					}
 					hash := merge2(proof_elem.Res.H, right_node_hash)
 					nodes = append(nodes, &VerifyElem{
-						Res: &proofRes{
+						Res: &ProofRes{
 							H:  hash,
 							TD: new(big.Int).Add(proof_elem.Res.TD, right_node_diff),
 						},
@@ -881,7 +881,7 @@ func (p *ProofInfo) VerifyProof2(blocks []*ProofBlock) bool {
 					res0 := nodes.pop_back()
 					hash := merge2(res0.Res.H, proof_elem.Res.H)
 					nodes = append(nodes, &VerifyElem{
-						Res: &proofRes{
+						Res: &ProofRes{
 							H:  hash,
 							TD: new(big.Int).Add(proof_elem.Res.TD, res0.Res.TD),
 						},
@@ -894,7 +894,7 @@ func (p *ProofInfo) VerifyProof2(blocks []*ProofBlock) bool {
 					left_node := nodes.pop_back()
 					hash := merge2(left_node.Res.H, proof_elem.Res.H)
 					nodes = append(nodes, &VerifyElem{
-						Res: &proofRes{
+						Res: &ProofRes{
 							H:  hash,
 							TD: new(big.Int).Add(left_node.Res.TD, proof_elem.Res.TD),
 						},
@@ -924,7 +924,7 @@ func (p *ProofInfo) VerifyProof2(blocks []*ProofBlock) bool {
 					}
 					hash := merge2(node1.Res.H, node2.Res.H)
 					nodes = append(nodes, &VerifyElem{
-						Res: &proofRes{
+						Res: &ProofRes{
 							H:  hash,
 							TD: new(big.Int).Add(node1.Res.TD, node2.Res.TD),
 						},
