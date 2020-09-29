@@ -635,9 +635,14 @@ func (w *worker) resultLoop() {
 				log.Error("Failed writing block to chain", "err", err)
 				continue
 			}
-			w.chain.PushBlockInMMR(block,true)
-			log.Info("Successfully sealed new block", "number", block.Number(), "sealhash", sealhash, "hash", hash,
-				"elapsed", common.PrettyDuration(time.Since(task.createdAt)))
+			err = w.chain.PushBlockInMMR(block, true)
+			if err != nil {
+				log.Warn("Successfully sealed new block", "number", block.Number(), "sealhash", sealhash, "hash", hash,
+					"elapsed", common.PrettyDuration(time.Since(task.createdAt)), "err", err)
+			} else {
+				log.Info("Successfully sealed new block", "number", block.Number(), "sealhash", sealhash, "hash", hash,
+					"elapsed", common.PrettyDuration(time.Since(task.createdAt)))
+			}
 
 			// Broadcast the block and announce chain insertion event
 			w.mux.Post(core.NewMinedBlockEvent{Block: block})

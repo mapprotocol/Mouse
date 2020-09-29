@@ -373,14 +373,15 @@ func (bc *BlockChain) GetVMConfig() *vm.Config {
 
 func (bc *BlockChain) LoadMMR() error {
 	head := bc.CurrentBlock()
-	for i := uint64(1); i < head.NumberU64(); i++ {
+	var err error
+	for i := uint64(1); i <= head.NumberU64(); i++ {
 		b := bc.GetBlockByNumber(i)
 		if b == nil {
 			return fmt.Errorf("cann't block by number,i:%v", i)
 		}
-		bc.PushBlockInMMR(b, false)
+		err = bc.PushBlockInMMR(b, true)
 	}
-	fmt.Println("current:", bc.CurrentBlock().NumberU64())
+	fmt.Println("current:", bc.CurrentBlock().NumberU64(), " err ", err)
 	return nil
 }
 
