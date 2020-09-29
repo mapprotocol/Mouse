@@ -391,7 +391,7 @@ func DefaultOtherGenesisBlock() *Genesis {
 		Nonce:      66,
 		ExtraData:  hexutil.MustDecode("0x3535353535353535353535353535353535353535353535353535353535353535"),
 		GasLimit:   16777216,
-		Difficulty: big.NewInt(1048576),
+		Difficulty: big.NewInt(10485),
 		Alloc: map[common.Address]GenesisAccount{
 			common.HexToAddress("0x29341495424d182c10E0c4360c19E29B2bA88354"): {Balance: i},
 			common.HexToAddress("0x9C238B78ddC24554FCB5d791709102EBcBf69d86"): {Balance: i},
@@ -408,7 +408,7 @@ func DefaultRopstenGenesisBlock() *Genesis {
 		Nonce:      66,
 		ExtraData:  hexutil.MustDecode("0x3535353535353535353535353535353535353535353535353535353535353535"),
 		GasLimit:   16777216,
-		Difficulty: big.NewInt(1048576),
+		Difficulty: big.NewInt(10485),
 		Alloc: map[common.Address]GenesisAccount{
 			common.HexToAddress("0x29341495424d182c10E0c4360c19E29B2bA88354"): {Balance: i},
 			common.HexToAddress("0x9C238B78ddC24554FCB5d791709102EBcBf69d86"): {Balance: i},
