@@ -268,7 +268,7 @@ func (pm *ProtocolManager) removeOtherPeer(id string) {
 	if peer == nil {
 		return
 	}
-	log.Debug("Removing Other Mouse peer", "peer", id)
+	log.Info("Removing Other Mouse peer", "peer", id)
 
 	if err := pm.peersOther.Unregister(id); err != nil {
 		log.Error("Peer Other removal failed", "peer", id, "err", err)
@@ -329,14 +329,14 @@ func (pm *ProtocolManager) newPeer(pv int, p *p2p.Peer, rw p2p.MsgReadWriter, ge
 }
 
 func (pm *ProtocolManager) runPeer(p *peer) error {
-	if !pm.chainSync.handlePeerEvent(p) {
-		return p2p.DiscQuitting
-	}
 	pm.peerWG.Add(1)
 	defer pm.peerWG.Done()
 	if p.Peer.ChainId() == p2p.ChainB {
 		return pm.handleOther(p)
 	} else {
+		if !pm.chainSync.handlePeerEvent(p) {
+			return p2p.DiscQuitting
+		}
 		return pm.handle(p)
 	}
 }
@@ -464,7 +464,7 @@ func (pm *ProtocolManager) handleOtherMsg(p *peer) error {
 		return errResp(ErrMsgTooLarge, "%v > %v", msg.Size, protocolMaxMsgSize)
 	}
 	defer msg.Discard()
-
+	log.Info("handleOtherMsg", "msg.Code", msg.Code)
 	// Handle the message depending on its contents
 	switch {
 	case msg.Code == StatusMsg:
@@ -480,7 +480,7 @@ func (pm *ProtocolManager) handleOtherMsg(p *peer) error {
 		var mtProof core.MMRReceiptProof
 		receiptRep, err := pm.ulVP.GetReceiptProof(query.TxHash)
 		if err != nil {
-			fmt.Println("GetReceiptProof err", err)
+			log.Info("GetReceiptProof", "err", err)
 		} else {
 			data, err := pm.ulVP.HandleSimpleUlvpMsgReq(pm.ulVP.GetSimpleUlvpMsgReq([]uint64{receiptRep.Receipt.BlockNumber.Uint64(), pm.blockchain.CurrentBlock().NumberU64()}))
 			if err != nil {
