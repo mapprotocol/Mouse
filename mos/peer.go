@@ -827,11 +827,14 @@ func (ps *peerSet) Register(p *peer, removePeer func(string)) error {
 	}
 	ps.peers[p.id] = p
 
-	go p.broadcastBlocks(removePeer)
-	go p.broadcastTransactions(removePeer)
-	if p.version >= eth65 {
-		go p.announceTransactions(removePeer)
+	if p.ChainId() == p2p.ChainA {
+		go p.broadcastBlocks(removePeer)
+		go p.broadcastTransactions(removePeer)
+		if p.version >= eth65 {
+			go p.announceTransactions(removePeer)
+		}
 	}
+
 	return nil
 }
 

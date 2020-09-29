@@ -22,7 +22,6 @@ import (
 	"fmt"
 	"math"
 	"math/big"
-	"runtime/debug"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -264,7 +263,6 @@ func (pm *ProtocolManager) removePeer(id string) {
 }
 
 func (pm *ProtocolManager) removeOtherPeer(id string) {
-	debug.PrintStack()
 	// Short circuit if the peer was already removed
 	peer := pm.peersOther.Peer(id)
 	if peer == nil {
@@ -1089,7 +1087,11 @@ func (pm *ProtocolManager) BroadcastOtherBlock(block *types.Block) {
 
 	// Otherwise if the block is indeed in out own chain, announce it
 	for _, peer := range peers {
-		peer.AsyncSendNewBlockHash(block)
+		if err := peer.SendNewBlockHashes([]common.Hash{block.Hash()}, []uint64{block.NumberU64()}, []*big.Int{block.Difficulty()}); err != nil {
+			fmt.Println("BroadcastOtherBlock", err)
+			pm.removeOtherPeer(peer.id)
+			return
+		}
 	}
 	log.Trace("Announced Other block", "hash", hash, "recipients", len(peers), "duration", common.PrettyDuration(time.Since(block.ReceivedAt)))
 }
@@ -1117,7 +1119,7 @@ func (pm *ProtocolManager) BroadcastOtherReadyTransactions(block *types.Block) {
 	delay := block.NumberU64() - 6
 	if txs := pm.pendingOther(delay); len(txs) != 0 {
 		var (
-			txset = make(map[*peer][]common.Hash)
+			txset = make(map[*peer][]*types.Transaction)
 		)
 		// Broadcast transactions to a batch of peers not knowing about it
 		for _, tx := range txs {
@@ -1125,12 +1127,16 @@ func (pm *ProtocolManager) BroadcastOtherReadyTransactions(block *types.Block) {
 
 			// Send the block to a subset of our peers
 			for _, peer := range peers {
-				txset[peer] = append(txset[peer], tx.Hash())
+				txset[peer] = append(txset[peer], pm.txpool.Get(tx.Hash()))
 			}
 			log.Info("Broadcast other transaction", "hash", tx.Hash(), "recipients", len(peers))
 		}
-		for peer, hashes := range txset {
-			peer.AsyncSendTransactions(hashes)
+		for peer, txs := range txset {
+			if err := peer.sendTransactions(txs); err != nil {
+				fmt.Println("BroadcastOtherReadyTransactions", err)
+				pm.removeOtherPeer(peer.id)
+				return
+			}
 		}
 		pm.deleteOtherReadyTxs(delay)
 	}
