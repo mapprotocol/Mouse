@@ -2,17 +2,17 @@ package core
 
 import (
 	"bytes"
-	"fmt"
-	"strings"
-	"sync"
 	"errors"
+	"fmt"
 	"math"
 	"math/big"
 	"sort"
+	"strings"
+	"sync"
 
 	"github.com/marcopoloprotoco/mouse/common"
-	"github.com/marcopoloprotoco/mouse/rlp"
 	"github.com/marcopoloprotoco/mouse/core/types"
+	"github.com/marcopoloprotoco/mouse/rlp"
 	"golang.org/x/crypto/sha3"
 )
 
@@ -37,22 +37,22 @@ func equal_hash(h1, h2 common.Hash) bool {
 }
 
 type Node struct {
-	value      		common.Hash
-	difficulty 		*big.Int
-	timeCost 		uint64
-	ds_diff 		*big.Int			// difficulty of the block
-	de_diff 		*big.Int			// difficulty of next block
-	leafs 			uint64
-	index      		uint64 				// position in array
+	value      common.Hash
+	difficulty *big.Int
+	timeCost   uint64
+	ds_diff    *big.Int // difficulty of the block
+	de_diff    *big.Int // difficulty of next block
+	leafs      uint64
+	index      uint64 // position in array
 }
 
-func NewNode(v common.Hash, d,ds,de *big.Int,timeCost uint64) *Node {
+func NewNode(v common.Hash, d, ds, de *big.Int, timeCost uint64) *Node {
 	return &Node{
 		value:      v,
 		difficulty: new(big.Int).Set(d),
-		ds_diff:	ds,
-		de_diff:	de,
-		timeCost:	timeCost,
+		ds_diff:    ds,
+		de_diff:    de,
+		timeCost:   timeCost,
 	}
 }
 func (n *Node) getHash() common.Hash {
@@ -96,8 +96,8 @@ func (n *Node) clone() *Node {
 		index:      n.index,
 		// ds_diff:	new(big.Int).Set(n.ds_diff),
 		// de_diff:	new(big.Int).Set(n.de_diff),
-		timeCost:	n.timeCost,
-		leafs:		n.leafs,
+		timeCost: n.timeCost,
+		leafs:    n.leafs,
 	}
 }
 func (n *Node) hasChildren(m *Mmr) bool {
@@ -166,7 +166,7 @@ func (n *Node) String() string {
 	return fmt.Sprintf("{value:%s, index:%v,difficulty:%v}", n.value.Hex(), n.index, n.difficulty)
 }
 func (r *proofRes) String() string {
-	return fmt.Sprintf("{hash:%s, td:%v}", r.h.Hex(), r.td)
+	return fmt.Sprintf("{hash:%s, TD:%v}", r.H.Hex(), r.TD)
 }
 func (p *ProofElem) String() string {
 	if p.Cat == 2 {
@@ -188,8 +188,8 @@ func (p *ProofInfo) String() string {
 
 /////////////////////////////////////////////////////////////////////////////////
 type proofRes struct {
-	h  common.Hash
-	td *big.Int
+	H  common.Hash
+	TD *big.Int
 }
 type VerifyElem struct {
 	Res        *proofRes
@@ -211,13 +211,13 @@ type ProofInfo struct {
 	Checked        []uint64
 }
 
-func ProofInfoToBytes(info *ProofInfo) ([]byte,error) {
+func ProofInfoToBytes(info *ProofInfo) ([]byte, error) {
 	return rlp.EncodeToBytes(info)
 }
-func ProofInfoFromBytes(data []byte) (*ProofInfo,error) {
+func ProofInfoFromBytes(data []byte) (*ProofInfo, error) {
 	obj := &ProofInfo{}
-	err := rlp.DecodeBytes(data,obj)
-	return obj,err
+	err := rlp.DecodeBytes(data, obj)
+	return obj, err
 }
 
 type ProofElems []*ProofElem
@@ -307,7 +307,7 @@ type Mmr struct {
 	values  []*Node
 	curSize uint64 // unused
 	leafNum uint64
-	mu *sync.Mutex
+	mu      *sync.Mutex
 }
 
 func NewMMR() *Mmr {
@@ -315,7 +315,7 @@ func NewMMR() *Mmr {
 		values:  make([]*Node, 0, 0),
 		curSize: 0,
 		leafNum: 0,
-		mu: new(sync.Mutex),
+		mu:      new(sync.Mutex),
 	}
 }
 func (m *Mmr) getNode(pos uint64) *Node {
@@ -360,7 +360,7 @@ func (m *Mmr) pop() *Node {
 	}
 	return remove
 }
-func (m *Mmr) Pop2() *Node  {
+func (m *Mmr) Pop2() *Node {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	return m.pop()
@@ -538,8 +538,8 @@ func generateProofRecursive(currentNode *Node, blocks []uint64, proofs []*ProofE
 			Right:   false,
 			LeafNum: 0,
 			Res: &proofRes{
-				h:  currentNode.getHash(),
-				td: currentNode.getDifficulty(),
+				H:  currentNode.getHash(),
+				TD: currentNode.getDifficulty(),
 			},
 		})
 		return proofs
@@ -564,8 +564,8 @@ func generateProofRecursive(currentNode *Node, blocks []uint64, proofs []*ProofE
 			Right:   false,
 			LeafNum: 0,
 			Res: &proofRes{
-				h:  left_node.getHash(),
-				td: left_node.getDifficulty(),
+				H:  left_node.getHash(),
+				TD: left_node.getDifficulty(),
 			},
 		})
 	}
@@ -585,8 +585,8 @@ func generateProofRecursive(currentNode *Node, blocks []uint64, proofs []*ProofE
 			Right:   true,
 			LeafNum: 0,
 			Res: &proofRes{
-				h:  right_node.getHash(),
-				td: right_node.getDifficulty(),
+				H:  right_node.getHash(),
+				TD: right_node.getDifficulty(),
 			},
 		})
 	}
@@ -605,8 +605,8 @@ func (m *Mmr) genProof(right_difficulty *big.Int, blocks []uint64) *ProofInfo {
 		Right:   false,
 		LeafNum: m.getLeafNumber(),
 		Res: &proofRes{
-			h:  rootNode.getHash(),
-			td: rootNode.getDifficulty(),
+			H:  rootNode.getHash(),
+			TD: rootNode.getDifficulty(),
 		},
 	})
 	return &ProofInfo{
@@ -684,11 +684,11 @@ func get_root(nodes []*VerifyElem) (common.Hash, *big.Int) {
 		if len(tmp_nodes) > 1 {
 			node2 := tmp_nodes.pop_back()
 			node1 := tmp_nodes.pop_back()
-			hash := merge2(node1.Res.h, node2.Res.h)
+			hash := merge2(node1.Res.H, node2.Res.H)
 			tmp_nodes = append(tmp_nodes, &VerifyElem{
 				Res: &proofRes{
-					h:  hash,
-					td: new(big.Int).Add(node1.Res.td, node2.Res.td),
+					H:  hash,
+					TD: new(big.Int).Add(node1.Res.TD, node2.Res.TD),
 				},
 				Index:      math.MaxUint64, // uint64(-1) .. none
 				LeafNumber: math.MaxUint64, // uint64(-1) .. none
@@ -698,7 +698,7 @@ func get_root(nodes []*VerifyElem) (common.Hash, *big.Int) {
 		}
 	}
 	if len(tmp_nodes) >= 1 {
-		return tmp_nodes[0].Res.h, tmp_nodes[0].Res.td
+		return tmp_nodes[0].Res.H, tmp_nodes[0].Res.TD
 	}
 	return common.Hash{0}, nil
 }
@@ -715,7 +715,7 @@ func (p *ProofInfo) VerifyProof(blocks []*ProofBlock) bool {
 	if len(proofs) == 1 {
 		if it := proofs.pop_back(); it != nil {
 			if it.Cat == 2 {
-				return equal_hash(it.Res.h, root_elem.Res.h)
+				return equal_hash(it.Res.H, root_elem.Res.H)
 			}
 		}
 		return false
@@ -734,8 +734,8 @@ func (p *ProofInfo) VerifyProof(blocks []*ProofBlock) bool {
 					//dies nicht überprüfen, wenn doch irgendwann vorhanden, dann einfach
 					//'block_header.mmr == old_root_hash' überprüfen
 					_, left_difficulty := get_root(nodes)
-					left, middle := new(big.Float).SetInt(left_difficulty), new(big.Float).Mul(new(big.Float).SetInt(root_elem.Res.td), big.NewFloat(proof_block.AggrWeight))
-					right := new(big.Float).Add(new(big.Float).SetInt(left_difficulty), new(big.Float).SetInt(proof_elem.Res.td))
+					left, middle := new(big.Float).SetInt(left_difficulty), new(big.Float).Mul(new(big.Float).SetInt(root_elem.Res.TD), big.NewFloat(proof_block.AggrWeight))
+					right := new(big.Float).Add(new(big.Float).SetInt(left_difficulty), new(big.Float).SetInt(proof_elem.Res.TD))
 					if left.Cmp(middle) > 0 || right.Cmp(middle) <= 0 {
 						// "aggregated difficulty is not correct, should coincide with: {} <= {} < {}",left, middle, right
 						return false
@@ -743,7 +743,7 @@ func (p *ProofInfo) VerifyProof(blocks []*ProofBlock) bool {
 				}
 				if number%2 == 0 && number != (root_elem.LeafNum-1) {
 					right_node := proofs.pop_front()
-					right_node_hash, right_node_diff := right_node.Res.h, new(big.Int).Set(right_node.Res.td)
+					right_node_hash, right_node_diff := right_node.Res.H, new(big.Int).Set(right_node.Res.TD)
 					if right_node.Cat == 2 || right_node.Cat == 1 {
 						if right_node.Cat == 2 {
 							proof_blocks.pop()
@@ -752,22 +752,22 @@ func (p *ProofInfo) VerifyProof(blocks []*ProofBlock) bool {
 						// Expected ???
 						return false
 					}
-					hash := merge2(proof_elem.Res.h, right_node_hash)
+					hash := merge2(proof_elem.Res.H, right_node_hash)
 					nodes = append(nodes, &VerifyElem{
 						Res: &proofRes{
-							h:  hash,
-							td: new(big.Int).Add(proof_elem.Res.td, right_node_diff),
+							H:  hash,
+							TD: new(big.Int).Add(proof_elem.Res.TD, right_node_diff),
 						},
 						Index:      number / 2,
 						LeafNumber: root_elem.LeafNum / 2,
 					})
 				} else {
 					res0 := nodes.pop_back()
-					hash := merge2(res0.Res.h, proof_elem.Res.h)
+					hash := merge2(res0.Res.H, proof_elem.Res.H)
 					nodes = append(nodes, &VerifyElem{
 						Res: &proofRes{
-							h:  hash,
-							td: new(big.Int).Add(proof_elem.Res.td, res0.Res.td),
+							H:  hash,
+							TD: new(big.Int).Add(proof_elem.Res.TD, res0.Res.TD),
 						},
 						Index:      number / 2,
 						LeafNumber: root_elem.LeafNum / 2,
@@ -776,11 +776,11 @@ func (p *ProofInfo) VerifyProof(blocks []*ProofBlock) bool {
 			} else if proof_elem.Cat == 1 {
 				if proof_elem.Right {
 					left_node := nodes.pop_back()
-					hash := merge2(left_node.Res.h, proof_elem.Res.h)
+					hash := merge2(left_node.Res.H, proof_elem.Res.H)
 					nodes = append(nodes, &VerifyElem{
 						Res: &proofRes{
-							h:  hash,
-							td: new(big.Int).Add(left_node.Res.td, proof_elem.Res.td),
+							H:  hash,
+							TD: new(big.Int).Add(left_node.Res.TD, proof_elem.Res.TD),
 						},
 						Index:      left_node.Index / 2,
 						LeafNumber: left_node.LeafNumber / 2,
@@ -806,11 +806,11 @@ func (p *ProofInfo) VerifyProof(blocks []*ProofBlock) bool {
 						nodes = append(nodes, node2)
 						break
 					}
-					hash := merge2(node1.Res.h, node2.Res.h)
+					hash := merge2(node1.Res.H, node2.Res.H)
 					nodes = append(nodes, &VerifyElem{
 						Res: &proofRes{
-							h:  hash,
-							td: new(big.Int).Add(node1.Res.td, node2.Res.td),
+							H:  hash,
+							TD: new(big.Int).Add(node1.Res.TD, node2.Res.TD),
 						},
 						Index:      node2.Index / 2,
 						LeafNumber: node2.LeafNumber / 2,
@@ -826,7 +826,7 @@ func (p *ProofInfo) VerifyProof(blocks []*ProofBlock) bool {
 
 	res0 := nodes.pop_back()
 	if res0 != nil {
-		return equal_hash(root_elem.Res.h, res0.Res.h) && root_elem.Res.td.Cmp(res0.Res.td) == 0
+		return equal_hash(root_elem.Res.H, res0.Res.H) && root_elem.Res.TD.Cmp(res0.Res.TD) == 0
 	}
 	return false
 }
@@ -843,7 +843,7 @@ func (p *ProofInfo) VerifyProof2(blocks []*ProofBlock) bool {
 	if len(proofs) == 1 {
 		if it := proofs.pop_back(); it != nil {
 			if it.Cat == 2 {
-				return equal_hash(it.Res.h, root_elem.Res.h)
+				return equal_hash(it.Res.H, root_elem.Res.H)
 			}
 		}
 		return false
@@ -859,7 +859,7 @@ func (p *ProofInfo) VerifyProof2(blocks []*ProofBlock) bool {
 
 				if number%2 == 0 && number != (root_elem.LeafNum-1) {
 					right_node := proofs.pop_front()
-					right_node_hash, right_node_diff := right_node.Res.h, new(big.Int).Set(right_node.Res.td)
+					right_node_hash, right_node_diff := right_node.Res.H, new(big.Int).Set(right_node.Res.TD)
 					if right_node.Cat == 2 || right_node.Cat == 1 {
 						if right_node.Cat == 2 {
 							proof_blocks.pop()
@@ -868,22 +868,22 @@ func (p *ProofInfo) VerifyProof2(blocks []*ProofBlock) bool {
 						// Expected ???
 						return false
 					}
-					hash := merge2(proof_elem.Res.h, right_node_hash)
+					hash := merge2(proof_elem.Res.H, right_node_hash)
 					nodes = append(nodes, &VerifyElem{
 						Res: &proofRes{
-							h:  hash,
-							td: new(big.Int).Add(proof_elem.Res.td, right_node_diff),
+							H:  hash,
+							TD: new(big.Int).Add(proof_elem.Res.TD, right_node_diff),
 						},
 						Index:      number / 2,
 						LeafNumber: root_elem.LeafNum / 2,
 					})
 				} else {
 					res0 := nodes.pop_back()
-					hash := merge2(res0.Res.h, proof_elem.Res.h)
+					hash := merge2(res0.Res.H, proof_elem.Res.H)
 					nodes = append(nodes, &VerifyElem{
 						Res: &proofRes{
-							h:  hash,
-							td: new(big.Int).Add(proof_elem.Res.td, res0.Res.td),
+							H:  hash,
+							TD: new(big.Int).Add(proof_elem.Res.TD, res0.Res.TD),
 						},
 						Index:      number / 2,
 						LeafNumber: root_elem.LeafNum / 2,
@@ -892,11 +892,11 @@ func (p *ProofInfo) VerifyProof2(blocks []*ProofBlock) bool {
 			} else if proof_elem.Cat == 1 {
 				if proof_elem.Right {
 					left_node := nodes.pop_back()
-					hash := merge2(left_node.Res.h, proof_elem.Res.h)
+					hash := merge2(left_node.Res.H, proof_elem.Res.H)
 					nodes = append(nodes, &VerifyElem{
 						Res: &proofRes{
-							h:  hash,
-							td: new(big.Int).Add(left_node.Res.td, proof_elem.Res.td),
+							H:  hash,
+							TD: new(big.Int).Add(left_node.Res.TD, proof_elem.Res.TD),
 						},
 						Index:      left_node.Index / 2,
 						LeafNumber: left_node.LeafNumber / 2,
@@ -922,11 +922,11 @@ func (p *ProofInfo) VerifyProof2(blocks []*ProofBlock) bool {
 						nodes = append(nodes, node2)
 						break
 					}
-					hash := merge2(node1.Res.h, node2.Res.h)
+					hash := merge2(node1.Res.H, node2.Res.H)
 					nodes = append(nodes, &VerifyElem{
 						Res: &proofRes{
-							h:  hash,
-							td: new(big.Int).Add(node1.Res.td, node2.Res.td),
+							H:  hash,
+							TD: new(big.Int).Add(node1.Res.TD, node2.Res.TD),
 						},
 						Index:      node2.Index / 2,
 						LeafNumber: node2.LeafNumber / 2,
@@ -942,7 +942,7 @@ func (p *ProofInfo) VerifyProof2(blocks []*ProofBlock) bool {
 
 	res0 := nodes.pop_back()
 	if res0 != nil {
-		return equal_hash(root_elem.Res.h, res0.Res.h) && root_elem.Res.td.Cmp(res0.Res.td) == 0
+		return equal_hash(root_elem.Res.H, res0.Res.H) && root_elem.Res.TD.Cmp(res0.Res.TD) == 0
 	}
 	return false
 }
@@ -1008,16 +1008,17 @@ func VerifyRequiredBlocks(info *ProofInfo, right_difficulty *big.Int) ([]*ProofB
 func VerifyRequiredBlocks2(info *ProofInfo) ([]*ProofBlock, error) {
 	blocks := info.Checked
 	proof_blocks := []*ProofBlock{}
-	for _,v := range blocks {
+	for _, v := range blocks {
 		proof_blocks = append(proof_blocks, &ProofBlock{
-			Number:     v,
+			Number: v,
 		})
 	}
-	return proof_blocks,nil
+	return proof_blocks, nil
 }
+
 ///////////////////////////////////////////////////////////////////////////////////////
 
-func (m *Mmr) GenerateProof(proofHeight,EndHeight uint64) *ProofInfo {
+func (m *Mmr) GenerateProof(proofHeight, EndHeight uint64) *ProofInfo {
 	// sort.Slice(blocks, func(i, j int) bool {
 	// 	return blocks[i] < blocks[j]
 	// })
@@ -1025,20 +1026,20 @@ func (m *Mmr) GenerateProof(proofHeight,EndHeight uint64) *ProofInfo {
 	mmrClone := m.Copy()
 	lRemove := int64(EndHeight - mmrClone.leafNum)
 	if lRemove > 0 {
-		for i :=0;i< int(lRemove); i++ {
+		for i := 0; i < int(lRemove); i++ {
 			mmrClone.pop()
 		}
 	}
-	
+
 	info := mmrClone.genProof(big.NewInt(0), []uint64{proofHeight})
-	info.Checked =  []uint64{proofHeight}
+	info.Checked = []uint64{proofHeight}
 	return info
 }
 
-func PushBlock(mm *Mmr,b *types.Block,time uint64,check bool) error {
+func PushBlock(mm *Mmr, b *types.Block, time uint64, check bool) error {
 	d := b.Difficulty()
-	n := NewNode(b.Hash(),d,new(big.Int).Set(d),big.NewInt(0),time)
-	
+	n := NewNode(b.Hash(), d, new(big.Int).Set(d), big.NewInt(0), time)
+
 	if check {
 		mmrLocal, mmrRemote := mm.GetRoot2(), b.MmrRoot()
 		if !bytes.Equal(mmrLocal[:], mmrRemote[:]) {
