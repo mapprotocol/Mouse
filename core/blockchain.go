@@ -373,14 +373,14 @@ func (bc *BlockChain) GetVMConfig() *vm.Config {
 
 func (bc *BlockChain) LoadMMR() error {
 	head := bc.CurrentBlock()
-	for i := uint64(0); i < head.NumberU64(); i++ {
+	for i := uint64(1); i < head.NumberU64(); i++ {
 		b := bc.GetBlockByNumber(i)
 		if b == nil {
 			return fmt.Errorf("cann't block by number,i:%v", i)
 		}
-		bc.PushBlockInMMR(b,false)
+		bc.PushBlockInMMR(b, false)
 	}
-	fmt.Println("current:",bc.CurrentBlock().NumberU64())
+	fmt.Println("current:", bc.CurrentBlock().NumberU64())
 	return nil
 }
 
@@ -388,7 +388,7 @@ func (bc *BlockChain) LoadMMR() error {
 func (bc *BlockChain) GetMmrRoot() common.Hash {
 	return Ulvp.MmrInfo.GetRoot2()
 }
-func (bc *BlockChain) PushBlockInMMR(block *types.Block,check bool) error {
+func (bc *BlockChain) PushBlockInMMR(block *types.Block, check bool) error {
 	// bc.chainmu.Lock()
 	// defer bc.chainmu.Unlock()
 
@@ -396,7 +396,7 @@ func (bc *BlockChain) PushBlockInMMR(block *types.Block,check bool) error {
 	if block.NumberU64() > 0 {
 		timecost = bc.GetBlockByNumber(block.NumberU64()-1).Time() - block.Time()
 	}
-	return PushBlock(Ulvp.MmrInfo, block, timecost,check)
+	return PushBlock(Ulvp.MmrInfo, block, timecost, check)
 }
 
 // empty returns an indicator whether the blockchain is empty.
@@ -1667,7 +1667,7 @@ func (bc *BlockChain) insertChain(chain types.Blocks, verifySeals bool) (int, er
 	if atomic.LoadInt32(&bc.procInterrupt) == 1 {
 		return 0, nil
 	}
-	fmt.Println("current:",bc.CurrentBlock().NumberU64())
+	fmt.Println("current:", bc.CurrentBlock().NumberU64())
 	// Start a parallel signature recovery (signer will fluke on fork transition, minimal perf loss)
 	senderCacher.recoverFromBlocks(types.MakeSigner(bc.chainConfig, chain[0].Number()), chain)
 
@@ -1887,10 +1887,10 @@ func (bc *BlockChain) insertChain(chain types.Blocks, verifySeals bool) (int, er
 		if err != nil {
 			return it.index, err
 		}
-		if err := bc.PushBlockInMMR(block,true); err != nil {
-			return it.index,err
+		if err := bc.PushBlockInMMR(block, true); err != nil {
+			return it.index, err
 		}
-		
+
 		// Update the metrics touched during block commit
 		accountCommitTimer.Update(statedb.AccountCommits)   // Account commits are complete, we can mark them
 		storageCommitTimer.Update(statedb.StorageCommits)   // Storage commits are complete, we can mark them
