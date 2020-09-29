@@ -438,12 +438,15 @@ func (pm *ProtocolManager) handleOther(p *peer) error {
 		p.Log().Error("Mouse peer registration failed", "err", err)
 		return err
 	}
-	defer pm.removeOtherPeer(p.id)
+	defer func() {
+		defer pm.removeOtherPeer(p.id)
+		log.Info("removeOtherPeer")
+	}()
 
 	// Handle incoming messages until the connection is torn down
 	for {
 		if err := pm.handleOtherMsg(p); err != nil {
-			p.Log().Debug("Mouse message handling failed", "err", err)
+			p.Log().Info("Mouse message handling failed", "err", err)
 			return err
 		}
 	}
