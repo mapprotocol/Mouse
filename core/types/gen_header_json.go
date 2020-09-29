@@ -22,6 +22,7 @@ func (h Header) MarshalJSON() ([]byte, error) {
 		Root        common.Hash    `json:"stateRoot"        gencodec:"required"`
 		TxHash      common.Hash    `json:"transactionsRoot" gencodec:"required"`
 		ReceiptHash common.Hash    `json:"receiptsRoot"     gencodec:"required"`
+		MmrRoot     common.Hash    `json:"mmrRoot" 		    gencodec:"required"`
 		Bloom       Bloom          `json:"logsBloom"        gencodec:"required"`
 		Difficulty  *hexutil.Big   `json:"difficulty"       gencodec:"required"`
 		Number      *hexutil.Big   `json:"number"           gencodec:"required"`
@@ -40,6 +41,7 @@ func (h Header) MarshalJSON() ([]byte, error) {
 	enc.Root = h.Root
 	enc.TxHash = h.TxHash
 	enc.ReceiptHash = h.ReceiptHash
+	enc.MmrRoot = h.MmrRoot
 	enc.Bloom = h.Bloom
 	enc.Difficulty = (*hexutil.Big)(h.Difficulty)
 	enc.Number = (*hexutil.Big)(h.Number)
@@ -62,6 +64,7 @@ func (h *Header) UnmarshalJSON(input []byte) error {
 		Root        *common.Hash    `json:"stateRoot"        gencodec:"required"`
 		TxHash      *common.Hash    `json:"transactionsRoot" gencodec:"required"`
 		ReceiptHash *common.Hash    `json:"receiptsRoot"     gencodec:"required"`
+		MmrRoot     *common.Hash    `json:"mmrRoot" 		    gencodec:"required"`
 		Bloom       *Bloom          `json:"logsBloom"        gencodec:"required"`
 		Difficulty  *hexutil.Big    `json:"difficulty"       gencodec:"required"`
 		Number      *hexutil.Big    `json:"number"           gencodec:"required"`
@@ -92,6 +95,10 @@ func (h *Header) UnmarshalJSON(input []byte) error {
 		return errors.New("missing required field 'stateRoot' for Header")
 	}
 	h.Root = *dec.Root
+	if dec.MmrRoot == nil {
+		return errors.New("missing required field 'MmrRoot' for Header")
+	}
+	h.MmrRoot = *dec.MmrRoot
 	if dec.TxHash == nil {
 		return errors.New("missing required field 'transactionsRoot' for Header")
 	}

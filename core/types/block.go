@@ -39,7 +39,6 @@ var (
 	EmptyUncleHash = rlpHash([]*Header(nil))
 )
 
-
 var (
 	SysSender = common.HexToAddress("ffffffffffffffffffffffffffffffffffffffff")
 )
@@ -90,7 +89,7 @@ type Header struct {
 	Root        common.Hash    `json:"stateRoot"        gencodec:"required"`
 	TxHash      common.Hash    `json:"transactionsRoot" gencodec:"required"`
 	ReceiptHash common.Hash    `json:"receiptsRoot"     gencodec:"required"`
-	MmrRoot		common.Hash    `json:"mmrRoot" 		    gencodec:"required"`
+	MmrRoot     common.Hash    `json:"mmrRoot" 		    gencodec:"required"`
 	Bloom       Bloom          `json:"logsBloom"        gencodec:"required"`
 	Difficulty  *big.Int       `json:"difficulty"       gencodec:"required"`
 	Number      *big.Int       `json:"number"           gencodec:"required"`
@@ -354,7 +353,7 @@ func (b *Block) TxHash() common.Hash      { return b.header.TxHash }
 func (b *Block) ReceiptHash() common.Hash { return b.header.ReceiptHash }
 func (b *Block) UncleHash() common.Hash   { return b.header.UncleHash }
 func (b *Block) Extra() []byte            { return common.CopyBytes(b.header.Extra) }
-func (b *Block) MmrRoot() common.Hash   { return b.header.MmrRoot }
+func (b *Block) MmrRoot() common.Hash     { return b.header.MmrRoot }
 
 func (b *Block) Header() *Header { return CopyHeader(b.header) }
 
