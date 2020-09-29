@@ -360,6 +360,11 @@ func (m *Mmr) pop() *Node {
 	}
 	return remove
 }
+func (m *Mmr) Pop2() *Node  {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	return m.pop()
+}
 func (m *Mmr) splitPeak(lastPeak *Node) ([]*Node, *Node) {
 	peakNodes := nodesAdapter(make([]*Node, 0, 0))
 	height := pos_height_in_tree(lastPeak.index)
@@ -1030,8 +1035,16 @@ func (m *Mmr) GenerateProof(proofHeight,EndHeight uint64) *ProofInfo {
 	return info
 }
 
-func PushBlock(mm *Mmr,b *types.Block,time uint64) {
+func PushBlock(mm *Mmr,b *types.Block,time uint64,check bool) error {
 	d := b.Difficulty()
 	n := NewNode(b.Hash(),d,new(big.Int).Set(d),big.NewInt(0),time)
+	
+	if check {
+		mmrLocal, mmrRemote := mm.GetRoot2(), b.MmrRoot()
+		if !bytes.Equal(mmrLocal[:], mmrRemote[:]) {
+			return errors.New(fmt.Sprintf("mmr root not match,height:%v,local:%v,remote:%v", b.NumberU64(), mmrLocal, mmrRemote))
+		}
+	}
 	mm.Push(n)
+	return nil
 }

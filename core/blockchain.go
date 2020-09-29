@@ -18,7 +18,7 @@
 package core
 
 import (
-	"bytes"
+	// "bytes"
 	"errors"
 	"fmt"
 	"io"
@@ -378,7 +378,7 @@ func (bc *BlockChain) LoadMMR() error {
 		if b == nil {
 			return fmt.Errorf("cann't block by number,i:%v", i)
 		}
-		bc.PushBlockInMMR(b)
+		bc.PushBlockInMMR(b,false)
 	}
 	return nil
 }
@@ -387,7 +387,7 @@ func (bc *BlockChain) LoadMMR() error {
 func (bc *BlockChain) GetMmrRoot() common.Hash {
 	return Ulvp.MmrInfo.GetRoot2()
 }
-func (bc *BlockChain) PushBlockInMMR(block *types.Block) {
+func (bc *BlockChain) PushBlockInMMR(block *types.Block,check bool) error {
 	// bc.chainmu.Lock()
 	// defer bc.chainmu.Unlock()
 
@@ -395,7 +395,7 @@ func (bc *BlockChain) PushBlockInMMR(block *types.Block) {
 	if block.NumberU64() > 0 {
 		timecost = bc.GetBlockByNumber(block.NumberU64()-1).Time() - block.Time()
 	}
-	PushBlock(Ulvp.MmrInfo, block, timecost)
+	return PushBlock(Ulvp.MmrInfo, block, timecost,check)
 }
 
 // empty returns an indicator whether the blockchain is empty.
@@ -1885,15 +1885,10 @@ func (bc *BlockChain) insertChain(chain types.Blocks, verifySeals bool) (int, er
 		if err != nil {
 			return it.index, err
 		}
-		timecost := uint64(0)
-		if block.NumberU64() > 0 {
-			timecost = bc.GetBlockByNumber(block.NumberU64()-1).Time() - block.Time()
+		if err := bc.PushBlockInMMR(block,true); err != nil {
+			return it.index,err
 		}
-		PushBlock(Ulvp.MmrInfo, block, timecost)
-		mmrLocal, mmrRemote := Ulvp.MmrInfo.GetRoot2(), block.MmrRoot()
-		if bytes.Equal(mmrLocal[:], mmrRemote[:]) {
-			return it.index, errors.New(fmt.Sprintf("not match mmr root,height:%v,local:%v,remote:%v", block.NumberU64(), mmrLocal, mmrRemote))
-		}
+		
 		// Update the metrics touched during block commit
 		accountCommitTimer.Update(statedb.AccountCommits)   // Account commits are complete, we can mark them
 		storageCommitTimer.Update(statedb.StorageCommits)   // Storage commits are complete, we can mark them
