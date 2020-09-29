@@ -9,6 +9,7 @@ import (
 	"sort"
 	"strings"
 	"sync"
+	"encoding/hex"
 
 	"github.com/marcopoloprotoco/mouse/common"
 	"github.com/marcopoloprotoco/mouse/core/types"
@@ -1043,9 +1044,11 @@ func PushBlock(mm *Mmr, b *types.Block, time uint64, check bool) error {
 	if check {
 		mmrLocal, mmrRemote := mm.GetRoot2(), b.MmrRoot()
 		if !bytes.Equal(mmrLocal[:], mmrRemote[:]) {
-			return errors.New(fmt.Sprintf("mmr root not match,height:%v,local:%v,remote:%v", b.NumberU64(), mmrLocal, mmrRemote))
+			return errors.New(fmt.Sprintf("mmr root not match,height:%v,local:%v,remote:%v", b.NumberU64(), hex.EncodeToString(mmrLocal[:]), hex.EncodeToString(mmrRemote[:])))
 		}
 	}
 	mm.Push(n)
+	h1,h2 := b.Hash(),mm.GetRoot2()
+	fmt.Println("blockN",b.NumberU64(),"blockH",hex.EncodeToString(h1[:]),"mmroot",hex.EncodeToString(h2[:]))
 	return nil
 }

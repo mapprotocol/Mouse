@@ -380,6 +380,7 @@ func (bc *BlockChain) LoadMMR() error {
 		}
 		bc.PushBlockInMMR(b,false)
 	}
+	fmt.Println("current:",bc.CurrentBlock().NumberU64())
 	return nil
 }
 
@@ -1666,6 +1667,7 @@ func (bc *BlockChain) insertChain(chain types.Blocks, verifySeals bool) (int, er
 	if atomic.LoadInt32(&bc.procInterrupt) == 1 {
 		return 0, nil
 	}
+	fmt.Println("current:",bc.CurrentBlock().NumberU64())
 	// Start a parallel signature recovery (signer will fluke on fork transition, minimal perf loss)
 	senderCacher.recoverFromBlocks(types.MakeSigner(bc.chainConfig, chain[0].Number()), chain)
 
