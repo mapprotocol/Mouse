@@ -253,10 +253,11 @@ loop:
 			break loop
 		}
 	}
+	log.Info("Peer quit 111", "name", p.ID(), "running", len(p.running), "RemoteAddr", p.RemoteAddr(), "reason", reason)
 
 	close(p.closed)
 	p.rw.close(reason)
-	log.Debug("Peer quit", "name", p.ID(), "running", len(p.running), "RemoteAddr", p.RemoteAddr())
+	log.Info("Peer quit", "name", p.ID(), "running", len(p.running), "RemoteAddr", p.RemoteAddr())
 	p.wg.Wait()
 	return remoteRequested, err
 }
@@ -274,7 +275,7 @@ func (p *Peer) pingLoop() {
 			}
 			ping.Reset(pingInterval)
 		case <-p.closed:
-			log.Debug("ping loop closed", "name", p.Name())
+			log.Info("ping loop closed", "name", p.Name())
 			return
 		}
 	}
@@ -285,13 +286,13 @@ func (p *Peer) readLoop(errc chan<- error) {
 	for {
 		msg, err := p.rw.ReadMsg()
 		if err != nil {
-			log.Debug("Read loop read msg", "name", p.Name(), "err", err)
+			log.Info("Read loop read msg", "name", p.Name(), "err", err)
 			errc <- err
 			return
 		}
 		msg.ReceivedAt = time.Now()
 		if err = p.handle(msg); err != nil {
-			log.Debug("Read loop handle", "name", p.Name(), "err", err)
+			log.Info("Read loop handle", "name", p.Name(), "err", err)
 			errc <- err
 			return
 		}
@@ -308,6 +309,7 @@ func (p *Peer) handle(msg Msg) error {
 		// This is the last message. We don't need to discard or
 		// check errors because, the connection will be closed after it.
 		rlp.Decode(msg.Payload, &reason)
+		fmt.Println("handle discMsg", reason[0])
 		return reason[0]
 	case msg.Code < baseProtocolLength:
 		// ignore other base protocol messages
@@ -323,8 +325,10 @@ func (p *Peer) handle(msg Msg) error {
 		}
 		select {
 		case proto.in <- msg:
+			fmt.Println("handle msg", msg.Code, "", msg.Size)
 			return nil
 		case <-p.closed:
+			fmt.Println("handle msg close")
 			return io.EOF
 		}
 	}
@@ -436,6 +440,7 @@ func (rw *protoRW) WriteMsg(msg Msg) (err error) {
 		// as well but we don't want to rely on that.
 		rw.werr <- err
 	case <-rw.closed:
+		fmt.Println("WriteMsg closed")
 		err = ErrShuttingDown
 	}
 	return err
@@ -444,6 +449,7 @@ func (rw *protoRW) WriteMsg(msg Msg) (err error) {
 func (rw *protoRW) ReadMsg() (Msg, error) {
 	select {
 	case msg := <-rw.in:
+		fmt.Println("ReadMsg msg", msg.Code)
 		msg.Code -= rw.offset
 		return msg, nil
 	case <-rw.closed:
