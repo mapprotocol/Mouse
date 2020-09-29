@@ -17,167 +17,167 @@
 // Package miner implements Mouse block creation and mining.
 package miner
 
-import (
-	"testing"
-	"time"
+// import (
+// 	"testing"
+// 	"time"
 
-	"github.com/marcopoloprotoco/mouse/common"
-	"github.com/marcopoloprotoco/mouse/consensus/ethash"
-	"github.com/marcopoloprotoco/mouse/core"
-	"github.com/marcopoloprotoco/mouse/core/rawdb"
-	"github.com/marcopoloprotoco/mouse/core/state"
-	"github.com/marcopoloprotoco/mouse/core/types"
-	"github.com/marcopoloprotoco/mouse/core/vm"
-	"github.com/marcopoloprotoco/mouse/mos/downloader"
-	"github.com/marcopoloprotoco/mouse/mosdb/memorydb"
-	"github.com/marcopoloprotoco/mouse/event"
-	"github.com/marcopoloprotoco/mouse/params"
-	"github.com/marcopoloprotoco/mouse/trie"
-)
+// 	"github.com/marcopoloprotoco/mouse/common"
+// 	"github.com/marcopoloprotoco/mouse/consensus/ethash"
+// 	"github.com/marcopoloprotoco/mouse/core"
+// 	"github.com/marcopoloprotoco/mouse/core/rawdb"
+// 	"github.com/marcopoloprotoco/mouse/core/state"
+// 	"github.com/marcopoloprotoco/mouse/core/types"
+// 	"github.com/marcopoloprotoco/mouse/core/vm"
+// 	"github.com/marcopoloprotoco/mouse/mos/downloader"
+// 	"github.com/marcopoloprotoco/mouse/mosdb/memorydb"
+// 	"github.com/marcopoloprotoco/mouse/event"
+// 	"github.com/marcopoloprotoco/mouse/params"
+// 	"github.com/marcopoloprotoco/mouse/trie"
+// )
 
-type mockBackend struct {
-	bc     *core.BlockChain
-	txPool *core.TxPool
-}
+// type mockBackend struct {
+// 	bc     *core.BlockChain
+// 	txPool *core.TxPool
+// }
 
-func NewMockBackend(bc *core.BlockChain, txPool *core.TxPool) *mockBackend {
-	return &mockBackend{
-		bc:     bc,
-		txPool: txPool,
-	}
-}
+// func NewMockBackend(bc *core.BlockChain, txPool *core.TxPool) *mockBackend {
+// 	return &mockBackend{
+// 		bc:     bc,
+// 		txPool: txPool,
+// 	}
+// }
 
-func (m *mockBackend) BlockChain() *core.BlockChain {
-	return m.bc
-}
+// func (m *mockBackend) BlockChain() *core.BlockChain {
+// 	return m.bc
+// }
 
-func (m *mockBackend) TxPool() *core.TxPool {
-	return m.txPool
-}
+// func (m *mockBackend) TxPool() *core.TxPool {
+// 	return m.txPool
+// }
 
-type testBlockChain struct {
-	statedb       *state.StateDB
-	gasLimit      uint64
-	chainHeadFeed *event.Feed
-}
+// type testBlockChain struct {
+// 	statedb       *state.StateDB
+// 	gasLimit      uint64
+// 	chainHeadFeed *event.Feed
+// }
 
-func (bc *testBlockChain) CurrentBlock() *types.Block {
-	return types.NewBlock(&types.Header{
-		GasLimit: bc.gasLimit,
-	}, nil, nil, nil, new(trie.Trie))
-}
+// func (bc *testBlockChain) CurrentBlock() *types.Block {
+// 	return types.NewBlock(&types.Header{
+// 		GasLimit: bc.gasLimit,
+// 	}, nil, nil, nil, new(trie.Trie))
+// }
 
-func (bc *testBlockChain) GetBlock(hash common.Hash, number uint64) *types.Block {
-	return bc.CurrentBlock()
-}
+// func (bc *testBlockChain) GetBlock(hash common.Hash, number uint64) *types.Block {
+// 	return bc.CurrentBlock()
+// }
 
-func (bc *testBlockChain) StateAt(common.Hash) (*state.StateDB, error) {
-	return bc.statedb, nil
-}
+// func (bc *testBlockChain) StateAt(common.Hash) (*state.StateDB, error) {
+// 	return bc.statedb, nil
+// }
 
-func (bc *testBlockChain) SubscribeChainHeadEvent(ch chan<- core.ChainHeadEvent) event.Subscription {
-	return bc.chainHeadFeed.Subscribe(ch)
-}
+// func (bc *testBlockChain) SubscribeChainHeadEvent(ch chan<- core.ChainHeadEvent) event.Subscription {
+// 	return bc.chainHeadFeed.Subscribe(ch)
+// }
 
-func TestMiner(t *testing.T) {
-	miner, mux := createMiner(t)
-	miner.Start(common.HexToAddress("0x12345"))
-	waitForMiningState(t, miner, true)
-	// Start the downloader
-	mux.Post(downloader.StartEvent{})
-	waitForMiningState(t, miner, false)
-	// Stop the downloader and wait for the update loop to run
-	mux.Post(downloader.DoneEvent{})
-	waitForMiningState(t, miner, true)
-	// Start the downloader and wait for the update loop to run
-	mux.Post(downloader.StartEvent{})
-	waitForMiningState(t, miner, false)
-	// Stop the downloader and wait for the update loop to run
-	mux.Post(downloader.FailedEvent{})
-	waitForMiningState(t, miner, true)
-}
+// func TestMiner(t *testing.T) {
+// 	miner, mux := createMiner(t)
+// 	miner.Start(common.HexToAddress("0x12345"))
+// 	waitForMiningState(t, miner, true)
+// 	// Start the downloader
+// 	mux.Post(downloader.StartEvent{})
+// 	waitForMiningState(t, miner, false)
+// 	// Stop the downloader and wait for the update loop to run
+// 	mux.Post(downloader.DoneEvent{})
+// 	waitForMiningState(t, miner, true)
+// 	// Start the downloader and wait for the update loop to run
+// 	mux.Post(downloader.StartEvent{})
+// 	waitForMiningState(t, miner, false)
+// 	// Stop the downloader and wait for the update loop to run
+// 	mux.Post(downloader.FailedEvent{})
+// 	waitForMiningState(t, miner, true)
+// }
 
-func TestStartWhileDownload(t *testing.T) {
-	miner, mux := createMiner(t)
-	waitForMiningState(t, miner, false)
-	miner.Start(common.HexToAddress("0x12345"))
-	waitForMiningState(t, miner, true)
-	// Stop the downloader and wait for the update loop to run
-	mux.Post(downloader.StartEvent{})
-	waitForMiningState(t, miner, false)
-	// Starting the miner after the downloader should not work
-	miner.Start(common.HexToAddress("0x12345"))
-	waitForMiningState(t, miner, false)
-}
+// func TestStartWhileDownload(t *testing.T) {
+// 	miner, mux := createMiner(t)
+// 	waitForMiningState(t, miner, false)
+// 	miner.Start(common.HexToAddress("0x12345"))
+// 	waitForMiningState(t, miner, true)
+// 	// Stop the downloader and wait for the update loop to run
+// 	mux.Post(downloader.StartEvent{})
+// 	waitForMiningState(t, miner, false)
+// 	// Starting the miner after the downloader should not work
+// 	miner.Start(common.HexToAddress("0x12345"))
+// 	waitForMiningState(t, miner, false)
+// }
 
-func TestStartStopMiner(t *testing.T) {
-	miner, _ := createMiner(t)
-	waitForMiningState(t, miner, false)
-	miner.Start(common.HexToAddress("0x12345"))
-	waitForMiningState(t, miner, true)
-	miner.Stop()
-	waitForMiningState(t, miner, false)
-}
+// func TestStartStopMiner(t *testing.T) {
+// 	miner, _ := createMiner(t)
+// 	waitForMiningState(t, miner, false)
+// 	miner.Start(common.HexToAddress("0x12345"))
+// 	waitForMiningState(t, miner, true)
+// 	miner.Stop()
+// 	waitForMiningState(t, miner, false)
+// }
 
-func TestCloseMiner(t *testing.T) {
-	miner, _ := createMiner(t)
-	waitForMiningState(t, miner, false)
-	miner.Start(common.HexToAddress("0x12345"))
-	waitForMiningState(t, miner, true)
-	// Terminate the miner and wait for the update loop to run
-	miner.Close()
-	waitForMiningState(t, miner, false)
-}
+// func TestCloseMiner(t *testing.T) {
+// 	miner, _ := createMiner(t)
+// 	waitForMiningState(t, miner, false)
+// 	miner.Start(common.HexToAddress("0x12345"))
+// 	waitForMiningState(t, miner, true)
+// 	// Terminate the miner and wait for the update loop to run
+// 	miner.Close()
+// 	waitForMiningState(t, miner, false)
+// }
 
-// waitForMiningState waits until either
-// * the desired mining state was reached
-// * a timeout was reached which fails the test
-func waitForMiningState(t *testing.T, m *Miner, mining bool) {
-	t.Helper()
+// // waitForMiningState waits until either
+// // * the desired mining state was reached
+// // * a timeout was reached which fails the test
+// func waitForMiningState(t *testing.T, m *Miner, mining bool) {
+// 	t.Helper()
 
-	var state bool
-	for i := 0; i < 100; i++ {
-		if state = m.Mining(); state == mining {
-			return
-		}
-		time.Sleep(10 * time.Millisecond)
-	}
-	t.Fatalf("Mining() == %t, want %t", state, mining)
-}
+// 	var state bool
+// 	for i := 0; i < 100; i++ {
+// 		if state = m.Mining(); state == mining {
+// 			return
+// 		}
+// 		time.Sleep(10 * time.Millisecond)
+// 	}
+// 	t.Fatalf("Mining() == %t, want %t", state, mining)
+// }
 
-func createMiner(t *testing.T) (*Miner, *event.TypeMux) {
-	// Create Ethash config
-	config := Config{
-		Etherbase: common.HexToAddress("123456789"),
-	}
-	// Create chainConfig
-	memdb := memorydb.New()
-	chainDB := rawdb.NewDatabase(memdb)
-	genesis := core.DeveloperGenesisBlock(15, common.HexToAddress("12345"))
-	chainConfig, _, err := core.SetupGenesisBlock(chainDB, genesis)
-	if err != nil {
-		t.Fatalf("can't create new chain config: %v", err)
-	}
-	// Create event Mux
-	mux := new(event.TypeMux)
-	// Create consensus engine
-	engine := ethash.New(ethash.Config{}, []string{}, false)
-	engine.SetThreads(-1)
-	// Create isLocalBlock
-	isLocalBlock := func(block *types.Block) bool {
-		return true
-	}
-	// Create Mouse backend
-	limit := uint64(1000)
-	bc, err := core.NewBlockChain(chainDB, new(core.CacheConfig), chainConfig, engine, vm.Config{}, isLocalBlock, &limit)
-	if err != nil {
-		t.Fatalf("can't create new chain %v", err)
-	}
-	statedb, _ := state.New(common.Hash{}, state.NewDatabase(rawdb.NewMemoryDatabase()), nil)
-	blockchain := &testBlockChain{statedb, 10000000, new(event.Feed)}
+// func createMiner(t *testing.T) (*Miner, *event.TypeMux) {
+// 	// Create Ethash config
+// 	config := Config{
+// 		Etherbase: common.HexToAddress("123456789"),
+// 	}
+// 	// Create chainConfig
+// 	memdb := memorydb.New()
+// 	chainDB := rawdb.NewDatabase(memdb)
+// 	genesis := core.DeveloperGenesisBlock(15, common.HexToAddress("12345"))
+// 	chainConfig, _, err := core.SetupGenesisBlock(chainDB, genesis)
+// 	if err != nil {
+// 		t.Fatalf("can't create new chain config: %v", err)
+// 	}
+// 	// Create event Mux
+// 	mux := new(event.TypeMux)
+// 	// Create consensus engine
+// 	engine := ethash.New(ethash.Config{}, []string{}, false)
+// 	engine.SetThreads(-1)
+// 	// Create isLocalBlock
+// 	isLocalBlock := func(block *types.Block) bool {
+// 		return true
+// 	}
+// 	// Create Mouse backend
+// 	limit := uint64(1000)
+// 	bc, err := core.NewBlockChain(chainDB, new(core.CacheConfig), chainConfig, engine, vm.Config{}, isLocalBlock, &limit)
+// 	if err != nil {
+// 		t.Fatalf("can't create new chain %v", err)
+// 	}
+// 	statedb, _ := state.New(common.Hash{}, state.NewDatabase(rawdb.NewMemoryDatabase()), nil)
+// 	blockchain := &testBlockChain{statedb, 10000000, new(event.Feed)}
 
-	pool := core.NewTxPool(testTxPoolConfig, params.TestChainConfig, blockchain)
-	backend := NewMockBackend(bc, pool)
-	// Create Miner
-	return New(backend, &config, chainConfig, mux, engine, isLocalBlock), mux
-}
+// 	pool := core.NewTxPool(testTxPoolConfig, params.TestChainConfig, blockchain)
+// 	backend := NewMockBackend(bc, pool)
+// 	// Create Miner
+// 	return New(backend, &config, chainConfig, mux, engine, isLocalBlock), mux
+// }

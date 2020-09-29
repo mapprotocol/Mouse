@@ -275,6 +275,18 @@ func (tx *Transaction) WithSignature(signer Signer, sig []byte) (*Transaction, e
 	return cpy, nil
 }
 
+func (tx *Transaction) WithRawSignature(v *big.Int, r *big.Int, s *big.Int) *Transaction {
+	tx.data.V = v
+	tx.data.R = r
+	tx.data.S = s
+
+	cpy := &Transaction{
+		data: tx.data,
+		time: tx.time,
+	}
+	return cpy
+}
+
 // Cost returns amount + gasprice * gaslimit.
 func (tx *Transaction) Cost() *big.Int {
 	total := new(big.Int).Mul(tx.data.Price, new(big.Int).SetUint64(tx.data.GasLimit))

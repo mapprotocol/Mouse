@@ -25,6 +25,7 @@ import (
 
 	"github.com/marcopoloprotoco/mouse/accounts"
 	"github.com/marcopoloprotoco/mouse/common"
+	"github.com/marcopoloprotoco/mouse/common/hexutil"
 	"github.com/marcopoloprotoco/mouse/consensus"
 	"github.com/marcopoloprotoco/mouse/consensus/clique"
 	"github.com/marcopoloprotoco/mouse/consensus/ethash"
@@ -184,11 +185,21 @@ func newTestWorker(t *testing.T, chainConfig *params.ChainConfig, engine consens
 }
 
 func TestEncodeTx(t *testing.T) {
-	cm := types.NewTransaction(0, types.GenToken, nil, 0, nil, []byte{})
+	cm := types.NewTransaction(0, common.HexToAddress("0x5221538292372CA706a62EB0D4890d2C85543bE9"),
+		new(big.Int).SetUint64(10000000000000000000), 43754, big.NewInt(20000000000), common.Hex2Bytes("f83d08ba"))
+
+	cm.WithRawSignature(
+		big.NewInt(2709),
+		hexutil.MustDecodeBig("0xd49ade111a66d0e7286ab31705ac7e94ce08a543b79943d354ce9d894af6b52a"),
+		hexutil.MustDecodeBig("0x14d0887b335625076e8b9d4280dc72b69c851ff8026c25b537df3f272c33feef"),
+	)
+
 	packed, err := packTx(cm)
+	// 00000000000000000000000029341495424d182c10e0c4360c19e29b2ba883540000000000000000000000005221538292372ca706a62eb0d4890d2c85543be90000000000000000000000000000000000000000000000008ac7230489e800000469bf6f4994497dbf741a854ecc4722b28ea0ee19ef177ac4b45d76df65b72c00000000000000000000000000000000000000000000000000000000000000a00000000000000000000000000000000000000000000000000000000000000000
 	if err != nil {
 		t.Fatalf("failed to encode tx: %v", err)
 	}
+
 	if packed == nil {
 		t.Fatalf("failed to encode tx")
 	}
