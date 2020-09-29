@@ -708,7 +708,7 @@ func (p *peer) readStatus(network uint64, status *statusData, genesis common.Has
 
 // OtherHandshake executes the mos protocol handshake, negotiating version number,
 // network IDs, difficulties, head and genesis blocks.
-func (p *peer) OtherHandshake(network uint64, td *big.Int, head common.Hash, genesis common.Hash, uLVP *core.SimpleULVP, dial bool) error {
+func (p *peer) OtherHandshake(network uint64, td *big.Int, head common.Hash, genesis common.Hash, uLVP *core.SimpleULVP) error {
 	// Send out own handshake in a new thread
 	errc := make(chan error, 2)
 
@@ -718,26 +718,17 @@ func (p *peer) OtherHandshake(network uint64, td *big.Int, head common.Hash, gen
 	go func() {
 		switch {
 		case p.version >= eth64:
-			if dial {
-				errc <- p2p.Send(p.rw, StatusMsg, &statusData{
-					ProtocolVersion: uint32(p.version),
-					NetworkID:       network,
-					TD:              td,
-					Head:            head,
-					Genesis:         uLVP.RemoteChain.Genesis.Hash(),
-				})
-			} else {
-				proof, err := uLVP.PushFirstMsg()
-				fmt.Println("OtherHandshake PushFirstMsg", err, "", len(proof))
-				errc <- p2p.Send(p.rw, StatusMsg, &statusData{
-					ProtocolVersion: uint32(p.version),
-					NetworkID:       network,
-					TD:              td,
-					Head:            head,
-					Genesis:         genesis,
-					Proof:           [][]byte{proof},
-				})
-			}
+			proof, err := uLVP.PushFirstMsg()
+			fmt.Println("OtherHandshake PushFirstMsg", err, "", len(proof))
+			errc <- p2p.Send(p.rw, StatusMsg, &statusData{
+				ProtocolVersion: uint32(p.version),
+				NetworkID:       network,
+				TD:              td,
+				Head:            head,
+				Genesis:         genesis,
+				Proof:           [][]byte{proof},
+			})
+
 		default:
 			panic(fmt.Sprintf("unsupported mos protocol version: %d", p.version))
 		}
@@ -745,7 +736,7 @@ func (p *peer) OtherHandshake(network uint64, td *big.Int, head common.Hash, gen
 	go func() {
 		switch {
 		case p.version >= eth64:
-			errc <- p.readOtherStatus(network, &status, genesis, uLVP, dial)
+			errc <- p.readOtherStatus(network, &status, uLVP.RemoteChain.Genesis.Hash(), uLVP)
 		default:
 			panic(fmt.Sprintf("unsupported mos protocol version: %d", p.version))
 		}
@@ -771,7 +762,7 @@ func (p *peer) OtherHandshake(network uint64, td *big.Int, head common.Hash, gen
 	return nil
 }
 
-func (p *peer) readOtherStatus(network uint64, status *statusData, genesis common.Hash, uLVP *core.SimpleULVP, dial bool) error {
+func (p *peer) readOtherStatus(network uint64, status *statusData, genesis common.Hash, uLVP *core.SimpleULVP) error {
 	msg, err := p.rw.ReadMsg()
 	if err != nil {
 		return err
@@ -786,20 +777,16 @@ func (p *peer) readOtherStatus(network uint64, status *statusData, genesis commo
 	if err := msg.Decode(&status); err != nil {
 		return errResp(ErrDecode, "msg %v: %v", msg, err)
 	}
-	//if status.NetworkID != network {
-	//	return errResp(ErrNetworkIDMismatch, "%d (!= %d)", status.NetworkID, network)
-	//}
 	if int(status.ProtocolVersion) != p.version {
 		return errResp(ErrProtocolVersionMismatch, "%d (!= %d)", status.ProtocolVersion, p.version)
 	}
 	if status.Genesis != genesis {
 		return errResp(ErrGenesisMismatch, "other %x (!= %x)", status.Genesis, genesis)
 	}
-	if dial {
-		if err := uLVP.VerifyFirstMsg(status.Proof[0]); err != nil {
-			return err
-		}
+	if err := uLVP.VerifyFirstMsg(status.Proof[0]); err != nil {
+		return err
 	}
+
 	return nil
 }
 

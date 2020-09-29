@@ -27,24 +27,18 @@ var MainnetBootnodes = []string{
 
 var MainnetOtherBootnodes = []string{
 	// Mouse Foundation Go Bootnodes
-	"enode://8dcb15ac2de32ddb326b207b235d156c9ee315da933e7bd3f85f9b02eefa7aba2ca77d540621f2472f9c28bf2954c7d9aa56b226c87a0dd8a8b87771a26f23db@43.227.254.198:30303", // bootnode-aws-ap-southeast-1-001
+	"enode://479b36e5874f65f89635def6fa323868dae59cf2f58dbaeb4251ba9fc730483fdb32eb5f110410cd66b76fc995ca97a00e98a14bafe69bea09fec55b59560300@39.98.214.163:30164", // US-Azure gmos
+	"enode://9425c84c7d265bd1888469b248e0e4bf13512d7b3cea55bf8a1e74b3e6d16f365d3be6a8a68904f302aa47ebbf6608b28c3fc4a4428e3fd12a7d1bbe34a5255e@43.227.254.198:30303",
 }
 
 // RopstenBootnodes are the enode URLs of the P2P bootstrap nodes running on the
 // Ropsten test network.
 var RopstenBootnodes = []string{
-	"enode://30b7ab30a01c124a6cceca36863ece12c4f5fa68e3ba9b0b51407ccc002eeed3b3102d20a88f1c1d3c3154e2449317b8ef95090e77b312d5cc39354f86d5d606@52.176.7.10:30303",    // US-Azure gmos
-	"enode://865a63255b3bb68023b6bffd5095118fcc13e79dcf014fe4e47e065c350c7cc72af2e53eff895f11ba1bbb6a2b33271c1116ee870f266618eadfc2e78aa7349c@52.176.100.77:30303",  // US-Azure parity
-	"enode://6332792c4a00e3e4ee0926ed89e0d27ef985424d97b6a45bf0f23e51f0dcb5e66b875777506458aea7af6f9e4ffb69f43f3778ee73c81ed9d34c51c4b16b0b0f@52.232.243.152:30303", // Parity
-	"enode://94c15d1b9e2fe7ce56e458b9a3b672ef11894ddedd0c6f247e0f1d3487f52b66208fb4aeb8179fce6e3a749ea93ed147c37976d67af557508d199d9594c35f09@192.81.208.223:30303", // @gpip
+	"enode://479b36e5874f65f89635def6fa323868dae59cf2f58dbaeb4251ba9fc730483fdb32eb5f110410cd66b76fc995ca97a00e98a14bafe69bea09fec55b59560300@39.98.214.163:30164", // US-Azure gmos
+	"enode://9425c84c7d265bd1888469b248e0e4bf13512d7b3cea55bf8a1e74b3e6d16f365d3be6a8a68904f302aa47ebbf6608b28c3fc4a4428e3fd12a7d1bbe34a5255e@43.227.254.198:30303",
 }
 
-var RopstenOtherBootnodes = []string{
-	"enode://30b7ab30a01c124a6cceca36863ece12c4f5fa68e3ba9b0b51407ccc002eeed3b3102d20a88f1c1d3c3154e2449317b8ef95090e77b312d5cc39354f86d5d606@52.176.7.10:30303",    // US-Azure gmos
-	"enode://865a63255b3bb68023b6bffd5095118fcc13e79dcf014fe4e47e065c350c7cc72af2e53eff895f11ba1bbb6a2b33271c1116ee870f266618eadfc2e78aa7349c@52.176.100.77:30303",  // US-Azure parity
-	"enode://6332792c4a00e3e4ee0926ed89e0d27ef985424d97b6a45bf0f23e51f0dcb5e66b875777506458aea7af6f9e4ffb69f43f3778ee73c81ed9d34c51c4b16b0b0f@52.232.243.152:30303", // Parity
-	"enode://94c15d1b9e2fe7ce56e458b9a3b672ef11894ddedd0c6f247e0f1d3487f52b66208fb4aeb8179fce6e3a749ea93ed147c37976d67af557508d199d9594c35f09@192.81.208.223:30303", // @gpip
-}
+var RopstenOtherBootnodes = []string{}
 
 // RinkebyBootnodes are the enode URLs of the P2P bootstrap nodes running on the
 // Rinkeby test network.

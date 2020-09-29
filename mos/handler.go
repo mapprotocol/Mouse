@@ -425,9 +425,8 @@ func (pm *ProtocolManager) handleOther(p *peer) error {
 		number  = head.Number.Uint64()
 		td      = pm.blockchain.GetTd(hash, number)
 	)
-	dial := p.Dial()
-	if err := p.OtherHandshake(pm.networkID, td, hash, genesis.Hash(), pm.ulVP, dial); err != nil {
-		p.Log().Debug("Mouse handshake failed", "err", err)
+	if err := p.OtherHandshake(pm.networkID, td, hash, genesis.Hash(), pm.ulVP); err != nil {
+		p.Log().Info("Mouse handshake failed", "err", err)
 		return err
 	}
 

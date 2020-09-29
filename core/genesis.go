@@ -387,7 +387,41 @@ func DefaultGenesisBlock() *Genesis {
 func DefaultOtherGenesisBlock() *Genesis {
 	i, _ := new(big.Int).SetString("90000000000000000000000", 10)
 	return &Genesis{
-		Config:     params.MainnetOtherChainConfig,
+		Config:     params.RopstenChainConfig,
+		Nonce:      66,
+		ExtraData:  hexutil.MustDecode("0x3535353535353535353535353535353535353535353535353535353535353535"),
+		GasLimit:   16777216,
+		Difficulty: big.NewInt(1048576),
+		Alloc: map[common.Address]GenesisAccount{
+			common.HexToAddress("0x29341495424d182c10E0c4360c19E29B2bA88354"): {Balance: i},
+			common.HexToAddress("0x9C238B78ddC24554FCB5d791709102EBcBf69d86"): {Balance: i},
+			common.HexToAddress("0x78C530f8F316520133557Ed82A2c964D600C88B5"): {Balance: i},
+			common.HexToAddress("0x81220F9CDf63c04F877f620328A4873F1Cc09038"): {Balance: i},
+		}}
+}
+
+// DefaultRopstenGenesisBlock returns the Ropsten network genesis block.
+func DefaultRopstenGenesisBlock() *Genesis {
+	i, _ := new(big.Int).SetString("90000000000000000000000", 10)
+	return &Genesis{
+		Config:     params.RopstenChainConfig,
+		Nonce:      66,
+		ExtraData:  hexutil.MustDecode("0x3535353535353535353535353535353535353535353535353535353535353535"),
+		GasLimit:   16777216,
+		Difficulty: big.NewInt(1048576),
+		Alloc: map[common.Address]GenesisAccount{
+			common.HexToAddress("0x29341495424d182c10E0c4360c19E29B2bA88354"): {Balance: i},
+			common.HexToAddress("0x9C238B78ddC24554FCB5d791709102EBcBf69d86"): {Balance: i},
+			common.HexToAddress("0x78C530f8F316520133557Ed82A2c964D600C88B5"): {Balance: i},
+			common.HexToAddress("0x81220F9CDf63c04F877f620328A4873F1Cc09038"): {Balance: i},
+		}}
+}
+
+// DefaultOtherRopstenGenesisBlock returns the Ropsten network genesis block.
+func DefaultOtherRopstenGenesisBlock() *Genesis {
+	i, _ := new(big.Int).SetString("90000000000000000000000", 10)
+	return &Genesis{
+		Config:     params.MainnetChainConfig,
 		Nonce:      66,
 		ExtraData:  hexutil.MustDecode("0x11bbe8db4e347b4e8c937c1c8370e4b5ed33adb3db69cbdb7a38e1e50b1b82fa"),
 		GasLimit:   10485760,
@@ -398,30 +432,6 @@ func DefaultOtherGenesisBlock() *Genesis {
 			common.HexToAddress("0x78C530f8F316520133557Ed82A2c964D600C88B5"): {Balance: i},
 			common.HexToAddress("0x81220F9CDf63c04F877f620328A4873F1Cc09038"): {Balance: i},
 		},
-	}
-}
-
-// DefaultRopstenGenesisBlock returns the Ropsten network genesis block.
-func DefaultRopstenGenesisBlock() *Genesis {
-	return &Genesis{
-		Config:     params.RopstenChainConfig,
-		Nonce:      66,
-		ExtraData:  hexutil.MustDecode("0x3535353535353535353535353535353535353535353535353535353535353535"),
-		GasLimit:   16777216,
-		Difficulty: big.NewInt(1048576),
-		Alloc:      decodePrealloc(ropstenAllocData),
-	}
-}
-
-// DefaultOtherRopstenGenesisBlock returns the Ropsten network genesis block.
-func DefaultOtherRopstenGenesisBlock() *Genesis {
-	return &Genesis{
-		Config:     params.RopstenChainConfig,
-		Nonce:      66,
-		ExtraData:  hexutil.MustDecode("0x3535353535353535353535353535353535353535353535353535353535353535"),
-		GasLimit:   16777216,
-		Difficulty: big.NewInt(1048576),
-		Alloc:      decodePrealloc(ropstenAllocData),
 	}
 }
 
