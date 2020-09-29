@@ -60,13 +60,12 @@ const (
 
 // protoHandshake is the RLP structure of the protocol handshake.
 type protoHandshake struct {
-	Version    uint64
-	Name       string
-	Caps       []Cap
-	ListenPort uint64
-	ID         []byte // secp256k1 public key
-	chainType  int
-	networkID  uint64
+	Version   uint64
+	Name      string
+	Caps      []Cap
+	ID        []byte // secp256k1 public key
+	ChainType uint64
+	NetworkID uint64
 
 	// Ignore additional fields (for forward compatibility).
 	Rest []rlp.RawValue `rlp:"tail"`

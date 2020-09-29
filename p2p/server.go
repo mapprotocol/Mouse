@@ -553,7 +553,7 @@ func (srv *Server) setupLocalNode() error {
 	srv.ourHandshake = &protoHandshake{Version: baseProtocolVersion, Name: srv.Name, ID: pubkey[1:]}
 	for _, p := range srv.Protocols {
 		srv.ourHandshake.Caps = append(srv.ourHandshake.Caps, p.cap())
-		srv.ourHandshake.networkID = p.NetworkId
+		srv.ourHandshake.NetworkID = p.NetworkId
 		log.Debug("Setup local node", "cap", p.cap(), "database", srv.Config.NodeDatabase)
 	}
 	sort.Sort(capsByNameAndVersion(srv.ourHandshake.Caps))
@@ -1041,7 +1041,7 @@ running:
 					p.events = &srv.peerFeed
 				}
 				name := truncateName(c.name)
-				p.log.Info("Adding p2p peer", "addr", p.RemoteAddr(), "peers", len(peers)+1, "name", name)
+				p.log.Info("Adding other p2p peer", "addr", p.RemoteAddr(), "peers", len(peers)+1, "name", name)
 				go srv.runPeer(p)
 				peers[c.node.ID()] = p
 				if p.Inbound() {
@@ -1255,7 +1255,7 @@ func (srv *Server) setupConn(c *conn, flags connFlag, dialDest *enode.Node) erro
 	}
 
 	if crossChain(c, dialDest) {
-		srv.ourHandshake.chainType = c.chainType
+		srv.ourHandshake.ChainType = uint64(c.chainType)
 		c.dial = true
 	}
 	// Run the capability negotiation handshake.
@@ -1268,13 +1268,13 @@ func (srv *Server) setupConn(c *conn, flags connFlag, dialDest *enode.Node) erro
 		clog.Trace("Wrong devp2p handshake identity", "phsid", hex.EncodeToString(phs.ID))
 		return DiscUnexpectedIdentity
 	}
-	c.caps, c.name, c.chainType = phs.Caps, phs.Name, phs.chainType
+	c.caps, c.name, c.chainType = phs.Caps, phs.Name, int(phs.ChainType)
 
-	if dialDest == nil && phs.chainType == ChainB {
-		c.chainType = phs.chainType
+	if dialDest == nil && phs.ChainType == ChainB {
+		c.chainType = int(phs.ChainType)
 	}
 
-	if phs.networkID != srv.ourHandshake.networkID {
+	if phs.NetworkID != srv.ourHandshake.NetworkID {
 		c.chainType = ChainB
 	}
 
