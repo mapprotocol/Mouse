@@ -32,10 +32,10 @@ func (b *BaseReqUlvpMsg) Datas() ([]byte, error) {
 	}
 	return data, nil
 }
-func ParseBaseReqUlvpMsg(data []byte) (*BaseReqUlvpMsg,error) {
+func ParseBaseReqUlvpMsg(data []byte) (*BaseReqUlvpMsg, error) {
 	obj := &BaseReqUlvpMsg{}
 	err := rlp.DecodeBytes(data, obj)
-	return obj,err
+	return obj, err
 }
 func makeFirstBaseUlvpMsg() *BaseReqUlvpMsg {
 	return &BaseReqUlvpMsg{
@@ -56,10 +56,10 @@ func (b *UlvpMsgReq) Datas() ([]byte, error) {
 	}
 	return data, nil
 }
-func ParseUlvpMsgReq(data []byte) (*UlvpMsgReq,error) {
+func ParseUlvpMsgReq(data []byte) (*UlvpMsgReq, error) {
 	obj := &UlvpMsgReq{}
 	err := rlp.DecodeBytes(data, obj)
-	return obj,err
+	return obj, err
 }
 func makeUlvpMsgReq(blocks []uint64) *UlvpMsgReq {
 	return &UlvpMsgReq{
@@ -83,10 +83,10 @@ func (b *ChainHeaderProofMsg) Datas() ([]byte, error) {
 	}
 	return data, nil
 }
-func ParseProofMsg(data []byte) (*ChainHeaderProofMsg,error) {
+func ParseProofMsg(data []byte) (*ChainHeaderProofMsg, error) {
 	obj := &ChainHeaderProofMsg{}
 	err := rlp.DecodeBytes(data, obj)
-	return obj,err
+	return obj, err
 }
 
 type ChainInProofMsg struct {
@@ -106,10 +106,10 @@ func (b *UvlpMsgRes) Datas() ([]byte, error) {
 	}
 	return data, nil
 }
-func ParseUvlpMsgRes(data []byte) (*UvlpMsgRes,error) {
+func ParseUvlpMsgRes(data []byte) (*UvlpMsgRes, error) {
 	obj := &UvlpMsgRes{}
 	err := rlp.DecodeBytes(data, obj)
-	return obj,err
+	return obj, err
 }
 
 func Uint64SliceEqual(a, b []uint64) bool {
@@ -163,7 +163,7 @@ func (o *OtherChainAdapter) setProofHeight(h uint64) {
 
 func (o *OtherChainAdapter) GenesisCheck(head *types.Header) error {
 	return nil
-	
+
 	rHash, lHash := head.Hash(), o.Genesis.Header().Hash()
 	if !bytes.Equal(rHash[:], lHash[:]) {
 		fmt.Println("genesis not match,loack:", hex.EncodeToString(lHash[:]), "remote:", hex.EncodeToString(rHash[:]))
@@ -251,12 +251,11 @@ func (uv *SimpleULVP) PushFirstMsg() ([]byte, error) {
 		Header: heads,
 		Right:  Right,
 	}
-	fmt.Println("PushFirstMsg proof.check",len(proof.Checked))
 	return res.Datas()
 }
 
 func (uv *SimpleULVP) VerifyFirstMsg(data []byte) error {
-	msg,err := ParseProofMsg(data)
+	msg, err := ParseProofMsg(data)
 	if err != nil {
 		return err
 	}
@@ -264,7 +263,7 @@ func (uv *SimpleULVP) VerifyFirstMsg(data []byte) error {
 	if len(msg.Header) == 1 && msg.Header[0].Number.Uint64() == 0 {
 		return nil
 	}
-	
+
 	if pBlocks, err := VerifyRequiredBlocks(msg.Proof, msg.Right); err != nil {
 		return err
 	} else {

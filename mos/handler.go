@@ -431,7 +431,7 @@ func (pm *ProtocolManager) handleOther(p *peer) error {
 		td      = pm.blockchain.GetTd(hash, number)
 	)
 	if err := p.OtherHandshake(pm.networkID, td, hash, genesis.Hash(), pm.ulVP); err != nil {
-		p.Log().Info("Mouse handshake failed", "err", err)
+		p.Log().Debug("Mouse handshake failed", "err", err)
 		return err
 	}
 

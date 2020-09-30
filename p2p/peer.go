@@ -309,7 +309,7 @@ func (p *Peer) handle(msg Msg) error {
 		// This is the last message. We don't need to discard or
 		// check errors because, the connection will be closed after it.
 		rlp.Decode(msg.Payload, &reason)
-		fmt.Println("handle discMsg", reason[0])
+		p.Log().Info("Mouse handle", "opposite side leave", reason[0])
 		return reason[0]
 	case msg.Code < baseProtocolLength:
 		// ignore other base protocol messages
@@ -327,7 +327,6 @@ func (p *Peer) handle(msg Msg) error {
 		case proto.in <- msg:
 			return nil
 		case <-p.closed:
-			fmt.Println("handle msg close")
 			return io.EOF
 		}
 	}
