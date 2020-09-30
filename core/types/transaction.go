@@ -131,6 +131,9 @@ func (tx *Transaction) Protected() bool {
 
 // OtherChain returns whether the transaction is protected from replay protection.
 func (tx *Transaction) OtherChain() bool {
+	if tx.data.Recipient == nil {
+		return false
+	}
 	return *tx.data.Recipient == RefToken
 }
 
