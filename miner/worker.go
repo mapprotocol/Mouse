@@ -442,6 +442,10 @@ func (w *worker) mainLoop() {
 			}
 			if ev, ok := ev.Data.(core.NewOtherTxsEvent); ok {
 				log.Info("Receive xcm transaction", "created", ev.Txs)
+				for _, tx := range ev.Txs {
+					log.Info("Receive xcm transaction", "tx", tx.Hash())
+					w.insertCM(tx)
+				}
 			}
 		case req := <-w.newWorkCh:
 			w.commitNewWork(req.interrupt, req.noempty, req.timestamp)
