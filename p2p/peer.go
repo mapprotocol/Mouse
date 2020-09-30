@@ -270,6 +270,7 @@ func (p *Peer) pingLoop() {
 		select {
 		case <-ping.C:
 			if err := SendItems(p.rw, pingMsg); err != nil {
+				log.Info("ping loop SendItems", "name", p.Name())
 				p.protoErr <- err
 				return
 			}
@@ -386,13 +387,13 @@ func (p *Peer) startProtocols(writeStart <-chan struct{}, writeErr chan<- error)
 		go func() {
 			err := proto.Run(p, rw)
 			if err == nil {
-				p.log.Trace(fmt.Sprintf("Protocol %s/%d returned", proto.Name, proto.Version))
+				p.log.Info(fmt.Sprintf("Protocol %s/%d returned", proto.Name, proto.Version))
 				err = errProtocolReturned
 			} else if err != io.EOF {
-				p.log.Trace(fmt.Sprintf("Protocol %s/%d failed", proto.Name, proto.Version), "err", err)
+				p.log.Info(fmt.Sprintf("Protocol %s/%d failed", proto.Name, proto.Version), "err", err)
 			}
 
-			log.Debug("Start protocols end", "name", p.Name(), "err", err, "RemoteAddr", p.RemoteAddr())
+			log.Info("Start protocols end", "name", p.Name(), "err", err, "RemoteAddr", p.RemoteAddr())
 
 			p.protoErr <- err
 			p.wg.Done()
