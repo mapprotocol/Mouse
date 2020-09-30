@@ -2,6 +2,7 @@ package core
 
 import (
 	"bytes"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"math"
@@ -9,7 +10,6 @@ import (
 	"sort"
 	"strings"
 	"sync"
-	"encoding/hex"
 
 	"github.com/marcopoloprotoco/mouse/common"
 	"github.com/marcopoloprotoco/mouse/core/types"
@@ -1048,7 +1048,5 @@ func PushBlock(mm *Mmr, b *types.Block, time uint64, check bool) error {
 		}
 	}
 	mm.Push(n)
-	h1,h2,h3 := b.Hash(),mm.GetRoot2(),b.MmrRoot()
-	fmt.Println("blockN",b.NumberU64(),"blockH",hex.EncodeToString(h1[:]),"cur_mmroot",hex.EncodeToString(h2[:]),"mmrroot",hex.EncodeToString(h3[:]))
 	return nil
 }

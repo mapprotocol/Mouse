@@ -19,14 +19,6 @@ package miner
 import (
 	"bytes"
 	"errors"
-	"math/big"
-	"strings"
-	"sync"
-	"sync/atomic"
-	"time"
-	"fmt"
-	"encoding/hex"
-
 	mapset "github.com/deckarep/golang-set"
 	"github.com/marcopoloprotoco/mouse/accounts/abi"
 	"github.com/marcopoloprotoco/mouse/common"
@@ -39,6 +31,11 @@ import (
 	"github.com/marcopoloprotoco/mouse/log"
 	"github.com/marcopoloprotoco/mouse/params"
 	"github.com/marcopoloprotoco/mouse/trie"
+	"math/big"
+	"strings"
+	"sync"
+	"sync/atomic"
+	"time"
 )
 
 const (
@@ -971,7 +968,6 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64) 
 		Time:       uint64(timestamp),
 		MmrRoot:    root,
 	}
-	fmt.Println("miner num",num,"root",hex.EncodeToString(root[:]))
 	// if header.Number.Cmp(common.Big1) == 0 {
 	// 	testTx := types.NewTransaction(0, types.GenToken, nil, 0, nil, nil)
 	// 	w.cmList[testTx.Hash()] = testTx

@@ -325,7 +325,6 @@ func (p *Peer) handle(msg Msg) error {
 		}
 		select {
 		case proto.in <- msg:
-			fmt.Println("handle msg", msg.Code, "", msg.Size)
 			return nil
 		case <-p.closed:
 			fmt.Println("handle msg close")
@@ -449,7 +448,6 @@ func (rw *protoRW) WriteMsg(msg Msg) (err error) {
 func (rw *protoRW) ReadMsg() (Msg, error) {
 	select {
 	case msg := <-rw.in:
-		fmt.Println("ReadMsg msg", msg.Code)
 		msg.Code -= rw.offset
 		return msg, nil
 	case <-rw.closed:
