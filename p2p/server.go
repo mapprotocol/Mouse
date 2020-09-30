@@ -25,6 +25,7 @@ import (
 	"fmt"
 	"net"
 	"sort"
+	"strconv"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -697,8 +698,9 @@ func (srv *Server) setupOtherDiscovery() error {
 	if srv.NoDiscovery && !srv.DiscoveryV5 {
 		return nil
 	}
-
-	addr, err := net.ResolveUDPAddr("udp", ":30403")
+	_, portString, _ := net.SplitHostPort(srv.ListenAddr)
+	port, _ := strconv.Atoi(portString)
+	addr, err := net.ResolveUDPAddr("udp", fmt.Sprintf(":%d", port+100))
 	if err != nil {
 		return err
 	}
