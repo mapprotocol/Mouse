@@ -27,14 +27,14 @@ var MainnetBootnodes = []string{
 
 var MainnetOtherBootnodes = []string{
 	// Mouse Foundation Go Bootnodes
-	"enode://479b36e5874f65f89635def6fa323868dae59cf2f58dbaeb4251ba9fc730483fdb32eb5f110410cd66b76fc995ca97a00e98a14bafe69bea09fec55b59560300@39.98.214.163:30164", // US-Azure gmos
+	"enode://43b0af23f012289d857d7d0fb800d82943b18739234c9b657dccbc49d90db585ced2c57ad2c082d537edfe2c06bb5de5fe3b7bc4bec41623334a5cef072704bb@39.98.214.163:30164",
 	"enode://9425c84c7d265bd1888469b248e0e4bf13512d7b3cea55bf8a1e74b3e6d16f365d3be6a8a68904f302aa47ebbf6608b28c3fc4a4428e3fd12a7d1bbe34a5255e@43.227.254.198:30303",
 }
 
 // RopstenBootnodes are the enode URLs of the P2P bootstrap nodes running on the
 // Ropsten test network.
 var RopstenBootnodes = []string{
-	"enode://479b36e5874f65f89635def6fa323868dae59cf2f58dbaeb4251ba9fc730483fdb32eb5f110410cd66b76fc995ca97a00e98a14bafe69bea09fec55b59560300@39.98.214.163:30164", // US-Azure gmos
+	"enode://43b0af23f012289d857d7d0fb800d82943b18739234c9b657dccbc49d90db585ced2c57ad2c082d537edfe2c06bb5de5fe3b7bc4bec41623334a5cef072704bb@39.98.214.163:30164",
 	"enode://9425c84c7d265bd1888469b248e0e4bf13512d7b3cea55bf8a1e74b3e6d16f365d3be6a8a68904f302aa47ebbf6608b28c3fc4a4428e3fd12a7d1bbe34a5255e@43.227.254.198:30303",
 }
 
