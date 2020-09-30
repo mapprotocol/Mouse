@@ -138,14 +138,14 @@ func (p *peer) broadcastBlocks(removePeer func(string)) {
 				removePeer(p.id)
 				return
 			}
-			p.Log().Info("Propagated block", "number", prop.block.Number(), "hash", prop.block.Hash(), "td", prop.td)
+			p.Log().Trace("Propagated block", "number", prop.block.Number(), "hash", prop.block.Hash(), "td", prop.td)
 
 		case block := <-p.queuedBlockAnns:
 			if err := p.SendNewBlockHashes([]common.Hash{block.Hash()}, []uint64{block.NumberU64()}, []*big.Int{block.Difficulty()}); err != nil {
 				removePeer(p.id)
 				return
 			}
-			p.Log().Info("Announced block", "number", block.Number(), "hash", block.Hash())
+			p.Log().Trace("Announced block", "number", block.Number(), "hash", block.Hash())
 
 		case <-p.term:
 			return

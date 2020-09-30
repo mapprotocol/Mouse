@@ -1093,7 +1093,7 @@ func (pm *ProtocolManager) BroadcastOtherBlock(block *types.Block) {
 			return
 		}
 	}
-	log.Trace("Announced Other block", "hash", hash, "recipients", len(peers), "duration", common.PrettyDuration(time.Since(block.ReceivedAt)))
+	log.Info("Announced Other block", "hash", hash, "recipients", len(peers), "duration", common.PrettyDuration(time.Since(block.ReceivedAt)))
 }
 
 // BroadcastOtherReadyTransactions will propagate a batch of transactions to all peers which are not known to
