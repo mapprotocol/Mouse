@@ -319,7 +319,7 @@ func (pm *ProtocolManager) Stop() {
 	// sessions which are already established but not added to pm.peers yet
 	// will exit when they try to register.
 	pm.peers.Close()
-	log.Info("Mouse protocol peers11 stopped")
+	pm.peersOther.Close()
 
 	pm.peerWG.Wait()
 

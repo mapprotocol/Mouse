@@ -253,11 +253,10 @@ loop:
 			break loop
 		}
 	}
-	log.Info("Peer quit 111", "name", p.ID(), "running", len(p.running), "RemoteAddr", p.RemoteAddr(), "reason", reason)
 
 	close(p.closed)
 	p.rw.close(reason)
-	log.Info("Peer quit", "name", p.ID(), "running", len(p.running), "RemoteAddr", p.RemoteAddr())
+	log.Info("Peer quit", "name", p.ID(), "running", len(p.running), "RemoteAddr", p.RemoteAddr(), "reason", reason)
 	p.wg.Wait()
 	return remoteRequested, err
 }
@@ -270,13 +269,13 @@ func (p *Peer) pingLoop() {
 		select {
 		case <-ping.C:
 			if err := SendItems(p.rw, pingMsg); err != nil {
-				log.Info("ping loop SendItems", "name", p.Name())
+				log.Trace("ping loop SendItems", "name", p.Name())
 				p.protoErr <- err
 				return
 			}
 			ping.Reset(pingInterval)
 		case <-p.closed:
-			log.Info("ping loop closed", "name", p.Name())
+			log.Trace("ping loop closed", "name", p.Name())
 			return
 		}
 	}
@@ -287,13 +286,13 @@ func (p *Peer) readLoop(errc chan<- error) {
 	for {
 		msg, err := p.rw.ReadMsg()
 		if err != nil {
-			log.Info("Read loop read msg", "name", p.Name(), "err", err)
+			log.Trace("Read loop read msg", "name", p.Name(), "err", err)
 			errc <- err
 			return
 		}
 		msg.ReceivedAt = time.Now()
 		if err = p.handle(msg); err != nil {
-			log.Info("Read loop handle", "name", p.Name(), "err", err)
+			log.Trace("Read loop handle", "name", p.Name(), "err", err)
 			errc <- err
 			return
 		}
@@ -387,13 +386,13 @@ func (p *Peer) startProtocols(writeStart <-chan struct{}, writeErr chan<- error)
 		go func() {
 			err := proto.Run(p, rw)
 			if err == nil {
-				p.log.Info(fmt.Sprintf("Protocol %s/%d returned", proto.Name, proto.Version))
+				p.log.Trace(fmt.Sprintf("Protocol %s/%d returned", proto.Name, proto.Version))
 				err = errProtocolReturned
 			} else if err != io.EOF {
-				p.log.Info(fmt.Sprintf("Protocol %s/%d failed", proto.Name, proto.Version), "err", err)
+				p.log.Trace(fmt.Sprintf("Protocol %s/%d failed", proto.Name, proto.Version), "err", err)
 			}
 
-			log.Info("Start protocols end", "name", p.Name(), "err", err, "RemoteAddr", p.RemoteAddr())
+			log.Trace("Start protocols end", "name", p.Name(), "err", err, "RemoteAddr", p.RemoteAddr())
 
 			p.protoErr <- err
 			p.wg.Done()

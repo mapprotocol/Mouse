@@ -1359,7 +1359,7 @@ func (srv *Server) runPeer(p *Peer) {
 		LocalAddress:  p.LocalAddr().String(),
 	})
 
-	log.Info("Drop peer", "name", p.Name(), "err", err, "remoteRequested", remoteRequested, "RemoteAddr", p.RemoteAddr(), "chain", p.rw.chainType)
+	log.Debug("Drop peer", "name", p.Name(), "err", err, "remoteRequested", remoteRequested, "RemoteAddr", p.RemoteAddr(), "chain", p.rw.chainType)
 
 	// Note: run waits for existing peers to be sent on srv.delpeer
 	// before returning, so this send should not select on srv.quit.
