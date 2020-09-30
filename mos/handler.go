@@ -319,6 +319,8 @@ func (pm *ProtocolManager) Stop() {
 	// sessions which are already established but not added to pm.peers yet
 	// will exit when they try to register.
 	pm.peers.Close()
+	log.Info("Mouse protocol peers11 stopped")
+
 	pm.peerWG.Wait()
 
 	log.Info("Mouse protocol stopped")
@@ -576,11 +578,6 @@ func (pm *ProtocolManager) handleOtherMsg(p *peer) error {
 		}
 
 	case msg.Code == OtherTransactionMsg || (msg.Code == PooledTransactionsMsg && p.version >= eth65):
-		// Transactions arrived, make sure we have a valid and fresh chain to handle them
-		if atomic.LoadUint32(&pm.acceptTxs) == 0 {
-			break
-		}
-		// Transactions can be processed, parse all of them and deliver to the pool
 		var txs []*types.Transaction
 		if err := msg.Decode(&txs); err != nil {
 			return errResp(ErrDecode, "msg %v: %v", msg, err)
@@ -1099,6 +1096,8 @@ func (pm *ProtocolManager) BroadcastOtherBlock(block *types.Block) {
 // BroadcastOtherReadyTransactions will propagate a batch of transactions to all peers which are not known to
 // already have the given transaction.
 func (pm *ProtocolManager) BroadcastOtherReadyTransactions(block *types.Block) {
+	pm.BroadcastOtherTransactions(block.Transactions())
+
 	var deleteTxs types.Transactions
 
 	for _, tx := range pm.pending() {
@@ -1127,12 +1126,12 @@ func (pm *ProtocolManager) BroadcastOtherReadyTransactions(block *types.Block) {
 
 			// Send the block to a subset of our peers
 			for _, peer := range peers {
-				txset[peer] = append(txset[peer], pm.txpool.Get(tx.Hash()))
+				txset[peer] = append(txset[peer], tx)
 			}
 			log.Info("Broadcast other transaction", "hash", tx.Hash(), "recipients", len(peers))
 		}
-		for peer, txs := range txset {
-			if err := peer.sendTransactions(txs); err != nil {
+		for peer, txsC := range txset {
+			if err := peer.sendTransactions(txsC); err != nil {
 				fmt.Println("BroadcastOtherReadyTransactions", err)
 				pm.removeOtherPeer(peer.id)
 				return
@@ -1180,7 +1179,6 @@ func (pm *ProtocolManager) BroadcastTransactions(txs types.Transactions, propaga
 			peer.AsyncSendTransactions(hashes)
 		}
 	}
-	pm.BroadcastOtherTransactions(txs)
 }
 
 // BroadcastOtherTransactions will propagate a batch of transactions to all peers which are not known to
@@ -1272,6 +1270,7 @@ func (pm *ProtocolManager) addOtherTxs(txs types.Transactions) {
 			continue
 		}
 		pm.txs[tx.Hash()] = tx
+		fmt.Println("addOtherTxs", tx.Hash().String())
 	}
 }
 
@@ -1303,11 +1302,7 @@ func (pm *ProtocolManager) deleteOtherTxs(txs types.Transactions) {
 func (pm *ProtocolManager) addOtherReadyTxs(height uint64, txs []*types.Transaction) {
 	pm.lock.Lock()
 	defer pm.lock.Unlock()
-	if _, ok := pm.pendTxs[height]; ok {
-		pm.pendTxs[height] = append(pm.pendTxs[height], txs...)
-	} else {
-		copy(pm.pendTxs[height], txs)
-	}
+	pm.pendTxs[height] = append(pm.pendTxs[height], txs...)
 }
 
 func (pm *ProtocolManager) pendingOther(height uint64) []*types.Transaction {
