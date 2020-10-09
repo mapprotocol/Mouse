@@ -148,6 +148,14 @@ var (
 		Name:  "rinkeby",
 		Usage: "Rinkeby network: pre-configured proof-of-authority test network",
 	}
+	MouseFlag = cli.BoolFlag{
+		Name:  "mouse",
+		Usage: "Mouse network: pre-configured proof-of-authority test network",
+	}
+	DuckFlag = cli.BoolFlag{
+		Name:  "duck",
+		Usage: "Duck network: pre-configured proof-of-authority test network",
+	}
 	RopstenFlag = cli.BoolFlag{
 		Name:  "ropsten",
 		Usage: "Ropsten network: pre-configured proof-of-work test network",
@@ -752,6 +760,11 @@ func MakeDataDir(ctx *cli.Context) string {
 		if ctx.GlobalBool(YoloV1Flag.Name) {
 			return filepath.Join(path, "yolo-v1")
 		}
+		if ctx.GlobalBool(MouseFlag.Name) {
+			path = filepath.Join(path, "mouse")
+		} else if ctx.GlobalBool(DuckFlag.Name) {
+			path = filepath.Join(path, "duck")
+		}
 		return path
 	}
 	Fatalf("Cannot determine default data directory, please set manually (--datadir)")
@@ -810,6 +823,10 @@ func setBootstrapNodes(ctx *cli.Context, cfg *p2p.Config) {
 		urls = params.GoerliBootnodes
 	case ctx.GlobalBool(YoloV1Flag.Name):
 		urls = params.YoloV1Bootnodes
+	case ctx.GlobalBool(MouseFlag.Name):
+		urls = params.MouseBootnodes
+	case ctx.GlobalBool(DuckFlag.Name):
+		urls = params.DuckBootnodes
 	case cfg.BootstrapNodes != nil:
 		return // already set, don't apply defaults.
 	}
@@ -840,6 +857,10 @@ func setBootstrapOtherNodes(ctx *cli.Context, cfg *p2p.Config) {
 		urls = params.GoerliOtherBootnodes
 	case ctx.GlobalBool(YoloV1Flag.Name):
 		urls = params.YoloV1OtherBootnodes
+	case ctx.GlobalBool(MouseFlag.Name):
+		urls = params.MouseOtherBootnodes
+	case ctx.GlobalBool(DuckFlag.Name):
+		urls = params.DuckOtherBootnodes
 	case cfg.BootstrapOtherNodes != nil:
 		return // already set, don't apply defaults.
 	}
@@ -1308,6 +1329,10 @@ func setDataDir(ctx *cli.Context, cfg *node.Config) {
 		cfg.DataDir = filepath.Join(node.DefaultDataDir(), "goerli")
 	case ctx.GlobalBool(YoloV1Flag.Name) && cfg.DataDir == node.DefaultDataDir():
 		cfg.DataDir = filepath.Join(node.DefaultDataDir(), "yolo-v1")
+	case ctx.GlobalBool(MouseFlag.Name) && cfg.DataDir == node.DefaultDataDir():
+		cfg.DataDir = filepath.Join(node.DefaultDataDir(), "mouse")
+	case ctx.GlobalBool(DuckFlag.Name) && cfg.DataDir == node.DefaultDataDir():
+		cfg.DataDir = filepath.Join(node.DefaultDataDir(), "duck")
 	}
 }
 
@@ -1520,7 +1545,7 @@ func SetShhConfig(ctx *cli.Context, stack *node.Node) {
 // SetEthConfig applies mos-related command line flags to the config.
 func SetEthConfig(ctx *cli.Context, stack *node.Node, cfg *mos.Config) {
 	// Avoid conflicting network flags
-	CheckExclusive(ctx, DeveloperFlag, LegacyTestnetFlag, RopstenFlag, RinkebyFlag, GoerliFlag, YoloV1Flag)
+	CheckExclusive(ctx, DeveloperFlag, LegacyTestnetFlag, RopstenFlag, RinkebyFlag, GoerliFlag, YoloV1Flag, MouseFlag, DuckFlag)
 	CheckExclusive(ctx, LegacyLightServFlag, LightServeFlag, SyncModeFlag, "light")
 	CheckExclusive(ctx, DeveloperFlag, ExternalSignerFlag) // Can't use both ephemeral unlocked and external signer
 	CheckExclusive(ctx, GCModeFlag, "archive", TxLookupLimitFlag)
@@ -1639,6 +1664,20 @@ func SetEthConfig(ctx *cli.Context, stack *node.Node, cfg *mos.Config) {
 		cfg.Genesis = core.DefaultRinkebyGenesisBlock()
 		cfg.OtherGenesis = core.DefaultOtherRinkebyGenesisBlock()
 		setDNSDiscoveryDefaults(cfg, params.RinkebyGenesisHash)
+	case ctx.GlobalBool(MouseFlag.Name):
+		if !ctx.GlobalIsSet(NetworkIdFlag.Name) {
+			cfg.NetworkId = 4
+		}
+		cfg.Genesis = core.DefaultMouseGenesisBlock()
+		cfg.OtherGenesis = core.DefaultOtherDuckGenesisBlock()
+		setDNSDiscoveryDefaults(cfg, params.RinkebyGenesisHash)
+	case ctx.GlobalBool(DuckFlag.Name):
+		if !ctx.GlobalIsSet(NetworkIdFlag.Name) {
+			cfg.NetworkId = 5
+		}
+		cfg.Genesis = core.DefaultDuckGenesisBlock()
+		cfg.OtherGenesis = core.DefaultOtherMouseGenesisBlock()
+		setDNSDiscoveryDefaults(cfg, params.GoerliGenesisHash)
 	case ctx.GlobalBool(GoerliFlag.Name):
 		if !ctx.GlobalIsSet(NetworkIdFlag.Name) {
 			cfg.NetworkId = 5
@@ -1841,6 +1880,10 @@ func MakeGenesis(ctx *cli.Context) *core.Genesis {
 		genesis = core.DefaultGoerliGenesisBlock()
 	case ctx.GlobalBool(YoloV1Flag.Name):
 		genesis = core.DefaultYoloV1GenesisBlock()
+	case ctx.GlobalBool(MouseFlag.Name):
+		genesis = core.DefaultMouseGenesisBlock()
+	case ctx.GlobalBool(DuckFlag.Name):
+		genesis = core.DefaultDuckGenesisBlock()
 	case ctx.GlobalBool(DeveloperFlag.Name):
 		Fatalf("Developer chains are ephemeral")
 	}

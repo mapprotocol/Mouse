@@ -33,10 +33,10 @@ import (
 	"github.com/marcopoloprotoco/mouse/core/rawdb"
 	"github.com/marcopoloprotoco/mouse/core/state"
 	"github.com/marcopoloprotoco/mouse/core/types"
-	"github.com/marcopoloprotoco/mouse/mos/downloader"
 	"github.com/marcopoloprotoco/mouse/event"
 	"github.com/marcopoloprotoco/mouse/log"
 	"github.com/marcopoloprotoco/mouse/metrics"
+	"github.com/marcopoloprotoco/mouse/mos/downloader"
 	"github.com/marcopoloprotoco/mouse/trie"
 	"gopkg.in/urfave/cli.v1"
 )
@@ -164,6 +164,8 @@ The export-preimages command export hash preimages to an RLP encoded stream`,
 			utils.TxLookupLimitFlag,
 			utils.GoerliFlag,
 			utils.YoloV1Flag,
+			utils.MouseFlag,
+			utils.DuckFlag,
 			utils.LegacyTestnetFlag,
 		},
 		Category: "BLOCKCHAIN COMMANDS",
@@ -214,6 +216,8 @@ Use "mouse dump 0" to dump the genesis block.`,
 			utils.RinkebyFlag,
 			utils.GoerliFlag,
 			utils.YoloV1Flag,
+			utils.MouseFlag,
+			utils.DuckFlag,
 			utils.LegacyTestnetFlag,
 			utils.SyncModeFlag,
 		},

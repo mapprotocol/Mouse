@@ -40,6 +40,28 @@ var RopstenBootnodes = []string{
 
 var RopstenOtherBootnodes = []string{}
 
+// MouseBootnodes are the enode URLs of the P2P bootstrap nodes running on
+// the main Mouse network.
+var MouseBootnodes = []string{
+	// Mouse Foundation Go Bootnodes
+	"enode://1a53f0d908327e48165333a9ce9547f5461cfdac7f0ca79e588a961913457ebb7004cb543bf40448a32f265206b7abbe176c5c7912264f60ac2027e0652de6de@192.168.3.4:30303", // bootnode-aws-ap-southeast-1-001
+}
+
+var MouseOtherBootnodes = []string{
+	// Mouse Foundation Go Bootnodes
+	"enode://43b0af23f012289d857d7d0fb800d82943b18739234c9b657dccbc49d90db585ced2c57ad2c082d537edfe2c06bb5de5fe3b7bc4bec41623334a5cef072704bb@39.98.214.163:30164",
+	"enode://9425c84c7d265bd1888469b248e0e4bf13512d7b3cea55bf8a1e74b3e6d16f365d3be6a8a68904f302aa47ebbf6608b28c3fc4a4428e3fd12a7d1bbe34a5255e@43.227.254.198:30303",
+}
+
+// RopstenBootnodes are the enode URLs of the P2P bootstrap nodes running on the
+// Ropsten test network.
+var DuckBootnodes = []string{
+	"enode://43b0af23f012289d857d7d0fb800d82943b18739234c9b657dccbc49d90db585ced2c57ad2c082d537edfe2c06bb5de5fe3b7bc4bec41623334a5cef072704bb@39.98.214.163:30164",
+	"enode://9425c84c7d265bd1888469b248e0e4bf13512d7b3cea55bf8a1e74b3e6d16f365d3be6a8a68904f302aa47ebbf6608b28c3fc4a4428e3fd12a7d1bbe34a5255e@43.227.254.198:30303",
+}
+
+var DuckOtherBootnodes = []string{}
+
 // RinkebyBootnodes are the enode URLs of the P2P bootstrap nodes running on the
 // Rinkeby test network.
 var RinkebyBootnodes = []string{

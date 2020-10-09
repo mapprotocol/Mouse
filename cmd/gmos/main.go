@@ -145,6 +145,8 @@ var (
 		utils.RinkebyFlag,
 		utils.GoerliFlag,
 		utils.YoloV1Flag,
+		utils.MouseFlag,
+		utils.DuckFlag,
 		utils.VMEnableDebugFlag,
 		utils.NetworkIdFlag,
 		utils.ChainIdFlag,
