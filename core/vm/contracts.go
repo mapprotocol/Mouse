@@ -20,14 +20,17 @@ import (
 	"crypto/sha256"
 	"encoding/binary"
 	"errors"
+	"strings"
 	"math/big"
 
+	"github.com/marcopoloprotoco/mouse/accounts/abi"
 	"github.com/marcopoloprotoco/mouse/common"
 	"github.com/marcopoloprotoco/mouse/common/math"
 	"github.com/marcopoloprotoco/mouse/crypto"
 	"github.com/marcopoloprotoco/mouse/crypto/blake2b"
 	"github.com/marcopoloprotoco/mouse/crypto/bls12381"
 	"github.com/marcopoloprotoco/mouse/crypto/bn256"
+	"github.com/marcopoloprotoco/mouse/log"
 	"github.com/marcopoloprotoco/mouse/params"
 
 	//lint:ignore SA1019 Needed for precompile
@@ -972,5 +975,56 @@ func (c *mmrProof) RequiredGas(input []byte) uint64 {
 }
 
 func (c *mmrProof) Run(input []byte) ([]byte, error) {
+	json := `
+	[
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "_from",
+				"type": "address"
+			},
+			{
+				"internalType": "address",
+				"name": "_to",
+				"type": "address"
+			},
+			{
+				"internalType": "uint256",
+				"name": "_value",
+				"type": "uint256"
+			},
+			{
+				"internalType": "bytes32",
+				"name": "_tx",
+				"type": "bytes32"
+			},
+			{
+				"internalType": "bytes",
+				"name": "proof",
+				"type": "bytes"
+			}
+		],
+		"type" : "function",
+		"name" : "map",
+		"stateMutability": "nonpayable"
+	}
+	]
+`
+	abi, _ := abi.JSON(strings.NewReader(json))
+	var msg struct {
+		sender *common.Address
+		recipient *common.Address
+		amount *big.Int
+		tx *common.Hash
+		proof []byte
+	}
+
+	err := abi.Unpack(&msg, "map", input)
+	if err != nil {
+		log.Warn("Decode CM failed", "error", err)
+		return []byte{0x00}, nil
+	}
+
 	return []byte{0x01}, nil
 }
