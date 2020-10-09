@@ -410,28 +410,34 @@ func (uv *SimpleULVP) GetReceiptProof(txHash common.Hash) (*ReceiptTrieResps, er
 	return &ReceiptTrieResps{Proofs: proofs.NodeList(), Index: lookup.Index, ReceiptHash: block.ReceiptHash(), Receipt: receipt}, nil
 }
 
-func (uv *SimpleULVP) VerifyReceiptProof(receiptPes *ReceiptTrieResps) (value []byte, err error) {
+func (uv *SimpleULVP) VerifyReceiptProof(receiptPes *ReceiptTrieResps) (receipt *types.Receipt, err error) {
 	keybuf := new(bytes.Buffer)
 	keybuf.Reset()
 	rlp.Encode(keybuf, receiptPes.Index)
-	value, err = trie.VerifyProof(receiptPes.ReceiptHash, keybuf.Bytes(), receiptPes.Proofs.NodeSet())
-	return value, err
+	value, err := trie.VerifyProof(receiptPes.ReceiptHash, keybuf.Bytes(), receiptPes.Proofs.NodeSet())
+	if err := rlp.DecodeBytes(value, receipt); err != nil {
+		return nil, err
+	}
+	return receipt, err
 }
 
-func (uv *SimpleULVP) VerifyULVPTXMsg(mr *MMRReceiptProof) error {
+func (uv *SimpleULVP) VerifyULVPTXMsg(mr *MMRReceiptProof, txHash common.Hash) (*types.Receipt, error) {
 	if !mr.Result {
-		return errors.New("no proof return")
+		return nil, errors.New("no proof return")
 	}
 	err := uv.VerfiySimpleUlvpMsg(mr.MMRProof, nil)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	if uv.RemoteChain.ProofHeader != mr.Header {
-		return errors.New("mmr proof not match receipt proof")
+		return nil, errors.New("mmr proof not match receipt proof")
 	}
-	_, err = uv.VerifyReceiptProof(mr.ReceiptProof)
+	receipt, err := uv.VerifyReceiptProof(mr.ReceiptProof)
 	if err != nil {
-		return err
+		return nil, err
 	}
-	return nil
+	if receipt.TxHash != txHash {
+		return nil, errors.New("txHash checkout failed")
+	}
+	return receipt, nil
 }
