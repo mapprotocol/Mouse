@@ -1023,8 +1023,8 @@ func (c *mmrProof) Run(input []byte) ([]byte, error) {
 	err := abi.Unpack(&msg, "map", input)
 	if err != nil {
 		log.Warn("Decode CM failed", "error", err)
-		return []byte{0x00}, nil
+		return false32Byte, nil
 	}
 
-	return []byte{0x01}, nil
+	return true32Byte, nil
 }
