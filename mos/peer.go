@@ -697,9 +697,9 @@ func (p *peer) readStatus(network uint64, status *statusData, genesis common.Has
 	if int(status.ProtocolVersion) != p.version {
 		return errResp(ErrProtocolVersionMismatch, "%d (!= %d)", status.ProtocolVersion, p.version)
 	}
-	//if status.Genesis != genesis {
-	//	return errResp(ErrGenesisMismatch, "%x (!= %x)", status.Genesis, genesis)
-	//}
+	if status.Genesis != genesis {
+		return errResp(ErrGenesisMismatch, "%x (!= %x)", status.Genesis, genesis)
+	}
 	if err := forkFilter(status.ForkID); err != nil {
 		return errResp(ErrForkIDRejected, "%v", err)
 	}

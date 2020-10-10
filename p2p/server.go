@@ -246,7 +246,6 @@ type conn struct {
 	caps      []Cap      // valid after the protocol handshake
 	name      string     // valid after the protocol handshake
 	chainType int
-	dial      bool
 }
 
 type transport interface {
@@ -1255,11 +1254,10 @@ func (srv *Server) setupConn(c *conn, flags connFlag, dialDest *enode.Node) erro
 		clog.Trace("Rejected peer", "err", err)
 		return err
 	}
-
-	if crossChain(c, dialDest) {
+	if dialDest != nil {
 		srv.ourHandshake.ChainType = uint64(c.chainType)
-		c.dial = true
 	}
+
 	// Run the capability negotiation handshake.
 	phs, err := c.doProtoHandshake(srv.ourHandshake)
 	if err != nil {
@@ -1272,12 +1270,10 @@ func (srv *Server) setupConn(c *conn, flags connFlag, dialDest *enode.Node) erro
 	}
 	c.caps, c.name, c.chainType = phs.Caps, phs.Name, int(phs.ChainType)
 
-	if dialDest == nil && phs.ChainType == ChainB {
-		c.chainType = int(phs.ChainType)
-	}
-
 	if phs.NetworkID != srv.ourHandshake.NetworkID {
 		c.chainType = ChainB
+	} else if phs.NetworkID == srv.ourHandshake.NetworkID {
+		c.chainType = ChainA
 	}
 
 	if c.chainType == ChainB {
@@ -1294,13 +1290,6 @@ func (srv *Server) setupConn(c *conn, flags connFlag, dialDest *enode.Node) erro
 	// runPeer has been launched.
 	clog.Trace("Connection set up", "inbound", dialDest == nil)
 	return nil
-}
-
-func crossChain(c *conn, dialDest *enode.Node) bool {
-	if c.chainType == ChainB && dialDest != nil {
-		return true
-	}
-	return false
 }
 
 func nodeFromConn(pubkey *ecdsa.PublicKey, conn net.Conn) *enode.Node {

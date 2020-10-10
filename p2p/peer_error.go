@@ -19,6 +19,7 @@ package p2p
 import (
 	"errors"
 	"fmt"
+	"github.com/marcopoloprotoco/mouse/log"
 )
 
 const (
@@ -112,8 +113,10 @@ func discReasonForError(err error) DiscReason {
 		case errInvalidMsgCode, errInvalidMsg:
 			return DiscProtocolError
 		default:
+			log.Info("discReasonForError peer", "err", err)
 			return DiscSubprotocolError
 		}
 	}
+	log.Info("discReasonForError", "err", err)
 	return DiscSubprotocolError
 }
