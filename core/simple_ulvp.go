@@ -185,6 +185,7 @@ type OtherChainAdapter struct {
 	ProofHeight  uint64
 	Leatest      []*types.Header
 }
+
 func (o *OtherChainAdapter) Copy() *OtherChainAdapter {
 	return &OtherChainAdapter{
 		Genesis:		o.Genesis,
@@ -420,10 +421,19 @@ type ReceiptTrieResps struct { // describes all responses, not just a single one
 	ReceiptHash common.Hash
 	Receipt     *types.Receipt
 }
-
+func (r *ReceiptTrieResps) Verify() (receipt *types.Receipt, err error) {
+	keybuf := new(bytes.Buffer)
+	keybuf.Reset()
+	rlp.Encode(keybuf, r.Index)
+	value, err := trie.VerifyProof(r.ReceiptHash, keybuf.Bytes(), r.Proofs.NodeSet())
+	if err := rlp.DecodeBytes(value, receipt); err != nil {
+		return nil, err
+	}
+	return receipt, err
+}
 // newBlockData is the network packet for the block propagation message.
 type SimpleUlvpProof struct {
-	MMRProof     *UlvpMsgRes
+	ChainProof     *UlvpChainProof
 	ReceiptProof *ReceiptTrieResps
 	End          *big.Int
 	Header       *types.Header
@@ -468,18 +478,18 @@ func (uv *SimpleULVP) VerifyReceiptProof(receiptPes *ReceiptTrieResps) (receipt 
 	return receipt, err
 }
 
-func (uv *SimpleULVP) VerifyULVPTXMsg(mr *SimpleUlvpProof, txHash common.Hash) (*types.Receipt, error) {
+func (mr *SimpleUlvpProof) VerifyULVPTXMsg(txHash common.Hash) (*types.Receipt, error) {
 	if !mr.Result {
 		return nil, errors.New("no proof return")
 	}
-	err := uv.VerfiySimpleUlvpMsg(mr.MMRProof, nil)
-	if err != nil {
-		return nil, err
+	if err := mr.ChainProof.Verify(); err != nil {
+		return nil,err
 	}
-	if uv.RemoteChain.ProofHeader != mr.Header {
+	
+	if mr.ChainProof.Remote.ProofHeader != mr.Header {
 		return nil, errors.New("mmr proof not match receipt proof")
 	}
-	receipt, err := uv.VerifyReceiptProof(mr.ReceiptProof)
+	receipt, err := mr.ReceiptProof.Verify()
 	if err != nil {
 		return nil, err
 	}

@@ -490,7 +490,7 @@ func (pm *ProtocolManager) handleOtherMsg(p *peer) error {
 			} else {
 				mtProof.Result = true
 				mtProof.ReceiptProof = receiptRep
-				mtProof.MMRProof = data
+				mtProof.ChainProof = pm.ulVP.MakeUvlpChainProof(data)
 				mtProof.Header = pm.blockchain.GetHeaderByHash(receiptRep.Receipt.BlockHash)
 				mtProof.End = pm.blockchain.CurrentBlock().Number()
 			}
