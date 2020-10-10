@@ -19,6 +19,7 @@ package core
 import (
 	"github.com/marcopoloprotoco/mouse/common"
 	"github.com/marcopoloprotoco/mouse/core/types"
+	"github.com/marcopoloprotoco/mouse/core/ulvp"
 )
 
 // NewTxsEvent is posted when a batch of transactions enter the transaction pool.
@@ -34,7 +35,7 @@ type NewOtherTxsEvent struct{ Txs []*types.Transaction }
 type NewRequestTxProofEvent struct{ TxHash common.Hash }
 
 // NewProofEvent is posted when a block has been imported.
-type NewProofEvent struct{ MRProof *SimpleUlvpProof }
+type NewProofEvent struct{ MRProof *ulvp.SimpleUlvpProof }
 
 // RemovedLogsEvent is posted when a reorg happens
 type RemovedLogsEvent struct{ Logs []*types.Log }

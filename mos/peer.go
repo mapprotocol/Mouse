@@ -28,6 +28,7 @@ import (
 	"github.com/marcopoloprotoco/mouse/common"
 	"github.com/marcopoloprotoco/mouse/core/forkid"
 	"github.com/marcopoloprotoco/mouse/core/types"
+	"github.com/marcopoloprotoco/mouse/core/ulvp"
 	"github.com/marcopoloprotoco/mouse/p2p"
 	"github.com/marcopoloprotoco/mouse/rlp"
 )
@@ -573,7 +574,7 @@ func (p *peer) RequestMMRReceipts(hashes []common.Hash) error {
 }
 
 // SendNewBlock propagates an entire block to a remote peer.
-func (p *peer) SendMMRReceiptProof(mtProof core.SimpleUlvpProof) error {
+func (p *peer) SendMMRReceiptProof(mtProof ulvp.SimpleUlvpProof) error {
 	return p2p.Send(p.rw, MMRReceiptProofMsg, []interface{}{mtProof.ChainProof, mtProof.ReceiptProof, mtProof.End, mtProof.Header, mtProof.Result})
 }
 

@@ -1,8 +1,8 @@
-package core
+package ulvp
 
 import (
 	"bytes"
-	"encoding/hex"
+	// "encoding/hex"
 	"errors"
 	"fmt"
 	"math"
@@ -12,7 +12,6 @@ import (
 	"sync"
 
 	"github.com/marcopoloprotoco/mouse/common"
-	"github.com/marcopoloprotoco/mouse/core/types"
 	"github.com/marcopoloprotoco/mouse/rlp"
 	"golang.org/x/crypto/sha3"
 )
@@ -1037,16 +1036,3 @@ func (m *Mmr) GenerateProof(proofHeight, EndHeight uint64) *ProofInfo {
 	return info
 }
 
-func PushBlock(mm *Mmr, b *types.Block, time uint64, check bool) error {
-	d := b.Difficulty()
-	n := NewNode(b.Hash(), d, new(big.Int).Set(d), big.NewInt(0), time)
-
-	if check {
-		mmrLocal, mmrRemote := mm.GetRoot2(), b.MmrRoot()
-		if !bytes.Equal(mmrLocal[:], mmrRemote[:]) {
-			return errors.New(fmt.Sprintf("mmr root not match,height:%v,local:%v,remote:%v", b.NumberU64(), hex.EncodeToString(mmrLocal[:]), hex.EncodeToString(mmrRemote[:])))
-		}
-	}
-	mm.Push(n)
-	return nil
-}

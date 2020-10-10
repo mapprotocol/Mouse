@@ -11,6 +11,7 @@ import (
 	"sort"
 	// "github.com/marcopoloprotoco/mouse/common"
 	"github.com/marcopoloprotoco/mouse/core/types"
+	"github.com/marcopoloprotoco/mouse/core/ulvp"
 	"github.com/marcopoloprotoco/mouse/rlp"
 	// "golang.org/x/crypto/sha3"
 )
@@ -50,225 +51,98 @@ func Uint64SliceHas(origin, sub []uint64) bool {
 	return true
 }
 
-type BaseReqUlvpMsg struct {
-	Check []uint64
-	Right *big.Int
-}
-
-func (b *BaseReqUlvpMsg) Datas() ([]byte, error) {
-	data, err := rlp.EncodeToBytes(b)
-	if err != nil {
-		return nil, err
-	}
-	return data, nil
-}
-func ParseBaseReqUlvpMsg(data []byte) (*BaseReqUlvpMsg, error) {
-	obj := &BaseReqUlvpMsg{}
+func ParseBaseReqUlvpMsg(data []byte) (*ulvp.BaseReqUlvpMsg, error) {
+	obj := &ulvp.BaseReqUlvpMsg{}
 	err := rlp.DecodeBytes(data, obj)
 	return obj, err
 }
-func makeFirstBaseUlvpMsg() *BaseReqUlvpMsg {
-	return &BaseReqUlvpMsg{
+func makeFirstBaseUlvpMsg() *ulvp.BaseReqUlvpMsg {
+	return &ulvp.BaseReqUlvpMsg{
 		Check: []uint64{0},
 		Right: big.NewInt(0),
 	}
 }
 
-type UlvpMsgReq struct {
-	FirstReq  *BaseReqUlvpMsg
-	SecondReq *BaseReqUlvpMsg
-}
-
-func (b *UlvpMsgReq) Datas() ([]byte, error) {
-	data, err := rlp.EncodeToBytes(b)
-	if err != nil {
-		return nil, err
-	}
-	return data, nil
-}
-func ParseUlvpMsgReq(data []byte) (*UlvpMsgReq, error) {
-	obj := &UlvpMsgReq{}
+func ParseUlvpMsgReq(data []byte) (*ulvp.UlvpMsgReq, error) {
+	obj := &ulvp.UlvpMsgReq{}
 	err := rlp.DecodeBytes(data, obj)
 	return obj, err
 }
-func makeUlvpMsgReq(blocks []uint64) *UlvpMsgReq {
-	return &UlvpMsgReq{
+func makeUlvpMsgReq(blocks []uint64) *ulvp.UlvpMsgReq {
+	return &ulvp.UlvpMsgReq{
 		FirstReq: makeFirstBaseUlvpMsg(),
-		SecondReq: &BaseReqUlvpMsg{
+		SecondReq: &ulvp.BaseReqUlvpMsg{
 			Check: blocks,
 		},
 	}
 }
 
-type ChainHeaderProofMsg struct {
-	Proof  *ProofInfo // the leatest blockchain and an proof of existence
-	Header []*types.Header
-	Right  *big.Int
-}
-
-func (b *ChainHeaderProofMsg) Datas() ([]byte, error) {
-	data, err := rlp.EncodeToBytes(b)
-	if err != nil {
-		return nil, err
-	}
-	return data, nil
-}
-func ParseProofMsg(data []byte) (*ChainHeaderProofMsg, error) {
-	obj := &ChainHeaderProofMsg{}
+func ParseProofMsg(data []byte) (*ulvp.ChainHeaderProofMsg, error) {
+	obj := &ulvp.ChainHeaderProofMsg{}
 	err := rlp.DecodeBytes(data, obj)
 	return obj, err
 }
 
-type ChainInProofMsg struct {
-	Proof  *ProofInfo
-	Header []*types.Header
-}
-
-type UlvpMsgRes struct {
-	FirstRes  *ChainHeaderProofMsg
-	SecondRes *ChainInProofMsg
-}
-
-func (b *UlvpMsgRes) Datas() ([]byte, error) {
-	data, err := rlp.EncodeToBytes(b)
-	if err != nil {
-		return nil, err
-	}
-	return data, nil
-}
-func ParseUvlpMsgRes(data []byte) (*UlvpMsgRes, error) {
-	obj := &UlvpMsgRes{}
+func ParseUvlpMsgRes(data []byte) (*ulvp.UlvpMsgRes, error) {
+	obj := &ulvp.UlvpMsgRes{}
 	err := rlp.DecodeBytes(data, obj)
 	return obj, err
 }
 
-type UlvpChainProof struct {
-	Remote 			*OtherChainAdapter
-	Res 			*UlvpMsgRes
-}
+func getRightDifficult(localChain *BlockChain, curNum uint64, r *big.Int) (*big.Int, []*types.Header) {
+	heads := []*types.Header{}
+	i := int(curNum - uint64(K))
+	if i < 0 {
+		i = 0
+	}
 
-func (uc *UlvpChainProof) Verify() error {
-
-	if pBlocks, err := VerifyRequiredBlocks(uc.Res.FirstRes.Proof, uc.Res.FirstRes.Right); err != nil {
-		return err
-	} else {
-		if !uc.Res.FirstRes.Proof.VerifyProof(pBlocks) {
-			return errors.New("Verify Proof Failed on first msg")
-		} else {
-			if err := uc.Remote.GenesisCheck(uc.Res.FirstRes.Header[0]); err != nil {
-				return err
-			}
-			if err := uc.Remote.checkAndSetHeaders(uc.Res.FirstRes.Header, false); err != nil {
-				return err
-			}
-	
-			if pBlocks, err := VerifyRequiredBlocks2(uc.Res.SecondRes.Proof); err != nil {
-				return err
-			} else {
-				if !uc.Res.SecondRes.Proof.VerifyProof2(pBlocks) {
-					return errors.New("Verify Proof2 Failed on first msg")
-				}
-				// check headers
-				return uc.Remote.checkAndSetHeaders(uc.Res.SecondRes.Header, true)
-			}
+	right := new(big.Int).Set(r)
+	for ; i < int(curNum); i++ {
+		b := localChain.GetBlockByNumber(uint64(i))
+		if b != nil {
+			heads = append(heads, b.Header())
+			right = new(big.Int).Add(right, b.Difficulty())
 		}
 	}
-	return nil
+	return right, heads
 }
 
-///////////////////////////////////////////////////////////////////////////////////
+func PushBlock(mm *ulvp.Mmr, b *types.Block, time uint64, check bool) error {
+	d := b.Difficulty()
+	n := ulvp.NewNode(b.Hash(), d, new(big.Int).Set(d), big.NewInt(0), time)
 
-type OtherChainAdapter struct {
-	Genesis      *types.Block
-	ConfirmBlock *types.Header
-	ProofHeader  *types.Header
-	ProofHeight  uint64
-	Leatest      []*types.Header
-}
-
-func (o *OtherChainAdapter) Copy() *OtherChainAdapter {
-	return &OtherChainAdapter{
-		Genesis:		o.Genesis,
-		ConfirmBlock:	types.CopyHeader(o.ConfirmBlock),
-		ProofHeader:	types.CopyHeader(o.ProofHeader),
-		ProofHeight:	o.ProofHeight,
-		Leatest:		o.Leatest,
-	}
-}
-// header block check
-func (o *OtherChainAdapter) originHeaderCheck(head []*types.Header) error {
-	// check difficult
-	return nil
-}
-func (o *OtherChainAdapter) setProofHeight(h uint64) {
-	o.ProofHeight = h
-}
-
-func (o *OtherChainAdapter) GenesisCheck(head *types.Header) error {
-	return nil
-
-	rHash, lHash := head.Hash(), o.Genesis.Header().Hash()
-	if !bytes.Equal(rHash[:], lHash[:]) {
-		fmt.Println("genesis not match,loack:", hex.EncodeToString(lHash[:]), "remote:", hex.EncodeToString(rHash[:]))
-		return errors.New("genesis not match")
-	}
-	return nil
-}
-func (o *OtherChainAdapter) checkAndSetHeaders(heads []*types.Header, setcur bool) error {
-	if len(heads) == 0 {
-		return errors.New("invalid params")
-	}
-
-	if err := o.originHeaderCheck(heads); err != nil {
-		return err
-	}
-
-	if setcur {
-		head := heads[0]
-		if head.Number.Uint64() != o.ProofHeight {
-			fmt.Println("height not match,l:", o.ProofHeight, "r:", head.Number)
-			return errors.New("height not match")
+	if check {
+		mmrLocal, mmrRemote := mm.GetRoot2(), b.MmrRoot()
+		if !bytes.Equal(mmrLocal[:], mmrRemote[:]) {
+			return errors.New(fmt.Sprintf("mmr root not match,height:%v,local:%v,remote:%v", b.NumberU64(), hex.EncodeToString(mmrLocal[:]), hex.EncodeToString(mmrRemote[:])))
 		}
-		o.setProofHeader(head)
-	} else {
-		o.setLeatestHeader(heads[1], heads[2:])
 	}
+	mm.Push(n)
 	return nil
 }
-func (o *OtherChainAdapter) setProofHeader(head *types.Header) {
-	o.ProofHeader = types.CopyHeader(head)
-}
-func (o *OtherChainAdapter) setLeatestHeader(confirm *types.Header, leatest []*types.Header) {
-	o.ConfirmBlock = types.CopyHeader(confirm)
-	tmp := []*types.Header{}
-	for _, v := range leatest {
-		tmp = append(tmp, types.CopyHeader(v))
-	}
-	o.Leatest = tmp
-}
 
-///////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////
 
 type SimpleULVP struct {
-	MmrInfo     *Mmr
+	MmrInfo     *ulvp.Mmr
 	localChain  *BlockChain
-	RemoteChain *OtherChainAdapter
+	RemoteChain *ulvp.OtherChainAdapter
 }
 
 func NewSimpleULVP(l *BlockChain) *SimpleULVP {
 	Ulvp = &SimpleULVP{
-		MmrInfo:    NewMMR(),
+		MmrInfo:    ulvp.NewMMR(),
 		localChain: l,
 	}
 	return Ulvp
 }
 
 func (uv *SimpleULVP) InitOtherChain(other *types.Block) {
-	r := &OtherChainAdapter{Genesis: other}
+	r := &ulvp.OtherChainAdapter{Genesis: other}
 	uv.RemoteChain = r
 }
 
-func (uv *SimpleULVP) GetFirstMsg() *BaseReqUlvpMsg {
+func (uv *SimpleULVP) GetFirstMsg() *ulvp.BaseReqUlvpMsg {
 	return makeFirstBaseUlvpMsg()
 }
 
@@ -277,8 +151,8 @@ func (uv *SimpleULVP) PushFirstMsg() ([]byte, error) {
 	curNum := cur.NumberU64()
 	genesis := uv.localChain.GetBlockByNumber(0)
 	if curNum == 0 {
-		res := &ChainHeaderProofMsg{
-			Proof:  &ProofInfo{},
+		res := &ulvp.ChainHeaderProofMsg{
+			Proof:  &ulvp.ProofInfo{},
 			Header: []*types.Header{genesis.Header()},
 			Right:  new(big.Int).SetUint64(0),
 		}
@@ -289,7 +163,7 @@ func (uv *SimpleULVP) PushFirstMsg() ([]byte, error) {
 	proof, _, _ := uv.MmrInfo.CreateNewProof(Right)
 	heads = append([]*types.Header{genesis.Header(), cur.Header()}, heads...)
 
-	res := &ChainHeaderProofMsg{
+	res := &ulvp.ChainHeaderProofMsg{
 		Proof:  proof,
 		Header: heads,
 		Right:  Right,
@@ -307,7 +181,7 @@ func (uv *SimpleULVP) VerifyFirstMsg(data []byte) error {
 		return nil
 	}
 
-	if pBlocks, err := VerifyRequiredBlocks(msg.Proof, msg.Right); err != nil {
+	if pBlocks, err := ulvp.VerifyRequiredBlocks(msg.Proof, msg.Right); err != nil {
 		return err
 	} else {
 		if !msg.Proof.VerifyProof(pBlocks) {
@@ -317,14 +191,13 @@ func (uv *SimpleULVP) VerifyFirstMsg(data []byte) error {
 	return nil
 }
 
-///////////////////////////////////////////////////////////////////////////////////
-func (uv *SimpleULVP) GetSimpleUlvpMsgReq(blocks []uint64) *UlvpMsgReq {
-	uv.RemoteChain.setProofHeight(blocks[0])
+func (uv *SimpleULVP) GetSimpleUlvpMsgReq(blocks []uint64) *ulvp.UlvpMsgReq {
+	uv.RemoteChain.SetProofHeight(blocks[0])
 	return makeUlvpMsgReq(blocks)
 }
 
-func (uv *SimpleULVP) HandleSimpleUlvpMsgReq(msg *UlvpMsgReq) (*UlvpMsgRes, error) {
-	res := &UlvpMsgRes{}
+func (uv *SimpleULVP) HandleSimpleUlvpMsgReq(msg *ulvp.UlvpMsgReq) (*ulvp.UlvpMsgRes, error) {
+	res := &ulvp.UlvpMsgRes{}
 	// generate proof the leatest localChain
 	cur := uv.localChain.CurrentBlock()
 	genesis := uv.localChain.GetBlockByNumber(0)
@@ -357,90 +230,14 @@ func (uv *SimpleULVP) HandleSimpleUlvpMsgReq(msg *UlvpMsgReq) (*UlvpMsgRes, erro
 	return res, nil
 }
 
-func (uv *SimpleULVP) VerfiySimpleUlvpMsg(msg *UlvpMsgRes, secondBlocks []uint64) error {
-	if pBlocks, err := VerifyRequiredBlocks(msg.FirstRes.Proof, msg.FirstRes.Right); err != nil {
-		return err
-	} else {
-		if !msg.FirstRes.Proof.VerifyProof(pBlocks) {
-			return errors.New("Verify Proof Failed on first msg")
-		} else {
-			if err := uv.RemoteChain.GenesisCheck(msg.FirstRes.Header[0]); err != nil {
-				return err
-			}
-			if err := uv.RemoteChain.checkAndSetHeaders(msg.FirstRes.Header, false); err != nil {
-				return err
-			}
-			// verify proof2
-			if secondBlocks != nil {
-				if !Uint64SliceEqual(secondBlocks, msg.SecondRes.Proof.Checked) {
-					return fmt.Errorf("blocks not match,local:%v,remote:%v", secondBlocks, msg.SecondRes.Proof.Checked)
-				}
-			}
-			if pBlocks, err := VerifyRequiredBlocks2(msg.SecondRes.Proof); err != nil {
-				return err
-			} else {
-				if !msg.SecondRes.Proof.VerifyProof2(pBlocks) {
-					return errors.New("Verify Proof2 Failed on first msg")
-				}
-				// check headers
-				return uv.RemoteChain.checkAndSetHeaders(msg.SecondRes.Header, true)
-			}
-		}
-	}
-	return nil
-}
-func (uv *SimpleULVP) MakeUvlpChainProof(msg *UlvpMsgRes) *UlvpChainProof {
-	return &UlvpChainProof{
+func (uv *SimpleULVP) MakeUvlpChainProof(msg *ulvp.UlvpMsgRes) *ulvp.UlvpChainProof {
+	return &ulvp.UlvpChainProof{
 		Remote:			uv.RemoteChain.Copy(),
 		Res:			msg,
 	}
 }
-///////////////////////////////////////////////////////////////////////////////////
 
-func getRightDifficult(localChain *BlockChain, curNum uint64, r *big.Int) (*big.Int, []*types.Header) {
-	heads := []*types.Header{}
-	i := int(curNum - uint64(K))
-	if i < 0 {
-		i = 0
-	}
-
-	right := new(big.Int).Set(r)
-	for ; i < int(curNum); i++ {
-		b := localChain.GetBlockByNumber(uint64(i))
-		if b != nil {
-			heads = append(heads, b.Header())
-			right = new(big.Int).Add(right, b.Difficulty())
-		}
-	}
-	return right, heads
-}
-
-type ReceiptTrieResps struct { // describes all responses, not just a single one
-	Proofs      types.NodeList
-	Index       uint64
-	ReceiptHash common.Hash
-	Receipt     *types.Receipt
-}
-func (r *ReceiptTrieResps) Verify() (receipt *types.Receipt, err error) {
-	keybuf := new(bytes.Buffer)
-	keybuf.Reset()
-	rlp.Encode(keybuf, r.Index)
-	value, err := trie.VerifyProof(r.ReceiptHash, keybuf.Bytes(), r.Proofs.NodeSet())
-	if err := rlp.DecodeBytes(value, receipt); err != nil {
-		return nil, err
-	}
-	return receipt, err
-}
-// newBlockData is the network packet for the block propagation message.
-type SimpleUlvpProof struct {
-	ChainProof     *UlvpChainProof
-	ReceiptProof *ReceiptTrieResps
-	End          *big.Int
-	Header       *types.Header
-	Result       bool
-}
-
-func (uv *SimpleULVP) GetReceiptProof(txHash common.Hash) (*ReceiptTrieResps, error) {
+func (uv *SimpleULVP) GetReceiptProof(txHash common.Hash) (*ulvp.ReceiptTrieResps, error) {
 
 	lookup := uv.localChain.GetTransactionLookup(txHash)
 	if uv.localChain.GetCanonicalHash(lookup.BlockIndex) != lookup.BlockHash {
@@ -464,10 +261,10 @@ func (uv *SimpleULVP) GetReceiptProof(txHash common.Hash) (*ReceiptTrieResps, er
 
 	tri.Prove(keybuf.Bytes(), 0, proofs)
 
-	return &ReceiptTrieResps{Proofs: proofs.NodeList(), Index: lookup.Index, ReceiptHash: block.ReceiptHash(), Receipt: receipt}, nil
+	return &ulvp.ReceiptTrieResps{Proofs: proofs.NodeList(), Index: lookup.Index, ReceiptHash: block.ReceiptHash(), Receipt: receipt}, nil
 }
 
-func (uv *SimpleULVP) VerifyReceiptProof(receiptPes *ReceiptTrieResps) (receipt *types.Receipt, err error) {
+func (uv *SimpleULVP) VerifyReceiptProof(receiptPes *ulvp.ReceiptTrieResps) (receipt *types.Receipt, err error) {
 	keybuf := new(bytes.Buffer)
 	keybuf.Reset()
 	rlp.Encode(keybuf, receiptPes.Index)
@@ -478,23 +275,5 @@ func (uv *SimpleULVP) VerifyReceiptProof(receiptPes *ReceiptTrieResps) (receipt 
 	return receipt, err
 }
 
-func (mr *SimpleUlvpProof) VerifyULVPTXMsg(txHash common.Hash) (*types.Receipt, error) {
-	if !mr.Result {
-		return nil, errors.New("no proof return")
-	}
-	if err := mr.ChainProof.Verify(); err != nil {
-		return nil,err
-	}
-	
-	if mr.ChainProof.Remote.ProofHeader != mr.Header {
-		return nil, errors.New("mmr proof not match receipt proof")
-	}
-	receipt, err := mr.ReceiptProof.Verify()
-	if err != nil {
-		return nil, err
-	}
-	if receipt.TxHash != txHash {
-		return nil, errors.New("txHash checkout failed")
-	}
-	return receipt, nil
-}
+
+///////////////////////////////////////////////////////////////////////////////////

@@ -31,6 +31,7 @@ import (
 	"github.com/marcopoloprotoco/mouse/core"
 	"github.com/marcopoloprotoco/mouse/core/forkid"
 	"github.com/marcopoloprotoco/mouse/core/types"
+	"github.com/marcopoloprotoco/mouse/core/ulvp"
 	"github.com/marcopoloprotoco/mouse/event"
 	"github.com/marcopoloprotoco/mouse/log"
 	"github.com/marcopoloprotoco/mouse/mos/downloader"
@@ -479,7 +480,7 @@ func (pm *ProtocolManager) handleOtherMsg(p *peer) error {
 		if err := msg.Decode(&query); err != nil {
 			return errResp(ErrDecode, "%v: %v", msg, err)
 		}
-		var mtProof core.SimpleUlvpProof
+		var mtProof ulvp.SimpleUlvpProof
 		receiptRep, err := pm.ulVP.GetReceiptProof(query.TxHash)
 		if err != nil {
 			log.Info("GetReceiptProof", "err", err)
@@ -500,7 +501,7 @@ func (pm *ProtocolManager) handleOtherMsg(p *peer) error {
 
 	case msg.Code == MMRReceiptProofMsg:
 		// Retrieve and decode the propagated block
-		var request core.SimpleUlvpProof
+		var request ulvp.SimpleUlvpProof
 		if err := msg.Decode(&request); err != nil {
 			return errResp(ErrDecode, "%v: %v", msg, err)
 		}
