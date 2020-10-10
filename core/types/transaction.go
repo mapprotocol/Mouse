@@ -22,8 +22,10 @@ import (
 	"io"
 	"math/big"
 	"sync/atomic"
+	"strings"
 	"time"
 
+	"github.com/marcopoloprotoco/mouse/accounts/abi"
 	"github.com/marcopoloprotoco/mouse/common"
 	"github.com/marcopoloprotoco/mouse/common/hexutil"
 	"github.com/marcopoloprotoco/mouse/crypto"
@@ -134,7 +136,47 @@ func (tx *Transaction) OtherChain() bool {
 	if tx.data.Recipient == nil {
 		return false
 	}
-	return *tx.data.Recipient == RefToken
+
+	if *tx.data.Recipient != RefToken {
+		return false
+	}
+
+	refjson := `
+	[
+		{
+			"inputs": [],
+			"name": "lock",
+			"outputs": [],
+			"stateMutability": "payable",
+			"type": "function"
+		},
+		{
+			"inputs": [
+				{
+					"internalType": "uint256",
+					"name": "_amount",
+					"type": "uint256"
+				}
+			],
+			"name": "withdraw",
+			"outputs": [],
+			"stateMutability": "nonpayable",
+			"type": "function"
+		}
+	]
+	`
+	refabi, _ := abi.JSON(strings.NewReader(refjson))
+	method, err := refabi.MethodById(tx.data.Payload)
+	if err != nil {
+		return false
+	}
+
+	if method.Name == "lock" || method.Name == "withdraw" {
+		return true
+	} else {
+		return false
+	}
+
 }
 
 func isProtectedV(V *big.Int) bool {
