@@ -223,3 +223,12 @@ func (mr *SimpleUlvpProof) VerifyULVPTXMsg(txHash common.Hash) (*types.Receipt, 
 	}
 	return receipt, nil
 }
+
+func UlvpVerify(proof []byte,txHash common.Hash) error {
+	su := &SimpleUlvpProof{}
+	if err := rlp.DecodeBytes(proof, su); err != nil {
+		return err
+	}
+	_,err := su.VerifyULVPTXMsg(txHash)
+	return err
+}

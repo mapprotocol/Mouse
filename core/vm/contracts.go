@@ -32,6 +32,7 @@ import (
 	"github.com/marcopoloprotoco/mouse/crypto/bn256"
 	"github.com/marcopoloprotoco/mouse/log"
 	"github.com/marcopoloprotoco/mouse/params"
+	"github.com/marcopoloprotoco/mouse/core/ulvp"
 
 	//lint:ignore SA1019 Needed for precompile
 	"golang.org/x/crypto/ripemd160"
@@ -1024,6 +1025,10 @@ func (c *mmrProof) Run(input []byte) ([]byte, error) {
 	if err != nil {
 		log.Warn("Decode CM failed", "error", err)
 		return false32Byte, nil
+	}
+	if err := ulvp.UlvpVerify(msg.proof,*msg.tx); err != nil {
+		log.Error("UlvpVerify", "error", err)
+		return false32Byte, err
 	}
 
 	return true32Byte, nil
