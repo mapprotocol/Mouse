@@ -450,13 +450,13 @@ func (w *worker) mainLoop() {
 					}
 				}
 			case core.NewProofEvent:
-				if ev, ok := ev.Data.(core.NewProofEvent); ok {
+				// if ev, ok := ev.Data.(core.NewProofEvent); ok {
 					
-					// for _, tx := range ev.Txs {
-					// 	log.Info("Receive xcm transaction", "tx", tx.Hash())
-					// 	w.insertCM(tx)
-					// }
-				}
+				// 	// for _, tx := range ev.Txs {
+				// 	// 	log.Info("Receive xcm transaction", "tx", tx.Hash())
+				// 	// 	w.insertCM(tx)
+				// 	// }
+				// }
 			}
 			
 		case req := <-w.newWorkCh:
@@ -1167,6 +1167,7 @@ func (w *worker) postSideBlock(event core.ChainSideEvent) {
 }
 func (w *worker) requestCrossTxProof(txHash common.Hash) error {
 	w.mux.Post(core.NewRequestTxProofEvent{TxHash: txHash})
+	return nil
 }
 // totalFees computes total consumed fees in ETH. Block transactions and receipts have to have the same order.
 func totalFees(block *types.Block, receipts []*types.Receipt) *big.Float {
