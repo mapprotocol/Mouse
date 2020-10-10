@@ -431,7 +431,7 @@ func (w *worker) mainLoop() {
 	defer w.txsSub.Unsubscribe()
 	defer w.chainHeadSub.Unsubscribe()
 	defer w.chainSideSub.Unsubscribe()
-	events := w.mux.Subscribe(core.NewOtherTxsEvent{})
+	events := w.mux.Subscribe(core.NewOtherTxsEvent{},core.NewProofEvent{})
 	defer events.Unsubscribe()
 
 	for {
@@ -440,13 +440,25 @@ func (w *worker) mainLoop() {
 			if ev == nil {
 				return
 			}
-			if ev, ok := ev.Data.(core.NewOtherTxsEvent); ok {
-				log.Info("Receive xcm transaction", "created", ev.Txs)
-				for _, tx := range ev.Txs {
-					log.Info("Receive xcm transaction", "tx", tx.Hash())
-					w.insertCM(tx)
+			switch ev.Data.(type) {
+			case core.NewOtherTxsEvent:
+				if ev, ok := ev.Data.(core.NewOtherTxsEvent); ok {
+					log.Info("Receive xcm transaction", "created", ev.Txs)
+					for _, tx := range ev.Txs {
+						log.Info("Receive xcm transaction", "tx", tx.Hash())
+						w.insertCM(tx)
+					}
+				}
+			case core.NewProofEvent:
+				if ev, ok := ev.Data.(core.NewProofEvent); ok {
+					
+					// for _, tx := range ev.Txs {
+					// 	log.Info("Receive xcm transaction", "tx", tx.Hash())
+					// 	w.insertCM(tx)
+					// }
 				}
 			}
+			
 		case req := <-w.newWorkCh:
 			w.commitNewWork(req.interrupt, req.noempty, req.timestamp)
 
@@ -1153,7 +1165,9 @@ func (w *worker) postSideBlock(event core.ChainSideEvent) {
 	case <-w.exitCh:
 	}
 }
-
+func (w *worker) requestCrossTxProof(txHash common.Hash) error {
+	w.mux.Post(core.NewRequestTxProofEvent{TxHash: txHash})
+}
 // totalFees computes total consumed fees in ETH. Block transactions and receipts have to have the same order.
 func totalFees(block *types.Block, receipts []*types.Receipt) *big.Float {
 	feesWei := new(big.Int)
