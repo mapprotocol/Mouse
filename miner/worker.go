@@ -451,14 +451,14 @@ func (w *worker) mainLoop() {
 				}
 			case core.NewProofEvent:
 				// if ev, ok := ev.Data.(core.NewProofEvent); ok {
-					
+
 				// 	// for _, tx := range ev.Txs {
 				// 	// 	log.Info("Receive xcm transaction", "tx", tx.Hash())
 				// 	// 	w.insertCM(tx)
 				// 	// }
 				// }
 			}
-			
+
 		case req := <-w.newWorkCh:
 			w.commitNewWork(req.interrupt, req.noempty, req.timestamp)
 
@@ -1179,36 +1179,13 @@ func totalFees(block *types.Block, receipts []*types.Receipt) *big.Float {
 }
 
 func makeCMTransaction(tx *types.Transaction) *types.Transaction {
-	jsondata := `
-	[
-	{
-		"inputs": [
-			{
-				"internalType": "bytes",
-				"name": "_proofData",
-				"type": "bytes"
-			}
-		],
-		"name": "unlock",
-		"outputs": [],
-		"stateMutability": "nonpayable",
-		"type": "function"
-	}
-	]
-	`
-	abiMint, _ := abi.JSON(strings.NewReader(jsondata))
-
 	encoded, _ := packTx(tx)
-	data, err := abiMint.Pack("unlock", encoded)
-	if err != nil {
-		log.Error("Mint transaction encode error", "tx", tx.Hash())
-	}
-
-	cm := types.NewTransaction(0, types.GenToken, nil, 0, nil, data)
+	cm := types.NewTransaction(0, types.GenToken, nil, 0, nil, encoded)
 	return cm
 }
 
-func packTx(tx *types.Transaction) ([]byte, error) {
+
+func packTx(tx *types.Transaction) (packed []byte, err error) {
 	json := `
 	[
 	{
@@ -1243,19 +1220,103 @@ func packTx(tx *types.Transaction) ([]byte, error) {
 		"type": "constructor"
 	}
 	]
-`
-	abi, _ := abi.JSON(strings.NewReader(json))
+	`
+	refjson := `
+	[
+		{
+			"inputs": [
+				{
+					"internalType": "bytes",
+					"name": "_proofData",
+					"type": "bytes"
+				}
+			],
+			"name": "unlock",
+			"outputs": [],
+			"stateMutability": "nonpayable",
+			"type": "function"
+		},
+	    {
+	        "inputs": [
+	            {
+	                "internalType": "bytes",
+	                "name": "_proofData",
+	                "type": "bytes"
+	            }
+	        ],
+	        "name": "withdrawXMap",
+	        "outputs": [],
+	        "stateMutability": "nonpayable",
+	        "type": "function"
+    	},
+		{
+			"inputs": [],
+			"name": "lock",
+			"outputs": [],
+			"stateMutability": "payable",
+			"type": "function"
+		},
+		{
+			"inputs": [
+				{
+					"internalType": "uint256",
+					"name": "_amount",
+					"type": "uint256"
+				}
+			],
+			"name": "withdraw",
+			"outputs": [],
+			"stateMutability": "nonpayable",
+			"type": "function"
+		}
+	]
+	`
+
+	genabi, _ := abi.JSON(strings.NewReader(json))
 	// TODO: resolve signer from address
 	fromAddr, sign_err := tx.OtherFrom()
 	if sign_err != nil {
 		return nil, sign_err
 	}
 
-	packed, err := abi.Pack("", fromAddr, tx.To(), tx.Value(), tx.Hash(), []byte{})
-
+	refabi, _ := abi.JSON(strings.NewReader(refjson))
+	method, ref_err := refabi.MethodById(tx.Data())
 	if err != nil {
-		log.Warn("Encode CM failed", "error", err)
-		return nil, err
+		return nil, ref_err
+	}
+
+	if method.Name == "lock" {
+		packed, err = genabi.Pack("", fromAddr, tx.To(), tx.Value(), tx.Hash(), []byte{})
+		if err != nil {
+			log.Error("Encode lock CM failed", "error", err)
+			return nil, err
+		}
+
+		packed, err = refabi.Pack("unlock", packed)
+		if err != nil {
+			log.Error("Mint transaction encode error", "tx", tx.Hash())
+			return nil, err
+		}
+	}
+
+	if method.Name == "withdraw" {
+		amount := new(big.Int)
+		if err = method.Inputs.Unpack(&amount, tx.Data()); err != nil {
+			log.Warn("Decode CM withdraw failed", "error", err)
+			return nil, err
+		}
+
+		packed, err = genabi.Pack("", fromAddr, tx.To(), amount, tx.Hash(), []byte{})
+		if err != nil {
+			log.Warn("Encode CM failed", "error", err)
+			return nil, err
+		}
+
+		packed, err = refabi.Pack("withdrawXMap", packed)
+		if err != nil {
+			log.Error("Mint transaction encode error", "tx", tx.Hash())
+			return nil, err
+		}
 	}
 
 	return packed, nil
