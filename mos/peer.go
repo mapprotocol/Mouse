@@ -573,7 +573,7 @@ func (p *peer) RequestMMRReceipts(hashes []common.Hash) error {
 }
 
 // SendNewBlock propagates an entire block to a remote peer.
-func (p *peer) SendMMRReceiptProof(mtProof core.MMRReceiptProof) error {
+func (p *peer) SendMMRReceiptProof(mtProof core.SimpleUlvpProof) error {
 	return p2p.Send(p.rw, MMRReceiptProofMsg, []interface{}{mtProof.MMRProof, mtProof.ReceiptProof, mtProof.End, mtProof.Header, mtProof.Result})
 }
 

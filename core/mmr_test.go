@@ -122,7 +122,7 @@ func test_O6(count int) {
 		Right:		big.NewInt(100),
 	}
 
-	msg1 := &UvlpMsgRes{
+	msg1 := &UlvpMsgRes{
 		FirstRes:	tmp,
 		SecondRes: 	&ChainInProofMsg{
 			Proof:	proof,
@@ -172,4 +172,7 @@ func TestO7(t *testing.T) {
 	}
 
 	fmt.Println("finish:", count)
+}
+func Test08(t *testing.T) {
+
 }

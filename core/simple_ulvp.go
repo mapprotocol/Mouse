@@ -20,6 +20,36 @@ var (
 	Ulvp *SimpleULVP = nil
 )
 
+func Uint64SliceEqual(a, b []uint64) bool {
+	if len(a) != len(b) {
+		return false
+	}
+	if (a == nil) != (b == nil) {
+		return false
+	}
+	for i, v := range a {
+		if v != b[i] {
+			return false
+		}
+	}
+	return true
+}
+func Uint64SliceHas(origin, sub []uint64) bool {
+	for _, v := range sub {
+		found := false
+		for _, v2 := range origin {
+			if v == v2 {
+				found = true
+				break
+			}
+		}
+		if !found {
+			return false
+		}
+	}
+	return true
+}
+
 type BaseReqUlvpMsg struct {
 	Check []uint64
 	Right *big.Int
@@ -94,52 +124,56 @@ type ChainInProofMsg struct {
 	Header []*types.Header
 }
 
-type UvlpMsgRes struct {
+type UlvpMsgRes struct {
 	FirstRes  *ChainHeaderProofMsg
 	SecondRes *ChainInProofMsg
 }
 
-func (b *UvlpMsgRes) Datas() ([]byte, error) {
+func (b *UlvpMsgRes) Datas() ([]byte, error) {
 	data, err := rlp.EncodeToBytes(b)
 	if err != nil {
 		return nil, err
 	}
 	return data, nil
 }
-func ParseUvlpMsgRes(data []byte) (*UvlpMsgRes, error) {
-	obj := &UvlpMsgRes{}
+func ParseUvlpMsgRes(data []byte) (*UlvpMsgRes, error) {
+	obj := &UlvpMsgRes{}
 	err := rlp.DecodeBytes(data, obj)
 	return obj, err
 }
 
-func Uint64SliceEqual(a, b []uint64) bool {
-	if len(a) != len(b) {
-		return false
-	}
-	if (a == nil) != (b == nil) {
-		return false
-	}
-	for i, v := range a {
-		if v != b[i] {
-			return false
-		}
-	}
-	return true
+type UlvpChainProof struct {
+	Remote 			*OtherChainAdapter
+	Res 			*UlvpMsgRes
 }
-func Uint64SliceHas(origin, sub []uint64) bool {
-	for _, v := range sub {
-		found := false
-		for _, v2 := range origin {
-			if v == v2 {
-				found = true
-				break
+
+func (uc *UlvpChainProof) Verify() error {
+
+	if pBlocks, err := VerifyRequiredBlocks(uc.Res.FirstRes.Proof, uc.Res.FirstRes.Right); err != nil {
+		return err
+	} else {
+		if !uc.Res.FirstRes.Proof.VerifyProof(pBlocks) {
+			return errors.New("Verify Proof Failed on first msg")
+		} else {
+			if err := uc.Remote.GenesisCheck(uc.Res.FirstRes.Header[0]); err != nil {
+				return err
+			}
+			if err := uc.Remote.checkAndSetHeaders(uc.Res.FirstRes.Header, false); err != nil {
+				return err
+			}
+	
+			if pBlocks, err := VerifyRequiredBlocks2(uc.Res.SecondRes.Proof); err != nil {
+				return err
+			} else {
+				if !uc.Res.SecondRes.Proof.VerifyProof2(pBlocks) {
+					return errors.New("Verify Proof2 Failed on first msg")
+				}
+				// check headers
+				return uc.Remote.checkAndSetHeaders(uc.Res.SecondRes.Header, true)
 			}
 		}
-		if !found {
-			return false
-		}
 	}
-	return true
+	return nil
 }
 
 ///////////////////////////////////////////////////////////////////////////////////
@@ -151,7 +185,15 @@ type OtherChainAdapter struct {
 	ProofHeight  uint64
 	Leatest      []*types.Header
 }
-
+func (o *OtherChainAdapter) Copy() *OtherChainAdapter {
+	return &OtherChainAdapter{
+		Genesis:		o.Genesis,
+		ConfirmBlock:	types.CopyHeader(o.ConfirmBlock),
+		ProofHeader:	types.CopyHeader(o.ProofHeader),
+		ProofHeight:	o.ProofHeight,
+		Leatest:		o.Leatest,
+	}
+}
 // header block check
 func (o *OtherChainAdapter) originHeaderCheck(head []*types.Header) error {
 	// check difficult
@@ -280,8 +322,8 @@ func (uv *SimpleULVP) GetSimpleUlvpMsgReq(blocks []uint64) *UlvpMsgReq {
 	return makeUlvpMsgReq(blocks)
 }
 
-func (uv *SimpleULVP) HandleSimpleUlvpMsgReq(msg *UlvpMsgReq) (*UvlpMsgRes, error) {
-	res := &UvlpMsgRes{}
+func (uv *SimpleULVP) HandleSimpleUlvpMsgReq(msg *UlvpMsgReq) (*UlvpMsgRes, error) {
+	res := &UlvpMsgRes{}
 	// generate proof the leatest localChain
 	cur := uv.localChain.CurrentBlock()
 	genesis := uv.localChain.GetBlockByNumber(0)
@@ -314,7 +356,7 @@ func (uv *SimpleULVP) HandleSimpleUlvpMsgReq(msg *UlvpMsgReq) (*UvlpMsgRes, erro
 	return res, nil
 }
 
-func (uv *SimpleULVP) VerfiySimpleUlvpMsg(msg *UvlpMsgRes, secondBlocks []uint64) error {
+func (uv *SimpleULVP) VerfiySimpleUlvpMsg(msg *UlvpMsgRes, secondBlocks []uint64) error {
 	if pBlocks, err := VerifyRequiredBlocks(msg.FirstRes.Proof, msg.FirstRes.Right); err != nil {
 		return err
 	} else {
@@ -346,7 +388,12 @@ func (uv *SimpleULVP) VerfiySimpleUlvpMsg(msg *UvlpMsgRes, secondBlocks []uint64
 	}
 	return nil
 }
-
+func (uv *SimpleULVP) MakeUvlpChainProof(msg *UlvpMsgRes) *UlvpChainProof {
+	return &UlvpChainProof{
+		Remote:			uv.RemoteChain.Copy(),
+		Res:			msg,
+	}
+}
 ///////////////////////////////////////////////////////////////////////////////////
 
 func getRightDifficult(localChain *BlockChain, curNum uint64, r *big.Int) (*big.Int, []*types.Header) {
@@ -375,8 +422,8 @@ type ReceiptTrieResps struct { // describes all responses, not just a single one
 }
 
 // newBlockData is the network packet for the block propagation message.
-type MMRReceiptProof struct {
-	MMRProof     *UvlpMsgRes
+type SimpleUlvpProof struct {
+	MMRProof     *UlvpMsgRes
 	ReceiptProof *ReceiptTrieResps
 	End          *big.Int
 	Header       *types.Header
@@ -421,7 +468,7 @@ func (uv *SimpleULVP) VerifyReceiptProof(receiptPes *ReceiptTrieResps) (receipt 
 	return receipt, err
 }
 
-func (uv *SimpleULVP) VerifyULVPTXMsg(mr *MMRReceiptProof, txHash common.Hash) (*types.Receipt, error) {
+func (uv *SimpleULVP) VerifyULVPTXMsg(mr *SimpleUlvpProof, txHash common.Hash) (*types.Receipt, error) {
 	if !mr.Result {
 		return nil, errors.New("no proof return")
 	}

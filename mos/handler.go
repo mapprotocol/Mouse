@@ -479,7 +479,7 @@ func (pm *ProtocolManager) handleOtherMsg(p *peer) error {
 		if err := msg.Decode(&query); err != nil {
 			return errResp(ErrDecode, "%v: %v", msg, err)
 		}
-		var mtProof core.MMRReceiptProof
+		var mtProof core.SimpleUlvpProof
 		receiptRep, err := pm.ulVP.GetReceiptProof(query.TxHash)
 		if err != nil {
 			log.Info("GetReceiptProof", "err", err)
@@ -500,7 +500,7 @@ func (pm *ProtocolManager) handleOtherMsg(p *peer) error {
 
 	case msg.Code == MMRReceiptProofMsg:
 		// Retrieve and decode the propagated block
-		var request core.MMRReceiptProof
+		var request core.SimpleUlvpProof
 		if err := msg.Decode(&request); err != nil {
 			return errResp(ErrDecode, "%v: %v", msg, err)
 		}
