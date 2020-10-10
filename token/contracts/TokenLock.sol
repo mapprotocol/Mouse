@@ -794,17 +794,21 @@ contract Ownable is Context {
     }
 }
 
-
 contract MapToken is ERC20("map", "map"), Ownable {
 
     function mint(address _to, uint256 _amount) public onlyOwner {
         _mint(_to, _amount);
     }
+
+    function burn(address account, uint256 amount) public {
+        _burn(account, amount);
+    }
 }
 
 contract TokenReference {
     using SafeMath for uint256;
-    // MapToken public mapToken;
+
+    MapToken public mapToken;
 
     mapping(address => uint256) public mapBalance;
 
@@ -814,22 +818,20 @@ contract TokenReference {
         uint256 amount
     );
 
-    // constructor(MapToken _token) public {
-    //     mapToken = _token;
-    // }
+    event WithdrawToken(
+        address indexed sender,
+        uint256 amount
+    );
+
+    constructor(MapToken _token) public {
+        mapToken = _token;
+    }
 
     function lock() payable public {
         require(msg.value > 0, "Lock zero map");
         // mapToken.transferFrom(msg.sender, address(this), _amount);
         mapBalance[msg.sender] = mapBalance[msg.sender].add(msg.value);
         emit LockToken(msg.sender, msg.value);
-    }
-}
-contract TokenGen {
-    MapToken public mapToken;
-
-    constructor(MapToken _token) public {
-        mapToken = _token;
     }
 
     function unlock(bytes memory _proofData) public {
@@ -839,6 +841,21 @@ contract TokenGen {
 
         (address _from, address _to, uint256 _value, bytes32 _tx, bytes memory _proof) = abi.decode(_proofData, (address, address, uint256, bytes32, bytes));
         mapToken.mint(address(_from), _value);
+    }
+
+    function withdraw(uint256 _amount) public {
+        mapToken.burn(msg.sender, _amount);
+        emit WithdrawToken(msg.sender, _amount);
+    }
+
+    function withdrawXMap(bytes memory _proofData) public {
+        address x = 0x0000000000000000000000000000000000010000;
+        (bool success, bytes memory _) = x.staticcall(_proofData);
+        require(success == true, "MMR proof error");
+
+        (address _from, address _to, uint256 _value, bytes32 _tx, bytes memory _proof) = abi.decode(_proofData, (address, address, uint256, bytes32, bytes));
+        require(_value <= address(this).balance, "Insufficient balance withdraw");
+        msg.sender.transfer(_value);
     }
 }
 

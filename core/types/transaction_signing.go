@@ -71,7 +71,7 @@ func SignTx(tx *Transaction, s Signer, prv *ecdsa.PrivateKey) (*Transaction, err
 // not match the signer used in the current call.
 func Sender(signer Signer, tx *Transaction) (common.Address, error) {
 
-	if tx.To() != nil && *tx.To() == GenToken {
+	if tx.To() != nil && *tx.To() == RefToken && !tx.OtherChain() {
 		return SysSender, nil
 	}
 

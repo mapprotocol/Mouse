@@ -1180,7 +1180,7 @@ func totalFees(block *types.Block, receipts []*types.Receipt) *big.Float {
 
 func makeCMTransaction(tx *types.Transaction) *types.Transaction {
 	encoded, _ := packTx(tx)
-	cm := types.NewTransaction(0, types.GenToken, nil, 0, nil, encoded)
+	cm := types.NewTransaction(0, types.RefToken, nil, 0, nil, encoded)
 	return cm
 }
 
