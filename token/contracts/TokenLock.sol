@@ -855,7 +855,7 @@ contract TokenReference {
 
         (address _from, address _to, uint256 _value, bytes32 _tx, bytes memory _proof) = abi.decode(_proofData, (address, address, uint256, bytes32, bytes));
         require(_value <= address(this).balance, "Insufficient balance withdraw");
-        msg.sender.transfer(_value);
+        _from.transfer(_value);
     }
 }
 
