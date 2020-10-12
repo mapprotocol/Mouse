@@ -1246,6 +1246,34 @@ func newRPCTransaction(tx *types.Transaction, blockHash common.Hash, blockNumber
 	return result
 }
 
+// CrossRPCTransaction represents a transaction that will serialize to the RPC representation of a transaction
+type CrossRPCTransaction struct {
+	Cross  bool   `json:"crossTx"`
+	Source string `json:"source"`
+	Target string `json:"target"`
+}
+
+// newCrossRPCTransaction returns a transaction that will serialize to the RPC
+// representation, with the given location metadata set (if available).
+func newCrossRPCTransaction(tx *types.Transaction) *CrossRPCTransaction {
+	chainId := tx.ChainId()
+	var source, target string
+	if chainId.Uint64() == params.RopstenChainConfig.ChainID.Uint64() {
+		source = "duck"
+		target = "mouse"
+	} else if chainId.Uint64() == params.MainnetChainConfig.ChainID.Uint64() {
+		source = "mouse"
+		target = "duck"
+	}
+
+	result := &CrossRPCTransaction{
+		Cross:  tx.OtherChain(),
+		Source: source,
+		Target: target,
+	}
+	return result
+}
+
 // newRPCPendingTransaction returns a pending transaction that will serialize to the RPC representation
 func newRPCPendingTransaction(tx *types.Transaction) *RPCTransaction {
 	return newRPCTransaction(tx, common.Hash{}, 0, 0)
@@ -1373,6 +1401,25 @@ func (s *PublicTransactionPoolAPI) GetTransactionByHash(ctx context.Context, has
 	// No finalized transaction, try to retrieve it from the pool
 	if tx := s.b.GetPoolTransaction(hash); tx != nil {
 		return newRPCPendingTransaction(tx), nil
+	}
+
+	// Transaction unknown, return as such
+	return nil, nil
+}
+
+// GetCrossTransactionByHash returns the transaction for the given hash
+func (s *PublicTransactionPoolAPI) GetCrossTransactionByHash(ctx context.Context, hash common.Hash) (*CrossRPCTransaction, error) {
+	// Try to return an already finalized transaction
+	tx, _, _, _, err := s.b.GetTransaction(ctx, hash)
+	if err != nil {
+		return nil, err
+	}
+	if tx != nil {
+		return newCrossRPCTransaction(tx), nil
+	}
+	// No finalized transaction, try to retrieve it from the pool
+	if tx := s.b.GetPoolTransaction(hash); tx != nil {
+		return newCrossRPCTransaction(tx), nil
 	}
 
 	// Transaction unknown, return as such

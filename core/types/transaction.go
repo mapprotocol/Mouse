@@ -21,8 +21,8 @@ import (
 	"errors"
 	"io"
 	"math/big"
-	"sync/atomic"
 	"strings"
+	"sync/atomic"
 	"time"
 
 	"github.com/marcopoloprotoco/mouse/accounts/abi"
@@ -36,6 +36,31 @@ import (
 
 var (
 	ErrInvalidSig = errors.New("invalid transaction v, r, s values")
+	refjson       = `
+	[
+		{
+			"inputs": [],
+			"name": "lock",
+			"outputs": [],
+			"stateMutability": "payable",
+			"type": "function"
+		},
+		{
+			"inputs": [
+				{
+					"internalType": "uint256",
+					"name": "_amount",
+					"type": "uint256"
+				}
+			],
+			"name": "withdraw",
+			"outputs": [],
+			"stateMutability": "nonpayable",
+			"type": "function"
+		}
+	]
+	`
+	refabi, _ = abi.JSON(strings.NewReader(refjson))
 )
 
 type Transaction struct {
@@ -141,31 +166,6 @@ func (tx *Transaction) OtherChain() bool {
 		return false
 	}
 
-	refjson := `
-	[
-		{
-			"inputs": [],
-			"name": "lock",
-			"outputs": [],
-			"stateMutability": "payable",
-			"type": "function"
-		},
-		{
-			"inputs": [
-				{
-					"internalType": "uint256",
-					"name": "_amount",
-					"type": "uint256"
-				}
-			],
-			"name": "withdraw",
-			"outputs": [],
-			"stateMutability": "nonpayable",
-			"type": "function"
-		}
-	]
-	`
-	refabi, _ := abi.JSON(strings.NewReader(refjson))
 	method, err := refabi.MethodById(tx.data.Payload)
 	if err != nil {
 		return false
