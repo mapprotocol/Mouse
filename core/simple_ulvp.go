@@ -147,8 +147,8 @@ func (uv *SimpleULVP) GetFirstMsg() *ulvp.BaseReqUlvpMsg {
 }
 
 func (uv *SimpleULVP) PushFirstMsg() ([]byte, error) {
-	cur := uv.localChain.CurrentBlock()
-	curNum := cur.NumberU64()
+	cur := uv.localChain.CurrentBlockHeader()
+	curNum := cur.Number.Uint64()
 	genesis := uv.localChain.GetBlockByNumber(0)
 	if curNum == 0 {
 		res := &ulvp.ChainHeaderProofMsg{
@@ -159,9 +159,9 @@ func (uv *SimpleULVP) PushFirstMsg() ([]byte, error) {
 		return res.Datas()
 	}
 
-	Right, heads := getRightDifficult(uv.localChain, curNum, cur.Difficulty())
+	Right, heads := getRightDifficult(uv.localChain, curNum, new(big.Int).Set(cur.Difficulty))
 	proof, _, _ := uv.MmrInfo.CreateNewProof(Right)
-	heads = append([]*types.Header{genesis.Header(), cur.Header()}, heads...)
+	heads = append([]*types.Header{genesis.Header(), cur}, heads...)
 
 	res := &ulvp.ChainHeaderProofMsg{
 		Proof:  proof,

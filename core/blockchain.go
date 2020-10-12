@@ -380,6 +380,9 @@ func (bc *BlockChain) LoadMMR() error {
 			return fmt.Errorf("cann't block by number,i:%v", i)
 		}
 		err = bc.PushBlockInMMR(b, true)
+		if err != nil {
+			fmt.Println("LoadMMR error")
+		}
 	}
 	fmt.Println("current:", bc.CurrentBlock().NumberU64(), " err ", err)
 	return nil
@@ -623,7 +626,9 @@ func (bc *BlockChain) GasLimit() uint64 {
 func (bc *BlockChain) CurrentBlock() *types.Block {
 	return bc.currentBlock.Load().(*types.Block)
 }
-
+func (bc *BlockChain) CurrentBlockHeader() *types.Header {
+	return types.CopyHeader(bc.currentBlock.Load().(*types.Block).Header())
+}
 // Snapshot returns the blockchain snapshot tree. This method is mainly used for
 // testing, to make it possible to verify the snapshot after execution.
 //
@@ -1872,6 +1877,9 @@ func (bc *BlockChain) insertChain(chain types.Blocks, verifySeals bool) (int, er
 			atomic.StoreUint32(&followupInterrupt, 1)
 			return it.index, err
 		}
+		if err := bc.PushBlockInMMR(block, true); err != nil {
+			return it.index, err
+		}
 		proctime := time.Since(start)
 
 		// Update the metrics touched during block validation
@@ -1885,9 +1893,6 @@ func (bc *BlockChain) insertChain(chain types.Blocks, verifySeals bool) (int, er
 		status, err := bc.writeBlockWithState(block, receipts, logs, statedb, false)
 		atomic.StoreUint32(&followupInterrupt, 1)
 		if err != nil {
-			return it.index, err
-		}
-		if err := bc.PushBlockInMMR(block, true); err != nil {
 			return it.index, err
 		}
 
