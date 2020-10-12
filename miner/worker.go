@@ -77,6 +77,10 @@ const (
 	// staleThreshold is the maximum depth of the acceptable stale block.
 	staleThreshold = 7
 )
+var (
+	emptyHash = [32]byte{}
+)
+
 
 // environment is the worker's current environment and holds all of the current state information.
 type environment struct {
@@ -973,11 +977,10 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64) 
 		log.Info("Mining too far in the future", "wait", common.PrettyDuration(wait))
 		time.Sleep(wait)
 	}
-
 	num,preRoot := parent.Number(),parent.MmrRoot()
 	root := w.chain.GetMmrRoot()
 
-	if bytes.Equal(preRoot[:], root[:]) {
+	if !bytes.Equal(emptyHash[:], root[:]) && bytes.Equal(preRoot[:], root[:]) {
 		time.Sleep(2000 * time.Millisecond)
 		
 		for {
