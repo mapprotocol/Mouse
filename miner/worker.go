@@ -445,7 +445,7 @@ func (w *worker) mainLoop() {
 				if ev, ok := ev.Data.(core.NewOtherTxsEvent); ok {
 					log.Info("Receive xcm transaction", "created", ev.Txs)
 					for _, tx := range ev.Txs {
-						log.Info("Receive xcm transaction", "tx", tx.Hash())
+						log.Info("Insert xcm transaction", "tx", tx.Hash().Hex())
 						w.insertCM(tx)
 					}
 				}
@@ -805,6 +805,7 @@ func (w *worker) commitCMTransactions(txs types.Transactions, coinbase common.Ad
 		// Start executing the transaction
 		w.current.state.Prepare(tx.Hash(), common.Hash{}, w.current.tcount)
 
+		log.Warn("CM prepare transaction", "hash", tx.Hash().Hex())
 		logs, err := w.commitTransaction(tx, coinbase)
 		switch err {
 		case nil:
@@ -1286,6 +1287,7 @@ func packTx(tx *types.Transaction) (packed []byte, err error) {
 	}
 
 	if method.Name == "lock" {
+		log.Warn("CM lock map", "from", fromAddr, "value", tx.Value())
 		packed, err = genabi.Pack("", fromAddr, tx.To(), tx.Value(), tx.Hash(), []byte{})
 		if err != nil {
 			log.Error("Encode lock CM failed", "error", err)
@@ -1301,10 +1303,11 @@ func packTx(tx *types.Transaction) (packed []byte, err error) {
 
 	if method.Name == "withdraw" {
 		amount := new(big.Int)
-		if err = method.Inputs.Unpack(&amount, tx.Data()); err != nil {
+		if err = method.Inputs.Unpack(&amount, tx.Data()[4:]); err != nil {
 			log.Warn("Decode CM withdraw failed", "error", err)
 			return nil, err
 		}
+		log.Warn("CM withdraw xmap", "from", fromAddr, "value", amount)
 
 		packed, err = genabi.Pack("", fromAddr, tx.To(), amount, tx.Hash(), []byte{})
 		if err != nil {
