@@ -859,7 +859,3 @@ contract TokenReference {
     }
 }
 
-contract Pack {
-    constructor(address _from, address _to, uint256 _value, bytes32 _tx, bytes memory proof) public {
-    }
-}
