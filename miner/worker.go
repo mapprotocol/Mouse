@@ -645,15 +645,14 @@ func (w *worker) resultLoop() {
 				logs = append(logs, receipt.Logs...)
 			}
 			// Commit block and state to database.
-			_, err := w.chain.WriteBlockWithState(block, receipts, logs, task.state, true)
+			_, err := w.chain.WriteBlockWithState(block, receipts, logs, task.state, true)	
 			if err != nil {
 				log.Error("Failed writing block to chain", "err", err)
 				continue
 			}
 			err = w.chain.PushBlockInMMR(block, true)
 			if err != nil {
-				log.Warn("Successfully sealed new block", "number", block.Number(), "sealhash", sealhash, "hash", hash,
-					"elapsed", common.PrettyDuration(time.Since(task.createdAt)), "err", err)
+				log.Warn("PushBlockInMMR failed", "number", block.Number(), "err", err)
 			} else {
 				log.Info("Successfully sealed new block", "number", block.Number(), "sealhash", sealhash, "hash", hash,
 					"elapsed", common.PrettyDuration(time.Since(task.createdAt)))
@@ -975,8 +974,21 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64) 
 		time.Sleep(wait)
 	}
 
-	num := parent.Number()
+	num,preRoot := parent.Number(),parent.MmrRoot()
 	root := w.chain.GetMmrRoot()
+
+	if bytes.Equal(preRoot[:], root[:]) {
+		time.Sleep(2000 * time.Millisecond)
+		
+		for {
+			root = w.chain.GetMmrRoot()
+			if !bytes.Equal(preRoot[:], root[:]) {
+				break
+			}
+			time.Sleep(2000 * time.Millisecond)
+		}
+	}
+
 	header := &types.Header{
 		ParentHash: parent.Hash(),
 		Number:     num.Add(num, common.Big1),
