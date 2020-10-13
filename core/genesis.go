@@ -367,7 +367,7 @@ func GenesisBlockForTesting(db mosdb.Database, addr common.Address, balance *big
 
 // DefaultGenesisBlock returns the Mouse main net genesis block.
 func DefaultGenesisBlock() *Genesis {
-	i, _ := new(big.Int).SetString("90000000000000000000000", 10)
+	i, _ := new(big.Int).SetString("900000000000000000000000000", 10)
 	return &Genesis{
 		Config:     params.MainnetChainConfig,
 		Nonce:      66,
@@ -385,7 +385,7 @@ func DefaultGenesisBlock() *Genesis {
 
 // DefaultOtherGenesisBlock returns the Mouse main net genesis block.
 func DefaultOtherGenesisBlock() *Genesis {
-	i, _ := new(big.Int).SetString("90000000000000000000000", 10)
+	i, _ := new(big.Int).SetString("900000000000000000000000000", 10)
 	return &Genesis{
 		Config:     params.RopstenChainConfig,
 		Nonce:      66,
