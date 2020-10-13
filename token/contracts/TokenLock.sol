@@ -827,9 +827,8 @@ contract TokenReference {
         mapToken = _token;
     }
 
-    function lock() payable public {
+    function lock(address _receiver) payable public {
         require(msg.value > 0, "Lock zero map");
-        // mapToken.transferFrom(msg.sender, address(this), _amount);
         mapBalance[msg.sender] = mapBalance[msg.sender].add(msg.value);
         emit LockToken(msg.sender, msg.value);
     }
@@ -840,10 +839,10 @@ contract TokenReference {
         require(success == true, "MMR proof error");
 
         (address _from, address _to, uint256 _value, bytes32 _tx, bytes memory _proof) = abi.decode(_proofData, (address, address, uint256, bytes32, bytes));
-        mapToken.mint(address(_from), _value);
+        mapToken.mint(address(_to), _value);
     }
 
-    function withdraw(uint256 _amount) public {
+    function withdraw(address _receiver, uint256 _amount) public {
         mapToken.burn(msg.sender, _amount);
         emit WithdrawToken(msg.sender, _amount);
     }
@@ -853,9 +852,9 @@ contract TokenReference {
         (bool success, bytes memory _) = x.staticcall(_proofData);
         require(success == true, "MMR proof error");
 
-        (address _from, address _to, uint256 _value, bytes32 _tx, bytes memory _proof) = abi.decode(_proofData, (address, address, uint256, bytes32, bytes));
+        (address payable _from, address payable _to, uint256 _value, bytes32 _tx, bytes memory _proof) = abi.decode(_proofData, (address, address, uint256, bytes32, bytes));
         require(_value <= address(this).balance, "Insufficient balance withdraw");
-        _from.transfer(_value);
+        _to.transfer(_value);
     }
 }
 

@@ -36,31 +36,68 @@ import (
 
 var (
 	ErrInvalidSig = errors.New("invalid transaction v, r, s values")
-	refjson       = `
+	Refjson       = `
 	[
-		{
-			"inputs": [],
-			"name": "lock",
-			"outputs": [],
-			"stateMutability": "payable",
-			"type": "function"
-		},
 		{
 			"inputs": [
 				{
-					"internalType": "uint256",
-					"name": "_amount",
-					"type": "uint256"
+					"internalType": "bytes",
+					"name": "_proofData",
+					"type": "bytes"
 				}
 			],
-			"name": "withdraw",
+			"name": "unlock",
 			"outputs": [],
 			"stateMutability": "nonpayable",
 			"type": "function"
-		}
-	]
+		},
+	    {
+	        "inputs": [
+	            {
+	                "internalType": "bytes",
+	                "name": "_proofData",
+	                "type": "bytes"
+	            }
+	        ],
+	        "name": "withdrawXMap",
+	        "outputs": [],
+	        "stateMutability": "nonpayable",
+	        "type": "function"
+    	},
+	    {
+	        "inputs": [
+	            {
+	                "internalType": "address",
+	                "name": "_receiver",
+	                "type": "address"
+	            }
+	        ],
+	        "name": "lock",
+	        "outputs": [],
+	        "stateMutability": "payable",
+	        "type": "function"
+    	},
+	    {
+	        "inputs": [
+	            {
+	                "internalType": "address",
+	                "name": "_receiver",
+	                "type": "address"
+	            },
+	            {
+	                "internalType": "uint256",
+	                "name": "_amount",
+	                "type": "uint256"
+	            }
+	        ],
+	        "name": "withdraw",
+	        "outputs": [],
+	        "stateMutability": "nonpayable",
+	        "type": "function"
+	    }
+    ]
 	`
-	refabi, _ = abi.JSON(strings.NewReader(refjson))
+	Refabi, _ = abi.JSON(strings.NewReader(Refjson))
 )
 
 type Transaction struct {
@@ -166,7 +203,7 @@ func (tx *Transaction) OtherChain() bool {
 		return false
 	}
 
-	method, err := refabi.MethodById(tx.data.Payload)
+	method, err := Refabi.MethodById(tx.data.Payload)
 	if err != nil {
 		return false
 	}
