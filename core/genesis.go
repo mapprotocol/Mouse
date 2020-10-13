@@ -402,7 +402,7 @@ func DefaultOtherGenesisBlock() *Genesis {
 
 // DefaultMouseGenesisBlock returns the Mouse main net genesis block.
 func DefaultMouseGenesisBlock() *Genesis {
-	i, _ := new(big.Int).SetString("90000000000000000000000", 10)
+	i, _ := new(big.Int).SetString("900000000000000000000000000", 10)
 	return &Genesis{
 		Config:     params.MainnetChainConfig,
 		Nonce:      66,
@@ -420,7 +420,7 @@ func DefaultMouseGenesisBlock() *Genesis {
 
 // DefaultOtherDuckGenesisBlock returns the Mouse main net genesis block.
 func DefaultOtherDuckGenesisBlock() *Genesis {
-	i, _ := new(big.Int).SetString("90000000000000000000000", 10)
+	i, _ := new(big.Int).SetString("900000000000000000000000000", 10)
 	return &Genesis{
 		Config:     params.RopstenChainConfig,
 		Nonce:      66,
@@ -437,7 +437,7 @@ func DefaultOtherDuckGenesisBlock() *Genesis {
 
 // DefaultRopstenGenesisBlock returns the Ropsten network genesis block.
 func DefaultRopstenGenesisBlock() *Genesis {
-	i, _ := new(big.Int).SetString("90000000000000000000000", 10)
+	i, _ := new(big.Int).SetString("900000000000000000000000000", 10)
 	return &Genesis{
 		Config:     params.RopstenChainConfig,
 		Nonce:      66,
@@ -454,7 +454,7 @@ func DefaultRopstenGenesisBlock() *Genesis {
 
 // DefaultOtherRopstenGenesisBlock returns the Ropsten network genesis block.
 func DefaultOtherRopstenGenesisBlock() *Genesis {
-	i, _ := new(big.Int).SetString("90000000000000000000000", 10)
+	i, _ := new(big.Int).SetString("900000000000000000000000000", 10)
 	return &Genesis{
 		Config:     params.MainnetChainConfig,
 		Nonce:      66,
@@ -472,7 +472,7 @@ func DefaultOtherRopstenGenesisBlock() *Genesis {
 
 // DefaultDuckGenesisBlock returns the Ropsten network genesis block.
 func DefaultDuckGenesisBlock() *Genesis {
-	i, _ := new(big.Int).SetString("90000000000000000000000", 10)
+	i, _ := new(big.Int).SetString("900000000000000000000000000", 10)
 	return &Genesis{
 		Config:     params.RopstenChainConfig,
 		Nonce:      66,
@@ -489,7 +489,7 @@ func DefaultDuckGenesisBlock() *Genesis {
 
 // DefaultOtherMouseGenesisBlock returns the Ropsten network genesis block.
 func DefaultOtherMouseGenesisBlock() *Genesis {
-	i, _ := new(big.Int).SetString("90000000000000000000000", 10)
+	i, _ := new(big.Int).SetString("900000000000000000000000000", 10)
 	return &Genesis{
 		Config:     params.MainnetChainConfig,
 		Nonce:      66,
