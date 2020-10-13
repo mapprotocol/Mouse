@@ -264,8 +264,17 @@ func (tx *Transaction) PackCM() common.Hash {
 		return common.Hash{}
 	}
 
+	method, err := Refabi.MethodById(tx.Data())
+	if err != nil {
+		return common.Hash{}
+	}
+
+	if method.Name != "unlock" {
+		return common.Hash{}
+	}
+
 	var data []byte
-	err := Refabi.Unpack(&data, "unlock", tx.Data()[4:])
+	err = Refabi.Unpack(&data, "unlock", tx.Data()[4:])
 
 	if err != nil {
 		log.Error("transaction Unpack unlock error", "tx", tx.Hash())

@@ -458,6 +458,7 @@ func (w *worker) mainLoop() {
 	events := w.mux.Subscribe(core.NewOtherTxsEvent{}, core.NewProofEvent{})
 	defer events.Unsubscribe()
 
+	request := false
 	for {
 		select {
 		case ev := <-events.Chan():
@@ -467,12 +468,11 @@ func (w *worker) mainLoop() {
 			switch ev.Data.(type) {
 			case core.NewOtherTxsEvent:
 				if ev, ok := ev.Data.(core.NewOtherTxsEvent); ok {
-					log.Info("Receive xcm transaction", "created", ev.Txs)
 					for _, tx := range ev.Txs {
 						log.Info("Insert xcm transaction", "tx", tx.Hash().Hex())
 						w.insertCM(tx)
-						if !w.isQuest() {
-							atomic.StoreInt32(&w.cmAtomic, 1)
+						if !request {
+							request = true
 							w.requestCrossTxProof(tx.Hash())
 						}
 					}
@@ -500,7 +500,7 @@ func (w *worker) mainLoop() {
 						txs := w.cmPendingTx()
 
 						if len(txs) == 0 {
-							atomic.StoreInt32(&w.cmAtomic, 0)
+							request = false
 						}
 
 						for _, tx := range txs {
@@ -1255,11 +1255,6 @@ func (w *worker) cmProofPending() map[common.Hash]*ulvp.SimpleUlvpProof {
 	}
 
 	return messages
-}
-
-// isRunning returns an indicator whether worker is running or not.
-func (w *worker) isQuest() bool {
-	return atomic.LoadInt32(&w.cmAtomic) == 1
 }
 
 // commit runs any post-transaction state modifications, assembles the final block

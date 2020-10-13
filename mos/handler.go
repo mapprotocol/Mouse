@@ -467,7 +467,6 @@ func (pm *ProtocolManager) handleOtherMsg(p *peer) error {
 		return errResp(ErrMsgTooLarge, "%v > %v", msg.Size, protocolMaxMsgSize)
 	}
 	defer msg.Discard()
-	log.Info("handleOtherMsg", "msg.Code", msg.Code)
 	// Handle the message depending on its contents
 	switch {
 	case msg.Code == StatusMsg:
@@ -480,6 +479,7 @@ func (pm *ProtocolManager) handleOtherMsg(p *peer) error {
 		if err := msg.Decode(&query); err != nil {
 			return errResp(ErrDecode, "%v: %v", msg, err)
 		}
+		log.Info("handleOtherMsg", "msg.Code", msg.Code, "GetMMRReceiptProofMsg", query.TxHash.String())
 		var mtProof ulvp.SimpleUlvpProof
 		receiptRep, err := pm.ulVP.GetReceiptProof(query.TxHash)
 		if err != nil {
@@ -506,6 +506,7 @@ func (pm *ProtocolManager) handleOtherMsg(p *peer) error {
 		if err := msg.Decode(&request); err != nil {
 			return errResp(ErrDecode, "%v: %v", msg, err)
 		}
+		log.Info("handleOtherMsg", "msg.Code", msg.Code, "MMRReceiptProofMsg", request.TxHash.String())
 		if !request.Result {
 			log.Info("MMRReceiptProofMsg", "err", err)
 			pm.removeOtherPeer(p.id)
@@ -1220,6 +1221,7 @@ func (pm *ProtocolManager) requestTxLoop() {
 
 	for obj := range pm.requestTxSub.Chan() {
 		if ev, ok := obj.Data.(core.NewRequestTxProofEvent); ok {
+			log.Info("requestTxLoop", "txHash", ev.TxHash)
 			pm.peersOther.BestPeer().RequestMMRReceipts([]common.Hash{ev.TxHash})
 		}
 	}
