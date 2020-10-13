@@ -481,8 +481,20 @@ func (w *worker) mainLoop() {
 						w.requestCrossTxProof(mrProof.TxHash)
 					} else {
 						log.Info("Receive xcm transaction proof", "Number", ev.MRProof.Header.Number, "result", ev.MRProof.Result)
-						atomic.StoreInt32(&w.cmAtomic, 0)
 						w.insertCMProof(mrProof)
+
+						w.deleteCM(mrProof.TxHash)
+
+						txs := w.cmPendingTx()
+
+						if len(txs) == 0 {
+							atomic.StoreInt32(&w.cmAtomic, 0)
+						}
+
+						for _, tx := range txs {
+							w.requestCrossTxProof(tx.Hash())
+							break
+						}
 					}
 				}
 			}
@@ -1167,6 +1179,18 @@ func (w *worker) cmPending() []*ulvp.UlvpTransaction {
 	return messages
 }
 
+func (w *worker) cmPendingTx() types.Transactions {
+	w.cmListMu.RLock()
+	defer w.cmListMu.RUnlock()
+
+	messages := []*types.Transaction{}
+	for _, tx := range w.cmList {
+		messages = append(messages, tx)
+	}
+
+	return messages
+}
+
 func (w *worker) insertCM(tx *types.Transaction) {
 	w.cmListMu.RLock()
 	defer w.cmListMu.RUnlock()
@@ -1186,8 +1210,6 @@ func (w *worker) insertCMProof(mrProof *ulvp.SimpleUlvpProof) {
 	defer w.cmProofMu.RUnlock()
 
 	w.cmProof[mrProof.TxHash] = mrProof
-
-	w.deleteCM(mrProof.TxHash)
 }
 
 func (w *worker) deleteCMProof(mrProof *ulvp.SimpleUlvpProof) {
@@ -1456,7 +1478,7 @@ func packTx(ulvpT *ulvp.UlvpTransaction) (packed []byte, err error) {
 	if method.Name == "withdraw" {
 		args := struct {
 			Receiver common.Address
-			Amount  *big.Int
+			Amount   *big.Int
 		}{}
 
 		if err = method.Inputs.Unpack(&args, tx.Data()[4:]); err != nil {

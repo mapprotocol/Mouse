@@ -17,6 +17,7 @@
 package miner
 
 import (
+	"github.com/marcopoloprotoco/mouse/core/ulvp"
 	"math/big"
 	"math/rand"
 	"sync/atomic"
@@ -34,8 +35,8 @@ import (
 	"github.com/marcopoloprotoco/mouse/core/types"
 	"github.com/marcopoloprotoco/mouse/core/vm"
 	"github.com/marcopoloprotoco/mouse/crypto"
-	"github.com/marcopoloprotoco/mouse/mosdb"
 	"github.com/marcopoloprotoco/mouse/event"
+	"github.com/marcopoloprotoco/mouse/mosdb"
 	"github.com/marcopoloprotoco/mouse/params"
 )
 
@@ -194,7 +195,7 @@ func TestEncodeTx(t *testing.T) {
 		hexutil.MustDecodeBig("0x14d0887b335625076e8b9d4280dc72b69c851ff8026c25b537df3f272c33feef"),
 	)
 
-	packed, err := packTx(cm)
+	packed, err := packTx(&ulvp.UlvpTransaction{Tx: cm})
 	// 00000000000000000000000029341495424d182c10e0c4360c19e29b2ba883540000000000000000000000005221538292372ca706a62eb0d4890d2c85543be90000000000000000000000000000000000000000000000008ac7230489e800000469bf6f4994497dbf741a854ecc4722b28ea0ee19ef177ac4b45d76df65b72c00000000000000000000000000000000000000000000000000000000000000a00000000000000000000000000000000000000000000000000000000000000000
 	if err != nil {
 		t.Fatalf("failed to encode tx: %v", err)
