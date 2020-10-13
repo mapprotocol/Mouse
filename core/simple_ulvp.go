@@ -197,7 +197,7 @@ func (uv *SimpleULVP) GetSimpleUlvpMsgReq(blocks []uint64) *ulvp.UlvpMsgReq {
 }
 
 func (uv *SimpleULVP) HandleSimpleUlvpMsgReq(msg *ulvp.UlvpMsgReq) (*ulvp.UlvpMsgRes, error) {
-	res := &ulvp.UlvpMsgRes{}
+	res := ulvp.NewUlvpMsgRes()
 	// generate proof the leatest localChain
 	cur := uv.localChain.CurrentBlock()
 	genesis := uv.localChain.GetBlockByNumber(0)

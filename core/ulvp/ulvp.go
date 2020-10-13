@@ -43,7 +43,13 @@ type ChainHeaderProofMsg struct {
 	Header []*types.Header
 	Right  *big.Int
 }
-
+func newChainHeaderProofMsg() *ChainHeaderProofMsg {
+	return &ChainHeaderProofMsg{
+		Proof:		&ProofInfo{},
+		Header:		[]*types.Header{},
+		Right:		big.NewInt(0),
+	}
+}
 func (b *ChainHeaderProofMsg) Datas() ([]byte, error) {
 	data, err := rlp.EncodeToBytes(b)
 	if err != nil {
@@ -56,10 +62,22 @@ type ChainInProofMsg struct {
 	Proof  *ProofInfo
 	Header []*types.Header
 }
+func newChainInProofMsg() *ChainInProofMsg {
+	return &ChainInProofMsg{
+		Proof:		&ProofInfo{},
+		Header:		[]*types.Header{},
+	}
+}
 
 type UlvpMsgRes struct {
 	FirstRes  *ChainHeaderProofMsg
 	SecondRes *ChainInProofMsg
+}
+func NewUlvpMsgRes() *UlvpMsgRes {
+	return &UlvpMsgRes {
+		FirstRes:		newChainHeaderProofMsg(),
+		SecondRes:		newChainInProofMsg(),
+	}
 }
 
 func (b *UlvpMsgRes) Datas() ([]byte, error) {
