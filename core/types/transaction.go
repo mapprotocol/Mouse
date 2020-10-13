@@ -100,7 +100,7 @@ var (
 	`
 	Refabi, _ = abi.JSON(strings.NewReader(Refjson))
 
-	json = `
+	Genjson = `
 	[
 	{
 		"inputs": [
@@ -135,7 +135,7 @@ var (
 	}
 	]
 	`
-	Genabi, _ = abi.JSON(strings.NewReader(json))
+	Genabi, _ = abi.JSON(strings.NewReader(Genjson))
 )
 
 type Transaction struct {
