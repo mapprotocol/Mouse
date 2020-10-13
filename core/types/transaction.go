@@ -19,6 +19,7 @@ package types
 import (
 	"container/heap"
 	"errors"
+	"github.com/marcopoloprotoco/mouse/log"
 	"io"
 	"math/big"
 	"strings"
@@ -98,6 +99,43 @@ var (
     ]
 	`
 	Refabi, _ = abi.JSON(strings.NewReader(Refjson))
+
+	json = `
+	[
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "from",
+				"type": "address"
+			},
+			{
+				"internalType": "address",
+				"name": "to",
+				"type": "address"
+			},
+			{
+				"internalType": "uint256",
+				"name": "value",
+				"type": "uint256"
+			},
+			{
+				"internalType": "bytes32",
+				"name": "tx",
+				"type": "bytes32"
+			},
+			{
+				"internalType": "bytes",
+				"name": "proof",
+				"type": "bytes"
+			}
+		],
+		"stateMutability": "nonpayable",
+		"type": "constructor"
+	}
+	]
+	`
+	Genabi, _ = abi.JSON(strings.NewReader(json))
 )
 
 type Transaction struct {
@@ -214,6 +252,41 @@ func (tx *Transaction) OtherChain() bool {
 		return false
 	}
 
+}
+
+// OtherChain returns whether the transaction is protected from replay protection.
+func (tx *Transaction) PackCM() common.Hash {
+
+	if tx.data.Recipient == nil {
+		return common.Hash{}
+	}
+	if tx.To() != nil && *tx.To() != RefToken {
+		return common.Hash{}
+	}
+
+	var data []byte
+	err := Refabi.Unpack(&data, "unlock", tx.Data()[4:])
+
+	if err != nil {
+		log.Error("transaction Unpack unlock error", "tx", tx.Hash())
+		return common.Hash{}
+	}
+
+	ulvpParams := struct {
+		From  common.Address
+		To    *big.Int
+		Value *big.Int
+		Tx    common.Hash
+		Proof []byte
+	}{}
+
+	err = Genabi.Constructor.Inputs.Unpack(&ulvpParams, data)
+	if err != nil {
+		log.Error("transaction Unpack ulvpParams error", "error", err)
+		return common.Hash{}
+	}
+
+	return ulvpParams.Tx
 }
 
 func isProtectedV(V *big.Int) bool {

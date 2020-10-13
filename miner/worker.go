@@ -20,7 +20,6 @@ import (
 	"bytes"
 	"errors"
 	mapset "github.com/deckarep/golang-set"
-	"github.com/marcopoloprotoco/mouse/accounts/abi"
 	"github.com/marcopoloprotoco/mouse/common"
 	"github.com/marcopoloprotoco/mouse/common/hexutil"
 	"github.com/marcopoloprotoco/mouse/consensus"
@@ -35,7 +34,6 @@ import (
 	"github.com/marcopoloprotoco/mouse/rlp"
 	"github.com/marcopoloprotoco/mouse/trie"
 	"math/big"
-	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -185,7 +183,7 @@ type worker struct {
 	// non-stop and no real transaction will be included.
 	noempty uint32
 
-	cmList    map[common.Hash]*types.Transaction
+	cmList    map[common.Hash]*ReqTransaction
 	cmListMu  sync.RWMutex
 	cmProof   map[common.Hash]*ulvp.SimpleUlvpProof
 	cmProofMu sync.RWMutex
@@ -199,6 +197,11 @@ type worker struct {
 	skipSealHook func(*task) bool                   // Method to decide whether skipping the sealing.
 	fullTaskHook func()                             // Method to call before pushing the full sealing task.
 	resubmitHook func(time.Duration, time.Duration) // Method to call upon updating resubmitting interval.
+}
+
+type ReqTransaction struct {
+	Tx    *types.Transaction
+	Quest bool
 }
 
 func newWorker(config *Config, chainConfig *params.ChainConfig, engine consensus.Engine, mos Backend, mux *event.TypeMux, isLocalBlock func(*types.Block) bool, init bool) *worker {
@@ -224,7 +227,7 @@ func newWorker(config *Config, chainConfig *params.ChainConfig, engine consensus
 		startCh:            make(chan struct{}, 1),
 		resubmitIntervalCh: make(chan time.Duration),
 		resubmitAdjustCh:   make(chan *intervalAdjust, resubmitAdjustChanSize),
-		cmList:             make(map[common.Hash]*types.Transaction),
+		cmList:             make(map[common.Hash]*ReqTransaction),
 		cmProof:            make(map[common.Hash]*ulvp.SimpleUlvpProof),
 	}
 	// Subscribe NewTxsEvent for tx pool
@@ -387,6 +390,15 @@ func (w *worker) newWorkLoop(recommit time.Duration) {
 
 		case head := <-w.chainHeadCh:
 			clearPending(head.Block.NumberU64())
+
+			var txs []common.Hash
+			for _, tx := range head.Block.Transactions() {
+				if txhash := tx.PackCM(); txhash != (common.Hash{}) {
+					txs = append(txs, txhash)
+				}
+			}
+			w.deleteCM(txs)
+
 			timestamp = time.Now().Unix()
 			commit(false, commitInterruptNewHead)
 
@@ -483,7 +495,7 @@ func (w *worker) mainLoop() {
 						log.Info("Receive xcm transaction proof", "Number", ev.MRProof.Header.Number, "result", ev.MRProof.Result)
 						w.insertCMProof(mrProof)
 
-						w.deleteCM(mrProof.TxHash)
+						w.RequestCM(mrProof.TxHash)
 
 						txs := w.cmPendingTx()
 
@@ -1171,8 +1183,8 @@ func (w *worker) cmPending() []*ulvp.UlvpTransaction {
 	// Apply CM Transactions
 	messages := []*ulvp.UlvpTransaction{}
 	for _, tx := range w.cmList {
-		if v, ok := pendingProof[tx.Hash()]; ok {
-			messages = append(messages, &ulvp.UlvpTransaction{SimpUlvpP: v, Tx: tx})
+		if v, ok := pendingProof[tx.Tx.Hash()]; ok {
+			messages = append(messages, &ulvp.UlvpTransaction{SimpUlvpP: v, Tx: tx.Tx})
 		}
 	}
 
@@ -1185,7 +1197,9 @@ func (w *worker) cmPendingTx() types.Transactions {
 
 	messages := []*types.Transaction{}
 	for _, tx := range w.cmList {
-		messages = append(messages, tx)
+		if !tx.Quest {
+			messages = append(messages, tx.Tx)
+		}
 	}
 
 	return messages
@@ -1195,14 +1209,25 @@ func (w *worker) insertCM(tx *types.Transaction) {
 	w.cmListMu.RLock()
 	defer w.cmListMu.RUnlock()
 
-	w.cmList[tx.Hash()] = tx
+	w.cmList[tx.Hash()] = &ReqTransaction{Tx: tx, Quest: false}
 }
 
-func (w *worker) deleteCM(txHash common.Hash) {
+func (w *worker) deleteCM(txsHash []common.Hash) {
 	w.cmListMu.RLock()
 	defer w.cmListMu.RUnlock()
 
-	delete(w.cmList, txHash)
+	for _, txHash := range txsHash {
+		delete(w.cmList, txHash)
+		w.deleteCMProof(txHash)
+	}
+}
+
+func (w *worker) RequestCM(txHash common.Hash) {
+	w.cmListMu.RLock()
+	defer w.cmListMu.RUnlock()
+	if v, ok := w.cmList[txHash]; ok {
+		v.Quest = true
+	}
 }
 
 func (w *worker) insertCMProof(mrProof *ulvp.SimpleUlvpProof) {
@@ -1212,11 +1237,11 @@ func (w *worker) insertCMProof(mrProof *ulvp.SimpleUlvpProof) {
 	w.cmProof[mrProof.TxHash] = mrProof
 }
 
-func (w *worker) deleteCMProof(mrProof *ulvp.SimpleUlvpProof) {
+func (w *worker) deleteCMProof(txHash common.Hash) {
 	w.cmProofMu.RLock()
 	defer w.cmProofMu.RUnlock()
 
-	delete(w.cmProof, mrProof.TxHash)
+	delete(w.cmProof, txHash)
 }
 
 func (w *worker) cmProofPending() map[common.Hash]*ulvp.SimpleUlvpProof {
@@ -1400,48 +1425,14 @@ func makeCMTransaction(tx *ulvp.UlvpTransaction, nonce uint64) *types.Transactio
 
 func packTx(ulvpT *ulvp.UlvpTransaction) (packed []byte, err error) {
 	tx := ulvpT.Tx
-	json := `
-	[
-	{
-		"inputs": [
-			{
-				"internalType": "address",
-				"name": "_from",
-				"type": "address"
-			},
-			{
-				"internalType": "address",
-				"name": "_to",
-				"type": "address"
-			},
-			{
-				"internalType": "uint256",
-				"name": "_value",
-				"type": "uint256"
-			},
-			{
-				"internalType": "bytes32",
-				"name": "_tx",
-				"type": "bytes32"
-			},
-			{
-				"internalType": "bytes",
-				"name": "proof",
-				"type": "bytes"
-			}
-		],
-		"stateMutability": "nonpayable",
-		"type": "constructor"
-	}
-	]
-	`
-	genabi, _ := abi.JSON(strings.NewReader(json))
+
 	// TODO: resolve signer from address
 	fromAddr, sign_err := tx.OtherFrom()
 	if sign_err != nil {
 		return nil, sign_err
 	}
 
+	genabi := types.Genabi
 	refabi := types.Refabi
 	method, ref_err := refabi.MethodById(tx.Data())
 	if err != nil {
