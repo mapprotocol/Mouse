@@ -207,6 +207,12 @@ type SimpleUlvpProof struct {
 	TxHash       common.Hash
 }
 
+// UlvpTransaction is the network packet for the block propagation message.
+type UlvpTransaction struct {
+	SimpUlvpP *SimpleUlvpProof
+	Tx        *types.Transaction
+}
+
 func (mr *SimpleUlvpProof) VerifyULVPTXMsg(txHash common.Hash) (*types.Receipt, error) {
 	if !mr.Result {
 		return nil, errors.New("no proof return")

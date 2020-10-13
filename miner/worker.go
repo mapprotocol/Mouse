@@ -32,6 +32,7 @@ import (
 	"github.com/marcopoloprotoco/mouse/event"
 	"github.com/marcopoloprotoco/mouse/log"
 	"github.com/marcopoloprotoco/mouse/params"
+	"github.com/marcopoloprotoco/mouse/rlp"
 	"github.com/marcopoloprotoco/mouse/trie"
 	"math/big"
 	"strings"
@@ -794,7 +795,7 @@ func (w *worker) commitTransaction(tx *types.Transaction, coinbase common.Addres
 	return receipt.Logs, nil
 }
 
-func (w *worker) commitCMTransactions(txs types.Transactions, coinbase common.Address, interrupt *int32) bool {
+func (w *worker) commitCMTransactions(txs []*ulvp.UlvpTransaction, coinbase common.Address, interrupt *int32) bool {
 	if w.current == nil {
 		return true
 	}
@@ -1150,14 +1151,17 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64) 
 	w.commit(uncles, w.fullTaskHook, true, tstart)
 }
 
-func (w *worker) cmPending() types.Transactions {
+func (w *worker) cmPending() []*ulvp.UlvpTransaction {
 	w.cmListMu.RLock()
 	defer w.cmListMu.RUnlock()
 
+	pendingProof := w.cmProofPending()
 	// Apply CM Transactions
-	messages := []*types.Transaction{}
+	messages := []*ulvp.UlvpTransaction{}
 	for _, tx := range w.cmList {
-		messages = append(messages, tx)
+		if v, ok := pendingProof[tx.Hash()]; ok {
+			messages = append(messages, &ulvp.UlvpTransaction{SimpUlvpP: v, Tx: tx})
+		}
 	}
 
 	return messages
@@ -1366,13 +1370,14 @@ func totalFees(block *types.Block, receipts []*types.Receipt) *big.Float {
 	return new(big.Float).Quo(new(big.Float).SetInt(feesWei), new(big.Float).SetInt(big.NewInt(params.Ether)))
 }
 
-func makeCMTransaction(tx *types.Transaction, nonce uint64) *types.Transaction {
+func makeCMTransaction(tx *ulvp.UlvpTransaction, nonce uint64) *types.Transaction {
 	encoded, _ := packTx(tx)
 	cm := types.NewTransaction(nonce, types.RefToken, nil, 0, nil, encoded)
 	return cm
 }
 
-func packTx(tx *types.Transaction) (packed []byte, err error) {
+func packTx(ulvpT *ulvp.UlvpTransaction) (packed []byte, err error) {
+	tx := ulvpT.Tx
 	json := `
 	[
 	{
@@ -1429,7 +1434,12 @@ func packTx(tx *types.Transaction) (packed []byte, err error) {
 		}
 		log.Warn("CM lock map", "from", fromAddr, "to", receiver, "value", tx.Value())
 
-		packed, err = genabi.Pack("", fromAddr, receiver, tx.Value(), tx.Hash(), []byte{})
+		proof, err := rlp.EncodeToBytes(ulvpT.SimpUlvpP)
+		if err != nil {
+			log.Error("EncodeToBytes lock proof failed", "error", err)
+			return nil, err
+		}
+		packed, err = genabi.Pack("", fromAddr, receiver, tx.Value(), tx.Hash(), proof)
 		if err != nil {
 			log.Error("Encode lock CM failed", "error", err)
 			return nil, err
