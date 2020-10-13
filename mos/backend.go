@@ -204,7 +204,7 @@ func New(stack *node.Node, config *Config) (*Mouse, error) {
 	if mos.protocolManager, err = NewProtocolManager(chainConfig, checkpoint, config.SyncMode, config.NetworkId, mos.eventMux, mos.txPool, mos.engine, mos.blockchain, chainDb, cacheLimit, config.Whitelist, mos.blockchain.UlVP); err != nil {
 		return nil, err
 	}
-	mos.miner = miner.New(mos, &config.Miner, chainConfig, mos.EventMux(), mos.engine, mos.isLocalBlock, mos.blockchain.UlVP)
+	mos.miner = miner.New(mos, &config.Miner, chainConfig, mos.EventMux(), mos.engine, mos.isLocalBlock)
 	mos.miner.SetExtra(makeExtraData(config.Miner.ExtraData))
 
 	mos.APIBackend = &EthAPIBackend{stack.Config().ExtRPCEnabled(), mos, nil}

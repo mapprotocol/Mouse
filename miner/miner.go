@@ -62,10 +62,9 @@ type Miner struct {
 	exitCh   chan struct{}
 	startCh  chan common.Address
 	stopCh   chan struct{}
-	ulVP     *core.SimpleULVP
 }
 
-func New(mos Backend, config *Config, chainConfig *params.ChainConfig, mux *event.TypeMux, engine consensus.Engine, isLocalBlock func(block *types.Block) bool, ulvp *core.SimpleULVP) *Miner {
+func New(mos Backend, config *Config, chainConfig *params.ChainConfig, mux *event.TypeMux, engine consensus.Engine, isLocalBlock func(block *types.Block) bool) *Miner {
 	miner := &Miner{
 		mos:     mos,
 		mux:     mux,
@@ -74,7 +73,6 @@ func New(mos Backend, config *Config, chainConfig *params.ChainConfig, mux *even
 		startCh: make(chan common.Address),
 		stopCh:  make(chan struct{}),
 		worker:  newWorker(config, chainConfig, engine, mos, mux, isLocalBlock, true),
-		ulVP:    ulvp,
 	}
 	go miner.update()
 

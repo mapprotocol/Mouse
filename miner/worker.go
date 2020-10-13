@@ -28,6 +28,7 @@ import (
 	"github.com/marcopoloprotoco/mouse/core"
 	"github.com/marcopoloprotoco/mouse/core/state"
 	"github.com/marcopoloprotoco/mouse/core/types"
+	"github.com/marcopoloprotoco/mouse/core/ulvp"
 	"github.com/marcopoloprotoco/mouse/event"
 	"github.com/marcopoloprotoco/mouse/log"
 	"github.com/marcopoloprotoco/mouse/params"
@@ -78,10 +79,10 @@ const (
 	// staleThreshold is the maximum depth of the acceptable stale block.
 	staleThreshold = 7
 )
+
 var (
 	emptyHash = [32]byte{}
 )
-
 
 // environment is the worker's current environment and holds all of the current state information.
 type environment struct {
@@ -183,7 +184,11 @@ type worker struct {
 	// non-stop and no real transaction will be included.
 	noempty uint32
 
-	cmList map[common.Hash]*types.Transaction
+	cmList    map[common.Hash]*types.Transaction
+	cmListMu  sync.RWMutex
+	cmProof   map[common.Hash]*ulvp.SimpleUlvpProof
+	cmProofMu sync.RWMutex
+	cmAtomic  int32
 
 	// External functions
 	isLocalBlock func(block *types.Block) bool // Function used to determine whether the specified block is mined by local miner.
@@ -219,6 +224,7 @@ func newWorker(config *Config, chainConfig *params.ChainConfig, engine consensus
 		resubmitIntervalCh: make(chan time.Duration),
 		resubmitAdjustCh:   make(chan *intervalAdjust, resubmitAdjustChanSize),
 		cmList:             make(map[common.Hash]*types.Transaction),
+		cmProof:            make(map[common.Hash]*ulvp.SimpleUlvpProof),
 	}
 	// Subscribe NewTxsEvent for tx pool
 	worker.txsSub = mos.TxPool().SubscribeNewTxsEvent(worker.txsCh)
@@ -436,7 +442,7 @@ func (w *worker) mainLoop() {
 	defer w.txsSub.Unsubscribe()
 	defer w.chainHeadSub.Unsubscribe()
 	defer w.chainSideSub.Unsubscribe()
-	events := w.mux.Subscribe(core.NewOtherTxsEvent{},core.NewProofEvent{})
+	events := w.mux.Subscribe(core.NewOtherTxsEvent{}, core.NewProofEvent{})
 	defer events.Unsubscribe()
 
 	for {
@@ -452,16 +458,32 @@ func (w *worker) mainLoop() {
 					for _, tx := range ev.Txs {
 						log.Info("Insert xcm transaction", "tx", tx.Hash().Hex())
 						w.insertCM(tx)
+						if !w.isQuest() {
+							atomic.StoreInt32(&w.cmAtomic, 1)
+							w.requestCrossTxProof(tx.Hash())
+						}
 					}
 				}
 			case core.NewProofEvent:
-				// if ev, ok := ev.Data.(core.NewProofEvent); ok {
+				if ev, ok := ev.Data.(core.NewProofEvent); ok {
+					mrProof := ev.MRProof
 
-				// 	// for _, tx := range ev.Txs {
-				// 	// 	log.Info("Receive xcm transaction", "tx", tx.Hash())
-				// 	// 	w.insertCM(tx)
-				// 	// }
-				// }
+					find := false
+					if !mrProof.Result {
+						find = true
+					} else if _, err := mrProof.VerifyULVPTXMsg(mrProof.TxHash); err != nil {
+						find = true
+					}
+
+					if find {
+						log.Info("Receive xcm transaction proof", "result", mrProof.Result)
+						w.requestCrossTxProof(mrProof.TxHash)
+					} else {
+						log.Info("Receive xcm transaction proof", "Number", ev.MRProof.Header.Number, "result", ev.MRProof.Result)
+						atomic.StoreInt32(&w.cmAtomic, 0)
+						w.insertCMProof(mrProof)
+					}
+				}
 			}
 
 		case req := <-w.newWorkCh:
@@ -978,11 +1000,12 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64) 
 		log.Info("Mining too far in the future", "wait", common.PrettyDuration(wait))
 		time.Sleep(wait)
 	}
-	num,preRoot := parent.Number(),parent.MmrRoot()
+	num, preRoot := parent.Number(), parent.MmrRoot()
 	root := w.chain.GetMmrRoot()
 
 	if !bytes.Equal(emptyHash[:], root[:]) && bytes.Equal(preRoot[:], root[:]) {
 		time.Sleep(2000 * time.Millisecond)
+
 		for {
 			root = w.chain.GetMmrRoot()
 			if !bytes.Equal(preRoot[:], root[:]) {
@@ -1128,19 +1151,64 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64) 
 }
 
 func (w *worker) cmPending() types.Transactions {
+	w.cmListMu.RLock()
+	defer w.cmListMu.RUnlock()
+
 	// Apply CM Transactions
 	messages := []*types.Transaction{}
 	for _, tx := range w.cmList {
 		messages = append(messages, tx)
 	}
 
-	w.cmList = make(map[common.Hash]*types.Transaction)
-
 	return messages
 }
 
 func (w *worker) insertCM(tx *types.Transaction) {
+	w.cmListMu.RLock()
+	defer w.cmListMu.RUnlock()
+
 	w.cmList[tx.Hash()] = tx
+}
+
+func (w *worker) deleteCM(txHash common.Hash) {
+	w.cmListMu.RLock()
+	defer w.cmListMu.RUnlock()
+
+	delete(w.cmList, txHash)
+}
+
+func (w *worker) insertCMProof(mrProof *ulvp.SimpleUlvpProof) {
+	w.cmProofMu.RLock()
+	defer w.cmProofMu.RUnlock()
+
+	w.cmProof[mrProof.TxHash] = mrProof
+
+	w.deleteCM(mrProof.TxHash)
+}
+
+func (w *worker) deleteCMProof(mrProof *ulvp.SimpleUlvpProof) {
+	w.cmProofMu.RLock()
+	defer w.cmProofMu.RUnlock()
+
+	delete(w.cmProof, mrProof.TxHash)
+}
+
+func (w *worker) cmProofPending() map[common.Hash]*ulvp.SimpleUlvpProof {
+	w.cmProofMu.RLock()
+	defer w.cmProofMu.RUnlock()
+
+	// Apply CM Transactions
+	messages := make(map[common.Hash]*ulvp.SimpleUlvpProof, len(w.cmProof))
+	for k, tx := range w.cmProof {
+		messages[k] = tx
+	}
+
+	return messages
+}
+
+// isRunning returns an indicator whether worker is running or not.
+func (w *worker) isQuest() bool {
+	return atomic.LoadInt32(&w.cmAtomic) == 1
 }
 
 // commit runs any post-transaction state modifications, assembles the final block
@@ -1286,6 +1354,7 @@ func (w *worker) requestCrossTxProof(txHash common.Hash) error {
 	w.mux.Post(core.NewRequestTxProofEvent{TxHash: txHash})
 	return nil
 }
+
 // totalFees computes total consumed fees in ETH. Block transactions and receipts have to have the same order.
 func totalFees(block *types.Block, receipts []*types.Receipt) *big.Float {
 	feesWei := new(big.Int)
@@ -1300,7 +1369,6 @@ func makeCMTransaction(tx *types.Transaction, nonce uint64) *types.Transaction {
 	cm := types.NewTransaction(nonce, types.RefToken, nil, 0, nil, encoded)
 	return cm
 }
-
 
 func packTx(tx *types.Transaction) (packed []byte, err error) {
 	json := `

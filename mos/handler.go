@@ -494,6 +494,7 @@ func (pm *ProtocolManager) handleOtherMsg(p *peer) error {
 				mtProof.ChainProof = pm.ulVP.MakeUvlpChainProof(data)
 				mtProof.Header = pm.blockchain.GetHeaderByHash(receiptRep.Receipt.BlockHash)
 				mtProof.End = pm.blockchain.CurrentBlock().Number()
+				mtProof.TxHash = query.TxHash
 			}
 		}
 
@@ -504,6 +505,10 @@ func (pm *ProtocolManager) handleOtherMsg(p *peer) error {
 		var request ulvp.SimpleUlvpProof
 		if err := msg.Decode(&request); err != nil {
 			return errResp(ErrDecode, "%v: %v", msg, err)
+		}
+		if !request.Result {
+			log.Info("MMRReceiptProofMsg", "err", err)
+			pm.removeOtherPeer(p.id)
 		}
 		pm.eventMux.Post(core.NewProofEvent{MRProof: &request})
 
