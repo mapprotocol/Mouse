@@ -547,13 +547,11 @@ func TestUVLPRLP(t *testing.T) {
 	mtProof.Result = true
 	mtProof.ReceiptProof = pReceipt
 	mtProof.ChainProof = blockchain.UlVP.MakeUvlpChainProof(dataRes)
-	mtProof.Header = &types.Header{}
+	mtProof.Header = genesis.Header()
 	mtProof.End = new(big.Int).SetUint64(0)
 	mtProof.TxHash = common.Hash{}
 
-	data := []interface{}{mtProof.ChainProof, mtProof.ReceiptProof, mtProof.End, mtProof.Header, mtProof.Result}
-
-	size, proofD, err := rlp.EncodeToReader(data)
+	size, proofD, err := rlp.EncodeToReader(&mtProof)
 	if err != nil {
 		fmt.Println("err", err)
 	}

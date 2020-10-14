@@ -498,11 +498,11 @@ func (pm *ProtocolManager) handleOtherMsg(p *peer) error {
 			}
 		}
 
-		return p.SendMMRReceiptProof(mtProof)
+		return p.SendMMRReceiptProof(&mtProof)
 
 	case msg.Code == MMRReceiptProofMsg:
 		// Retrieve and decode the propagated block
-		var request ulvp.SimpleUlvpProof
+		var request *ulvp.SimpleUlvpProof
 		if err := msg.Decode(&request); err != nil {
 			return errResp(ErrDecode, "%v: %v", msg, err)
 		}
@@ -511,7 +511,7 @@ func (pm *ProtocolManager) handleOtherMsg(p *peer) error {
 			log.Info("MMRReceiptProofMsg", "err", err)
 			pm.removeOtherPeer(p.id)
 		}
-		pm.eventMux.Post(core.NewProofEvent{MRProof: &request})
+		pm.eventMux.Post(core.NewProofEvent{MRProof: request})
 
 	case p.version >= eth63 && msg.Code == GetOtherReceiptsMsg:
 		// Decode the retrieval message
