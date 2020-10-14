@@ -192,7 +192,6 @@ func (uv *SimpleULVP) VerifyFirstMsg(data []byte) error {
 }
 
 func (uv *SimpleULVP) GetSimpleUlvpMsgReq(blocks []uint64) *ulvp.UlvpMsgReq {
-	uv.RemoteChain.SetProofHeight(blocks[0])
 	return makeUlvpMsgReq(blocks)
 }
 

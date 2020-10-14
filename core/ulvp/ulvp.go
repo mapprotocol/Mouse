@@ -97,7 +97,6 @@ type OtherChainAdapter struct {
 	Genesis      common.Hash
 	ConfirmBlock *types.Header
 	ProofHeader  *types.Header
-	ProofHeight  uint64
 	Leatest      []*types.Header
 }
 
@@ -106,7 +105,6 @@ func (o *OtherChainAdapter) Copy() *OtherChainAdapter {
 		Genesis:      o.Genesis,
 		ConfirmBlock: &types.Header{},
 		ProofHeader:  &types.Header{},
-		ProofHeight:  o.ProofHeight,
 		Leatest:      o.Leatest,
 	}
 	if o.ConfirmBlock != nil {
@@ -123,9 +121,6 @@ func (o *OtherChainAdapter) Copy() *OtherChainAdapter {
 func (o *OtherChainAdapter) originHeaderCheck(head []*types.Header) error {
 	// check difficult
 	return nil
-}
-func (o *OtherChainAdapter) SetProofHeight(h uint64) {
-	o.ProofHeight = h
 }
 
 func (o *OtherChainAdapter) GenesisCheck(head *types.Header) error {
@@ -148,10 +143,6 @@ func (o *OtherChainAdapter) checkAndSetHeaders(heads []*types.Header, setcur boo
 
 	if setcur {
 		head := heads[0]
-		if head.Number.Uint64() != o.ProofHeight {
-			fmt.Println("height not match,l:", o.ProofHeight, "r:", head.Number)
-			return errors.New("height not match")
-		}
 		o.setProofHeader(head)
 	} else {
 		o.setLeatestHeader(heads[1], heads[2:])
