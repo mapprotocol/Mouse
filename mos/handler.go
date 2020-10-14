@@ -493,7 +493,6 @@ func (pm *ProtocolManager) handleOtherMsg(p *peer) error {
 				mtProof.ReceiptProof = receiptRep
 				mtProof.ChainProof = &ulvp.UlvpChainProof{
 					Res:		data,
-					Remote:		nil,
 				}
 				mtProof.Header = pm.blockchain.GetHeaderByHash(receipt.BlockHash)
 				mtProof.End = pm.blockchain.CurrentBlock().Number()

@@ -173,7 +173,7 @@ func (o *OtherChainAdapter) setLeatestHeader(confirm *types.Header, leatest []*t
 ///////////////////////////////////////////////////////////////////////////////////
 
 type UlvpChainProof struct {
-	Remote *OtherChainAdapter
+	Remote *OtherChainAdapter   		`json:"remote"     rlp:"nil"`
 	Res    *UlvpMsgRes
 }
 

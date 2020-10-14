@@ -121,7 +121,7 @@ func TestO6(t *testing.T) {
 	// for i := 10; i < 10; i++ {
 	// 	test_O6(i)
 	// }
-	test_O6(10)
+	test_O6(100)
 	fmt.Println("finish")
 }
 func test_O6(count int) {
@@ -167,22 +167,26 @@ func test_O6(count int) {
 	}
 
 	// Genesis:      types.NewBlock(&types.Header{Number: big.NewInt(int64(100))}, nil, nil, nil, newHasher()),
-	tmp2 := &OtherChainAdapter{
-		Genesis:      common.Hash{},
-		ConfirmBlock: nil,
-		ProofHeader:  nil,
-		ProofHeight:  4,
-		Leatest:      []*types.Header{},
-	}
+	// tmp2 := &OtherChainAdapter{
+	// 	Genesis:      common.Hash{},
+	// 	ConfirmBlock: nil,
+	// 	ProofHeader:  nil,
+	// 	ProofHeight:  4,
+	// 	Leatest:      []*types.Header{},
+	// }
 	msg2 := &UlvpChainProof{
-		Remote: tmp2,
 		Res:    msg1,
 	}
 	if data2, err := rlp.EncodeToBytes(msg2); err != nil {
 		fmt.Println("error", err)
 	} else {
+		msg5 := &UlvpChainProof{}
+		if err := rlp.DecodeBytes(data2, msg5); err != nil {
+			fmt.Println("msg5", msg5, "error", err)
+		}
 		fmt.Println("data2 len:",len(data2))
 	}
+
 
 	var data []rlp.RawValue
 	data = append(data, []byte{1, 2})
