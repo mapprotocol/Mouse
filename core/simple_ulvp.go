@@ -138,7 +138,7 @@ func NewSimpleULVP(l *BlockChain) *SimpleULVP {
 }
 
 func (uv *SimpleULVP) InitOtherChain(other *types.Block) {
-	r := &ulvp.OtherChainAdapter{Genesis: other}
+	r := &ulvp.OtherChainAdapter{Genesis: other.Hash()}
 	uv.RemoteChain = r
 }
 

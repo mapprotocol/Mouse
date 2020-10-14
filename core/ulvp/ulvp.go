@@ -94,7 +94,7 @@ func (b *UlvpMsgRes) Datas() ([]byte, error) {
 ///////////////////////////////////////////////////////////////////////////////////
 
 type OtherChainAdapter struct {
-	Genesis      *types.Block
+	Genesis      common.Hash
 	ConfirmBlock *types.Header
 	ProofHeader  *types.Header
 	ProofHeight  uint64
@@ -128,9 +128,8 @@ func (o *OtherChainAdapter) SetProofHeight(h uint64) {
 }
 
 func (o *OtherChainAdapter) GenesisCheck(head *types.Header) error {
-	return nil
-
-	rHash, lHash := head.Hash(), o.Genesis.Header().Hash()
+	
+	rHash, lHash := head.Hash(), o.Genesis
 	if !bytes.Equal(rHash[:], lHash[:]) {
 		fmt.Println("genesis not match,loack:", hex.EncodeToString(lHash[:]), "remote:", hex.EncodeToString(rHash[:]))
 		return errors.New("genesis not match")

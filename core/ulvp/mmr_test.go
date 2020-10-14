@@ -159,11 +159,18 @@ func test_O6(count int) {
 			Header: nil,
 		},
 	}
+	
+	if data1, err := rlp.EncodeToBytes(msg1); err != nil {
+		fmt.Println("error", err)
+	} else {
+		fmt.Println("data1 len:",len(data1))
+	}
 
+	// Genesis:      types.NewBlock(&types.Header{Number: big.NewInt(int64(100))}, nil, nil, nil, newHasher()),
 	tmp2 := &OtherChainAdapter{
-		Genesis:      types.NewBlock(&types.Header{Number: big.NewInt(int64(100))}, nil, nil, nil, newHasher()),
-		ConfirmBlock: &types.Header{},
-		ProofHeader:  &types.Header{},
+		Genesis:      common.Hash{},
+		ConfirmBlock: nil,
+		ProofHeader:  nil,
 		ProofHeight:  4,
 		Leatest:      []*types.Header{},
 	}
@@ -171,6 +178,12 @@ func test_O6(count int) {
 		Remote: tmp2,
 		Res:    msg1,
 	}
+	if data2, err := rlp.EncodeToBytes(msg2); err != nil {
+		fmt.Println("error", err)
+	} else {
+		fmt.Println("data2 len:",len(data2))
+	}
+
 	var data []rlp.RawValue
 	data = append(data, []byte{1, 2})
 	pReceipt := &ReceiptTrieResps{Proofs: data, Index: 1, ReceiptHash: common.Hash{}}
@@ -188,6 +201,8 @@ func test_O6(count int) {
 	if err != nil {
 		fmt.Println("error", err)
 	}
+	fmt.Println("data3 len:",len(data3))
+
 	msg4 := &SimpleUlvpProof{}
 	if err := rlp.DecodeBytes(data3, msg4); err != nil {
 		fmt.Println("msg4", msg4, "error", err)
