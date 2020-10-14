@@ -391,13 +391,13 @@ func (w *worker) newWorkLoop(recommit time.Duration) {
 		case head := <-w.chainHeadCh:
 			clearPending(head.Block.NumberU64())
 
-			var txs []common.Hash
+			txs := make(map[common.Hash]*types.Transaction)
 			for _, tx := range head.Block.Transactions() {
 				if txhash := tx.PackCM(); txhash != (common.Hash{}) {
-					txs = append(txs, txhash)
+					txs[txhash] = tx
 				}
 			}
-			w.deleteCM(txs)
+			w.deleteCM(txs, head.Block)
 
 			timestamp = time.Now().Unix()
 			commit(false, commitInterruptNewHead)
@@ -1176,6 +1176,7 @@ func (w *worker) cmPending() []*ulvp.UlvpTransaction {
 	messages := []*ulvp.UlvpTransaction{}
 	for _, tx := range w.cmList {
 		if v, ok := pendingProof[tx.Tx.Hash()]; ok {
+			tx.Quest = true
 			messages = append(messages, &ulvp.UlvpTransaction{SimpUlvpP: v, Tx: tx.Tx})
 		}
 	}
@@ -1207,13 +1208,18 @@ func (w *worker) insertCM(tx *types.Transaction) bool {
 	return false
 }
 
-func (w *worker) deleteCM(txsHash []common.Hash) {
+func (w *worker) deleteCM(txs map[common.Hash]*types.Transaction, block *types.Block) {
 	w.cmListMu.RLock()
 	defer w.cmListMu.RUnlock()
 
-	for _, txHash := range txsHash {
-		delete(w.cmList, txHash)
-		w.deleteCMProof(txHash)
+	print := false
+	for _, tx := range txs {
+		if !print {
+			print = true
+			log.Info("deleteCM", "number", block.Number(), "txs", len(txs), "hash", tx.Hash().String())
+		}
+		delete(w.cmList, tx.Hash())
+		w.deleteCMProof(tx.Hash())
 	}
 }
 
@@ -1429,6 +1435,12 @@ func packTx(ulvpT *ulvp.UlvpTransaction) (packed []byte, err error) {
 		return nil, ref_err
 	}
 
+	proof, err := rlp.EncodeToBytes(ulvpT.SimpUlvpP)
+	if err != nil {
+		log.Error("EncodeToBytes lock proof failed", "error", err)
+		return nil, err
+	}
+
 	if method.Name == "lock" {
 		var receiver common.Address
 		if err = method.Inputs.Unpack(&receiver, tx.Data()[4:]); err != nil {
@@ -1437,11 +1449,6 @@ func packTx(ulvpT *ulvp.UlvpTransaction) (packed []byte, err error) {
 		}
 		log.Warn("CM lock map", "from", fromAddr, "to", receiver, "value", tx.Value())
 
-		proof, err := rlp.EncodeToBytes(ulvpT.SimpUlvpP)
-		if err != nil {
-			log.Error("EncodeToBytes lock proof failed", "error", err)
-			return nil, err
-		}
 		packed, err = genabi.Pack("", fromAddr, receiver, tx.Value(), tx.Hash(), proof)
 		if err != nil {
 			log.Error("Encode lock CM failed", "error", err)
@@ -1469,7 +1476,7 @@ func packTx(ulvpT *ulvp.UlvpTransaction) (packed []byte, err error) {
 		log.Warn("CM withdraw xmap", "from", fromAddr, "to", args.Receiver, "value", args.Amount)
 
 		// Sign withdrawxamp transaction
-		packed, err = genabi.Pack("", fromAddr, args.Receiver, args.Amount, tx.Hash(), []byte{})
+		packed, err = genabi.Pack("", fromAddr, args.Receiver, args.Amount, tx.Hash(), proof)
 		if err != nil {
 			log.Warn("Encode CM failed", "error", err)
 			return nil, err

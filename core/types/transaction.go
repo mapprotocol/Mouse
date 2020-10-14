@@ -269,33 +269,32 @@ func (tx *Transaction) PackCM() common.Hash {
 		return common.Hash{}
 	}
 
-	if method.Name != "unlock" {
-		return common.Hash{}
+	if method.Name == "unlock" || method.Name == "withdrawXMap" {
+		var data []byte
+		err = method.Inputs.Unpack(&data, tx.Data()[4:])
+
+		if err != nil {
+			log.Error("transaction Unpack unlock error", "tx", tx.Hash())
+			return common.Hash{}
+		}
+
+		ulvpParams := struct {
+			From  common.Address
+			To    common.Address
+			Value *big.Int
+			Tx    common.Hash
+			Proof []byte
+		}{}
+
+		err = Genabi.Constructor.Inputs.Unpack(&ulvpParams, data)
+		if err != nil {
+			log.Error("transaction Unpack ulvpParams error", "error", err)
+			return common.Hash{}
+		}
+		return ulvpParams.Tx
 	}
 
-	var data []byte
-	err = method.Inputs.Unpack(&data, tx.Data()[4:])
-
-	if err != nil {
-		log.Error("transaction Unpack unlock error", "tx", tx.Hash())
-		return common.Hash{}
-	}
-
-	ulvpParams := struct {
-		From  common.Address
-		To    common.Address
-		Value *big.Int
-		Tx    common.Hash
-		Proof []byte
-	}{}
-
-	err = Genabi.Constructor.Inputs.Unpack(&ulvpParams, data)
-	if err != nil {
-		log.Error("transaction Unpack ulvpParams error", "error", err)
-		return common.Hash{}
-	}
-
-	return ulvpParams.Tx
+	return common.Hash{}
 }
 
 func isProtectedV(V *big.Int) bool {
