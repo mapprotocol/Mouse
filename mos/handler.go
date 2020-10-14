@@ -1231,8 +1231,11 @@ func (pm *ProtocolManager) requestTxLoop() {
 
 	for obj := range pm.requestTxSub.Chan() {
 		if ev, ok := obj.Data.(core.NewRequestTxProofEvent); ok {
-			log.Info("requestTxLoop", "txHash", ev.TxHash)
-			pm.peersOther.BestPeer().RequestMMRReceipts([]common.Hash{ev.TxHash})
+			peer := pm.peersOther.BestPeer()
+			if peer != nil {
+				log.Info("requestTxLoop", "txHash", ev.TxHash)
+				peer.RequestMMRReceipts([]common.Hash{ev.TxHash})
+			}
 		}
 	}
 }
