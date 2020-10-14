@@ -460,23 +460,6 @@ func TestGetBlockHeadersDataEncodeDecode(t *testing.T) {
 }
 
 func TestUVLPRLP(t *testing.T) {
-	tx1 := types.NewTransaction(1, common.HexToAddress("0x1"), big.NewInt(1), 1, big.NewInt(1), nil)
-
-	receipt1 := &types.Receipt{
-		Status:            types.ReceiptStatusFailed,
-		CumulativeGasUsed: 1,
-		Logs: []*types.Log{
-			{Address: common.BytesToAddress([]byte{0x11})},
-			{Address: common.BytesToAddress([]byte{0x01, 0x11})},
-		},
-		TxHash:          tx1.Hash(),
-		ContractAddress: common.BytesToAddress([]byte{0x01, 0x11, 0x11}),
-		GasUsed:         111111,
-	}
-	var data1 []rlp.RawValue
-	data1 = append(data1, []byte{1, 2})
-	pReceipt := &ulvp.ReceiptTrieResps{Proofs: data1, Index: 1, ReceiptHash: common.Hash{}, Receipt: receipt1}
-
 	var (
 		key1, _ = crypto.HexToECDSA("b71c71a67e1177ad4e901695e1b4b9ee17ae16c6668d313eac2f96dbcda3f291")
 		key2, _ = crypto.HexToECDSA("8a1f9a8f95be41cd7ccb6168179afb4504aefe388d1e14474d32c45c72ce7b7a")
@@ -490,7 +473,7 @@ func TestUVLPRLP(t *testing.T) {
 	// Ensure that key1 has some funds in the genesis block.
 	gspec := &core.Genesis{
 		Config: &params.ChainConfig{HomesteadBlock: new(big.Int)},
-		Alloc:  core.GenesisAlloc{addr1: {Balance: big.NewInt(1000000)}},
+		Alloc:  core.GenesisAlloc{addr1: {Balance: big.NewInt(1000000000)}},
 	}
 	genesis := gspec.MustCommit(db)
 
@@ -523,6 +506,10 @@ func TestUVLPRLP(t *testing.T) {
 			b3 := gen.PrevBlock(2).Header()
 			b3.Extra = []byte("foo")
 			gen.AddUncle(b3)
+		case 49:
+			// In block 1, addr1 sends addr2 some ether.
+			tx, _ := types.SignTx(types.NewTransaction(gen.TxNonce(addr1), addr2, big.NewInt(10000), params.TxGas, nil, nil), signer, key1)
+			gen.AddTx(tx)
 		}
 	})
 
@@ -536,20 +523,27 @@ func TestUVLPRLP(t *testing.T) {
 	}
 	blockchain.UlVP.InitOtherChain(genesis)
 
-	fmt.Println("blockchain", blockchain.CurrentBlock().Number())
-
-	dataRes, err := blockchain.UlVP.HandleSimpleUlvpMsgReq(blockchain.UlVP.GetSimpleUlvpMsgReq([]uint64{50, 100}))
-	if err != nil {
-		fmt.Println("err", err)
-	}
+	txhash := blockchain.GetBlockByNumber(50).Transactions()[0].Hash()
+	fmt.Println("blockchain", blockchain.CurrentBlock().Number(), " txs ", len(blockchain.GetBlockByNumber(50).Transactions()))
 
 	var mtProof ulvp.SimpleUlvpProof
+	receiptRep, err := blockchain.UlVP.GetReceiptProof(txhash)
+
+	if err != nil {
+		fmt.Println("GetReceiptProof err", err)
+	}
+	dataRes, err := blockchain.UlVP.HandleSimpleUlvpMsgReq(blockchain.UlVP.GetSimpleUlvpMsgReq([]uint64{receiptRep.Receipt.BlockNumber.Uint64(), blockchain.CurrentBlock().NumberU64()}))
+
+	if err != nil {
+		fmt.Println("HandleSimpleUlvpMsgReq err", err)
+	}
+
 	mtProof.Result = true
-	mtProof.ReceiptProof = pReceipt
+	mtProof.ReceiptProof = receiptRep
 	mtProof.ChainProof = blockchain.UlVP.MakeUvlpChainProof(dataRes)
-	mtProof.Header = genesis.Header()
-	mtProof.End = new(big.Int).SetUint64(0)
-	mtProof.TxHash = common.Hash{}
+	mtProof.Header = blockchain.GetHeaderByHash(receiptRep.Receipt.BlockHash)
+	mtProof.End = blockchain.CurrentBlock().Number()
+	mtProof.TxHash = txhash
 
 	size, proofD, err := rlp.EncodeToReader(&mtProof)
 	if err != nil {
@@ -563,6 +557,9 @@ func TestUVLPRLP(t *testing.T) {
 		fmt.Println("err", err)
 	}
 
+	if _, err = request.VerifyULVPTXMsg(request.TxHash); err != nil {
+		fmt.Println("VerifyULVPTXMsg err", err)
+	}
 }
 
 func TestPeer_SendMMRReceiptProof(t *testing.T) {

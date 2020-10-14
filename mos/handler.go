@@ -507,10 +507,20 @@ func (pm *ProtocolManager) handleOtherMsg(p *peer) error {
 			return errResp(ErrDecode, "%v: %v", msg, err)
 		}
 		log.Info("handleOtherMsg", "msg.Code", msg.Code, "MMRReceiptProofMsg", request.TxHash.String())
+
+		find := false
 		if !request.Result {
+			find = true
+		} else if _, err := request.VerifyULVPTXMsg(request.TxHash); err != nil {
+			find = true
+		}
+
+		if find {
 			log.Info("MMRReceiptProofMsg", "err", err)
 			pm.removeOtherPeer(p.id)
+			request.Result = false
 		}
+
 		pm.eventMux.Post(core.NewProofEvent{MRProof: request})
 
 	case p.version >= eth63 && msg.Code == GetOtherReceiptsMsg:
@@ -1098,7 +1108,7 @@ func (pm *ProtocolManager) BroadcastOtherBlock(block *types.Block) {
 		}
 	}
 	if len(peers) > 0 {
-		log.Info("Announced Other block", "hash", hash, "recipients", len(peers), "duration", common.PrettyDuration(time.Since(block.ReceivedAt)))
+		log.Info("Announced block other chain", "hash", hash, "recipients", len(peers), "duration", common.PrettyDuration(time.Since(block.ReceivedAt)))
 	}
 }
 

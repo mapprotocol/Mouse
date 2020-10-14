@@ -481,15 +481,8 @@ func (w *worker) mainLoop() {
 				if ev, ok := ev.Data.(core.NewProofEvent); ok {
 					mrProof := ev.MRProof
 
-					find := false
-					if !mrProof.Result {
-						find = true
-					} else if _, err := mrProof.VerifyULVPTXMsg(mrProof.TxHash); err != nil {
-						find = true
-					}
-
-					if find {
-						log.Info("Receive xcm transaction proof", "result", mrProof.Result)
+					if mrProof.Result {
+						log.Info("Receive xcm transaction proof failed", "result", mrProof.Result)
 						w.requestCrossTxProof(mrProof.TxHash)
 					} else {
 						log.Info("Receive xcm transaction proof", "Number", ev.MRProof.Header.Number, "result", ev.MRProof.Result)

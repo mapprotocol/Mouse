@@ -43,11 +43,12 @@ type ChainHeaderProofMsg struct {
 	Header []*types.Header
 	Right  *big.Int
 }
+
 func newChainHeaderProofMsg() *ChainHeaderProofMsg {
 	return &ChainHeaderProofMsg{
-		Proof:		&ProofInfo{},
-		Header:		[]*types.Header{},
-		Right:		big.NewInt(0),
+		Proof:  &ProofInfo{},
+		Header: []*types.Header{},
+		Right:  big.NewInt(0),
 	}
 }
 func (b *ChainHeaderProofMsg) Datas() ([]byte, error) {
@@ -62,10 +63,11 @@ type ChainInProofMsg struct {
 	Proof  *ProofInfo
 	Header []*types.Header
 }
+
 func newChainInProofMsg() *ChainInProofMsg {
 	return &ChainInProofMsg{
-		Proof:		&ProofInfo{},
-		Header:		[]*types.Header{},
+		Proof:  &ProofInfo{},
+		Header: []*types.Header{},
 	}
 }
 
@@ -73,10 +75,11 @@ type UlvpMsgRes struct {
 	FirstRes  *ChainHeaderProofMsg
 	SecondRes *ChainInProofMsg
 }
+
 func NewUlvpMsgRes() *UlvpMsgRes {
-	return &UlvpMsgRes {
-		FirstRes:		newChainHeaderProofMsg(),
-		SecondRes:		newChainInProofMsg(),
+	return &UlvpMsgRes{
+		FirstRes:  newChainHeaderProofMsg(),
+		SecondRes: newChainInProofMsg(),
 	}
 }
 
@@ -246,7 +249,7 @@ func (mr *SimpleUlvpProof) VerifyULVPTXMsg(txHash common.Hash) (*types.Receipt, 
 		return nil, err
 	}
 
-	if mr.ChainProof.Remote.ProofHeader != mr.Header {
+	if mr.ChainProof.Remote.ProofHeader.Number.Uint64() != mr.Header.Number.Uint64() {
 		return nil, errors.New("mmr proof not match receipt proof")
 	}
 	receipt, err := mr.ReceiptProof.Verify()
