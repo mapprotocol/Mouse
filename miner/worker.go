@@ -481,7 +481,7 @@ func (w *worker) mainLoop() {
 				if ev, ok := ev.Data.(core.NewProofEvent); ok {
 					mrProof := ev.MRProof
 
-					if mrProof.Result {
+					if !mrProof.Result {
 						log.Info("Receive xcm transaction proof failed", "result", mrProof.Result)
 						w.requestCrossTxProof(mrProof.TxHash)
 					} else {
