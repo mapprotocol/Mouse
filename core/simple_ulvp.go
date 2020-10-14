@@ -232,16 +232,16 @@ func (uv *SimpleULVP) HandleSimpleUlvpMsgReq(msg *ulvp.UlvpMsgReq) (*ulvp.UlvpMs
 
 func (uv *SimpleULVP) MakeUvlpChainProof(msg *ulvp.UlvpMsgRes) *ulvp.UlvpChainProof {
 	return &ulvp.UlvpChainProof{
-		Remote:			uv.RemoteChain.Copy(),
-		Res:			msg,
+		Remote: uv.RemoteChain.Copy(),
+		Res:    msg,
 	}
 }
 
-func (uv *SimpleULVP) GetReceiptProof(txHash common.Hash) (*ulvp.ReceiptTrieResps, error) {
+func (uv *SimpleULVP) GetReceiptProof(txHash common.Hash) (*ulvp.ReceiptTrieResps, *types.Receipt, error) {
 
 	lookup := uv.localChain.GetTransactionLookup(txHash)
 	if uv.localChain.GetCanonicalHash(lookup.BlockIndex) != lookup.BlockHash {
-		return nil, errors.New("hash is not currently canonical")
+		return nil, nil, errors.New("hash is not currently canonical")
 	}
 	block := uv.localChain.GetBlockByHash(lookup.BlockHash)
 
@@ -261,7 +261,7 @@ func (uv *SimpleULVP) GetReceiptProof(txHash common.Hash) (*ulvp.ReceiptTrieResp
 
 	tri.Prove(keybuf.Bytes(), 0, proofs)
 
-	return &ulvp.ReceiptTrieResps{Proofs: proofs.NodeList(), Index: lookup.Index, ReceiptHash: block.ReceiptHash(), Receipt: receipt}, nil
+	return &ulvp.ReceiptTrieResps{Proofs: proofs.NodeList(), Index: lookup.Index, ReceiptHash: block.ReceiptHash()}, receipt, nil
 }
 
 func (uv *SimpleULVP) VerifyReceiptProof(receiptPes *ulvp.ReceiptTrieResps) (receipt *types.Receipt, err error) {
@@ -274,6 +274,5 @@ func (uv *SimpleULVP) VerifyReceiptProof(receiptPes *ulvp.ReceiptTrieResps) (rec
 	}
 	return receipt, err
 }
-
 
 ///////////////////////////////////////////////////////////////////////////////////

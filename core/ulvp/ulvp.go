@@ -210,19 +210,23 @@ type ReceiptTrieResps struct { // describes all responses, not just a single one
 	Proofs      types.NodeList
 	Index       uint64
 	ReceiptHash common.Hash
-	Receipt     *types.Receipt
 }
 
-func (r *ReceiptTrieResps) Verify() (receipt *types.Receipt, err error) {
+func (r *ReceiptTrieResps) Verify() (*types.Receipt, error) {
 	keybuf := new(bytes.Buffer)
 	keybuf.Reset()
 	rlp.Encode(keybuf, r.Index)
 	value, err := trie.VerifyProof(r.ReceiptHash, keybuf.Bytes(), r.Proofs.NodeSet())
-	if err := rlp.DecodeBytes(value, receipt); err != nil {
+	if err != nil {
 		return nil, err
 	}
+
+	var receipt *types.Receipt
+	if err := rlp.DecodeBytes(value, &receipt); err != nil {
+		return nil, err
+	}
+
 	return receipt, err
-	// return nil,nil
 }
 
 // newBlockData is the network packet for the block propagation message.
@@ -256,7 +260,20 @@ func (mr *SimpleUlvpProof) VerifyULVPTXMsg(txHash common.Hash) (*types.Receipt, 
 	if err != nil {
 		return nil, err
 	}
-	if receipt.TxHash != txHash {
+
+	//if !reflect.DeepEqual(receipt.Bloom, mr.ReceiptProof.Receipt.Bloom) {
+	//	return nil, errors.New("receipt Bloom proof not match receipt")
+	//}
+	//
+	//if !reflect.DeepEqual(receipt.Logs, mr.ReceiptProof.Receipt.Logs) {
+	//	return nil, errors.New("receipt Logs proof not match receipt")
+	//}
+	//
+	//if !reflect.DeepEqual(receipt.CumulativeGasUsed, mr.ReceiptProof.Receipt.CumulativeGasUsed) {
+	//	return nil, errors.New("receipt Logs proof not match receipt")
+	//}
+
+	if mr.TxHash != txHash {
 		return nil, errors.New("txHash checkout failed")
 	}
 	return receipt, nil

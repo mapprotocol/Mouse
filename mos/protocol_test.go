@@ -527,12 +527,12 @@ func TestUVLPRLP(t *testing.T) {
 	fmt.Println("blockchain", blockchain.CurrentBlock().Number(), " txs ", len(blockchain.GetBlockByNumber(50).Transactions()))
 
 	var mtProof ulvp.SimpleUlvpProof
-	receiptRep, err := blockchain.UlVP.GetReceiptProof(txhash)
+	receiptRep, receipt, err := blockchain.UlVP.GetReceiptProof(txhash)
 
 	if err != nil {
 		fmt.Println("GetReceiptProof err", err)
 	}
-	dataRes, err := blockchain.UlVP.HandleSimpleUlvpMsgReq(blockchain.UlVP.GetSimpleUlvpMsgReq([]uint64{receiptRep.Receipt.BlockNumber.Uint64(), blockchain.CurrentBlock().NumberU64()}))
+	dataRes, err := blockchain.UlVP.HandleSimpleUlvpMsgReq(blockchain.UlVP.GetSimpleUlvpMsgReq([]uint64{receipt.BlockNumber.Uint64(), blockchain.CurrentBlock().NumberU64()}))
 
 	if err != nil {
 		fmt.Println("HandleSimpleUlvpMsgReq err", err)
@@ -541,7 +541,7 @@ func TestUVLPRLP(t *testing.T) {
 	mtProof.Result = true
 	mtProof.ReceiptProof = receiptRep
 	mtProof.ChainProof = blockchain.UlVP.MakeUvlpChainProof(dataRes)
-	mtProof.Header = blockchain.GetHeaderByHash(receiptRep.Receipt.BlockHash)
+	mtProof.Header = blockchain.GetHeaderByHash(receipt.BlockHash)
 	mtProof.End = blockchain.CurrentBlock().Number()
 	mtProof.TxHash = txhash
 
@@ -564,22 +564,9 @@ func TestUVLPRLP(t *testing.T) {
 
 func TestPeer_SendMMRReceiptProof(t *testing.T) {
 
-	tx1 := types.NewTransaction(1, common.HexToAddress("0x1"), big.NewInt(1), 1, big.NewInt(1), nil)
-
-	receipt1 := &types.Receipt{
-		Status:            types.ReceiptStatusFailed,
-		CumulativeGasUsed: 1,
-		Logs: []*types.Log{
-			{Address: common.BytesToAddress([]byte{0x11})},
-			{Address: common.BytesToAddress([]byte{0x01, 0x11})},
-		},
-		TxHash:          tx1.Hash(),
-		ContractAddress: common.BytesToAddress([]byte{0x01, 0x11, 0x11}),
-		GasUsed:         111111,
-	}
 	var data []rlp.RawValue
 	data = append(data, []byte{1, 2})
-	pReceipt := &ulvp.ReceiptTrieResps{Proofs: data, Index: 1, ReceiptHash: common.Hash{}, Receipt: receipt1}
+	pReceipt := &ulvp.ReceiptTrieResps{Proofs: data, Index: 1, ReceiptHash: common.Hash{}}
 
 	size, proofD, err := rlp.EncodeToReader(pReceipt)
 	if err != nil {

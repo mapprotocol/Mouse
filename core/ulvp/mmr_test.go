@@ -4,15 +4,15 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
+	"github.com/marcopoloprotoco/mouse/common"
+	"github.com/marcopoloprotoco/mouse/core/types"
+	"github.com/marcopoloprotoco/mouse/mosdb"
+	"github.com/marcopoloprotoco/mouse/rlp"
+	"golang.org/x/crypto/sha3"
+	"hash"
 	"math"
 	"math/big"
 	"testing"
-	"hash"
-	"golang.org/x/crypto/sha3"
-	"github.com/marcopoloprotoco/mouse/common"
-	"github.com/marcopoloprotoco/mouse/core/types"
-	"github.com/marcopoloprotoco/mouse/rlp"
-	"github.com/marcopoloprotoco/mouse/mosdb"
 )
 
 func IntToBytes(n int) []byte {
@@ -46,6 +46,7 @@ func (h *testHasher) Hash() common.Hash {
 func (h *testHasher) Prove(key []byte, fromLevel uint, proofDb mosdb.KeyValueWriter) error {
 	return nil
 }
+
 /////////////////////////////////////////////////////////////////////
 //func run_Mmr(count int, proof_pos uint64) {
 //	m := NewMmr()
@@ -145,17 +146,17 @@ func test_O6(count int) {
 	// fmt.Println("leaf_number:", mmr.getLeafNumber(), "root_difficulty:", mmr.GetRootDifficulty())
 	proof, _, _ := mmr.CreateNewProof(right_difficulty)
 
-	tmp := &ChainHeaderProofMsg {
-		Proof:		proof,
-		Header:		nil,
-		Right:		big.NewInt(100),
+	tmp := &ChainHeaderProofMsg{
+		Proof:  proof,
+		Header: nil,
+		Right:  big.NewInt(100),
 	}
 
 	msg1 := &UlvpMsgRes{
-		FirstRes:	tmp,
-		SecondRes: 	&ChainInProofMsg{
-			Proof:	proof,
-			Header:	nil,
+		FirstRes: tmp,
+		SecondRes: &ChainInProofMsg{
+			Proof:  proof,
+			Header: nil,
 		},
 	}
 
@@ -167,41 +168,29 @@ func test_O6(count int) {
 		Leatest:      []*types.Header{},
 	}
 	msg2 := &UlvpChainProof{
-		Remote:		tmp2,
-		Res:		msg1,
-	}
-	tx1 := types.NewTransaction(1, common.HexToAddress("0x1"), big.NewInt(1), 1, big.NewInt(1), nil)
-	receipt1 := &types.Receipt{
-   		Status:            types.ReceiptStatusFailed,
-   		CumulativeGasUsed: 1,
-   		Logs: []*types.Log{
-      		{Address: common.BytesToAddress([]byte{0x11})},
-      		{Address: common.BytesToAddress([]byte{0x01, 0x11})},
-   		},
-   		TxHash:          tx1.Hash(),
-   		ContractAddress: common.BytesToAddress([]byte{0x01, 0x11, 0x11}),
-   		GasUsed:         111111,
+		Remote: tmp2,
+		Res:    msg1,
 	}
 	var data []rlp.RawValue
-	data = append(data,[]byte{1,2})
-	pReceipt := &ReceiptTrieResps{Proofs: data,Index: 1,ReceiptHash: common.Hash{},Receipt: receipt1}
+	data = append(data, []byte{1, 2})
+	pReceipt := &ReceiptTrieResps{Proofs: data, Index: 1, ReceiptHash: common.Hash{}}
 
 	msg3 := &SimpleUlvpProof{
-		ChainProof:		msg2,
-		ReceiptProof:	pReceipt,
-		End:			big.NewInt(120),
-		Header:			&types.Header{},
-		Result:			false,
-		TxHash:			common.Hash{},
+		ChainProof:   msg2,
+		ReceiptProof: pReceipt,
+		End:          big.NewInt(120),
+		Header:       &types.Header{},
+		Result:       false,
+		TxHash:       common.Hash{},
 	}
 
 	data3, err := rlp.EncodeToBytes(msg3)
 	if err != nil {
-		fmt.Println("error",err)
+		fmt.Println("error", err)
 	}
 	msg4 := &SimpleUlvpProof{}
 	if err := rlp.DecodeBytes(data3, msg4); err != nil {
-		fmt.Println("msg4",msg4,"error",err)
+		fmt.Println("msg4", msg4, "error", err)
 	}
 
 	// data2,_ := msg1.Datas()
@@ -230,15 +219,15 @@ func TestO7(t *testing.T) {
 			fmt.Println(i)
 		}
 		mmr.Push(&Node{
-			value:      	BytesToHash(IntToBytes(i)),
-			difficulty: 	big.NewInt(1000),
-			leafs:			uint64(i+1),
-			ds_diff:		big.NewInt(10),
-			de_diff:		big.NewInt(10),
+			value:      BytesToHash(IntToBytes(i)),
+			difficulty: big.NewInt(1000),
+			leafs:      uint64(i + 1),
+			ds_diff:    big.NewInt(10),
+			de_diff:    big.NewInt(10),
 		})
 	}
 
-	proof := mmr.GenerateProof(8,13)
+	proof := mmr.GenerateProof(8, 13)
 	proofBlock, err := VerifyRequiredBlocks2(proof)
 	if err != nil {
 		fmt.Println(err)

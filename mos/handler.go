@@ -481,18 +481,18 @@ func (pm *ProtocolManager) handleOtherMsg(p *peer) error {
 		}
 		log.Info("handleOtherMsg", "msg.Code", msg.Code, "GetMMRReceiptProofMsg", query.TxHash.String())
 		var mtProof ulvp.SimpleUlvpProof
-		receiptRep, err := pm.ulVP.GetReceiptProof(query.TxHash)
+		receiptRep, receipt, err := pm.ulVP.GetReceiptProof(query.TxHash)
 		if err != nil {
 			log.Info("GetReceiptProof", "err", err)
 		} else {
-			data, err := pm.ulVP.HandleSimpleUlvpMsgReq(pm.ulVP.GetSimpleUlvpMsgReq([]uint64{receiptRep.Receipt.BlockNumber.Uint64(), pm.blockchain.CurrentBlock().NumberU64()}))
+			data, err := pm.ulVP.HandleSimpleUlvpMsgReq(pm.ulVP.GetSimpleUlvpMsgReq([]uint64{receipt.BlockNumber.Uint64(), pm.blockchain.CurrentBlock().NumberU64()}))
 			if err != nil {
 				fmt.Println("HandleSimpleUlvpMsgReq err", err)
 			} else {
 				mtProof.Result = true
 				mtProof.ReceiptProof = receiptRep
 				mtProof.ChainProof = pm.ulVP.MakeUvlpChainProof(data)
-				mtProof.Header = pm.blockchain.GetHeaderByHash(receiptRep.Receipt.BlockHash)
+				mtProof.Header = pm.blockchain.GetHeaderByHash(receipt.BlockHash)
 				mtProof.End = pm.blockchain.CurrentBlock().Number()
 				mtProof.TxHash = query.TxHash
 			}
