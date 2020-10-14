@@ -391,13 +391,15 @@ func (w *worker) newWorkLoop(recommit time.Duration) {
 		case head := <-w.chainHeadCh:
 			clearPending(head.Block.NumberU64())
 
-			txs := make(map[common.Hash]*types.Transaction)
+			var txs []common.Hash
 			for _, tx := range head.Block.Transactions() {
 				if txhash := tx.PackCM(); txhash != (common.Hash{}) {
-					txs[txhash] = tx
+					txs = append(txs, txhash)
 				}
 			}
-			w.deleteCM(txs, head.Block)
+			if len(txs) != 0 {
+				w.deleteCM(txs, head.Block)
+			}
 
 			timestamp = time.Now().Unix()
 			commit(false, commitInterruptNewHead)
@@ -1208,18 +1210,15 @@ func (w *worker) insertCM(tx *types.Transaction) bool {
 	return false
 }
 
-func (w *worker) deleteCM(txs map[common.Hash]*types.Transaction, block *types.Block) {
+func (w *worker) deleteCM(txs []common.Hash, block *types.Block) {
 	w.cmListMu.RLock()
 	defer w.cmListMu.RUnlock()
 
-	print := false
+	log.Info("deleteCM", "number", block.Number(), "txs", len(txs), "hash", txs[0].String())
+
 	for _, tx := range txs {
-		if !print {
-			print = true
-			log.Info("deleteCM", "number", block.Number(), "txs", len(txs), "hash", tx.Hash().String())
-		}
-		delete(w.cmList, tx.Hash())
-		w.deleteCMProof(tx.Hash())
+		delete(w.cmList, tx)
+		w.deleteCMProof(tx)
 	}
 }
 
