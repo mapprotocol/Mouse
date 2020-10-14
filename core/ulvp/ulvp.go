@@ -115,6 +115,7 @@ func (o *OtherChainAdapter) Copy() *OtherChainAdapter {
 	if o.ProofHeader != nil {
 		tmp.ProofHeader = types.CopyHeader(o.ProofHeader)
 	}
+	fmt.Println("***Genesis***",hex.EncodeToString(tmp.Genesis[:]))
 	return tmp
 }
 
@@ -131,7 +132,7 @@ func (o *OtherChainAdapter) GenesisCheck(head *types.Header) error {
 	
 	rHash, lHash := head.Hash(), o.Genesis
 	if !bytes.Equal(rHash[:], lHash[:]) {
-		fmt.Println("genesis not match,loack:", hex.EncodeToString(lHash[:]), "remote:", hex.EncodeToString(rHash[:]))
+		fmt.Println("genesis not match,local:", hex.EncodeToString(lHash[:]), "remote:", hex.EncodeToString(rHash[:]))
 		return errors.New("genesis not match")
 	}
 	return nil
