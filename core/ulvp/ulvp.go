@@ -99,13 +99,20 @@ type OtherChainAdapter struct {
 }
 
 func (o *OtherChainAdapter) Copy() *OtherChainAdapter {
-	return &OtherChainAdapter{
+	tmp := &OtherChainAdapter{
 		Genesis:      o.Genesis,
-		ConfirmBlock: types.CopyHeader(o.ConfirmBlock),
-		ProofHeader:  types.CopyHeader(o.ProofHeader),
+		ConfirmBlock: &types.Header{},
+		ProofHeader:  &types.Header{},
 		ProofHeight:  o.ProofHeight,
 		Leatest:      o.Leatest,
 	}
+	if o.ConfirmBlock != nil {
+		tmp.ConfirmBlock = types.CopyHeader(o.ConfirmBlock)
+	}
+	if o.ProofHeader != nil {
+		tmp.ProofHeader = types.CopyHeader(o.ProofHeader)
+	}
+	return tmp
 }
 
 // header block check
