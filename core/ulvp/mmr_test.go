@@ -7,8 +7,12 @@ import (
 	"math"
 	"math/big"
 	"testing"
-
+	"hash"
+	"golang.org/x/crypto/sha3"
 	"github.com/marcopoloprotoco/mouse/common"
+	"github.com/marcopoloprotoco/mouse/core/types"
+	"github.com/marcopoloprotoco/mouse/rlp"
+	"github.com/marcopoloprotoco/mouse/mosdb"
 )
 
 func IntToBytes(n int) []byte {
@@ -18,6 +22,31 @@ func IntToBytes(n int) []byte {
 	return bytebuf.Bytes()
 }
 
+/////////////////////////////////////////////////////////////////////
+type testHasher struct {
+	hasher hash.Hash
+}
+
+func newHasher() *testHasher {
+	return &testHasher{hasher: sha3.NewLegacyKeccak256()}
+}
+func (h *testHasher) Reset() {
+	h.hasher.Reset()
+}
+
+func (h *testHasher) Update(key, val []byte) {
+	h.hasher.Write(key)
+	h.hasher.Write(val)
+}
+
+func (h *testHasher) Hash() common.Hash {
+	return common.BytesToHash(h.hasher.Sum(nil))
+}
+
+func (h *testHasher) Prove(key []byte, fromLevel uint, proofDb mosdb.KeyValueWriter) error {
+	return nil
+}
+/////////////////////////////////////////////////////////////////////
 //func run_Mmr(count int, proof_pos uint64) {
 //	m := NewMmr()
 //	positions := make([]*Node, 0, 0)
@@ -129,11 +158,58 @@ func test_O6(count int) {
 			Header:	nil,
 		},
 	}
-	data2,_ := msg1.Datas()
-	res1,_ := ParseUvlpMsgRes(data2)
-	if res1 == nil {
-		fmt.Println("error")
+
+	tmp2 := &OtherChainAdapter{
+		Genesis:      types.NewBlock(&types.Header{Number: big.NewInt(int64(100))}, nil, nil, nil, newHasher()),
+		ConfirmBlock: &types.Header{},
+		ProofHeader:  &types.Header{},
+		ProofHeight:  4,
+		Leatest:      []*types.Header{},
 	}
+	msg2 := &UlvpChainProof{
+		Remote:		tmp2,
+		Res:		msg1,
+	}
+	tx1 := types.NewTransaction(1, common.HexToAddress("0x1"), big.NewInt(1), 1, big.NewInt(1), nil)
+	receipt1 := &types.Receipt{
+   		Status:            types.ReceiptStatusFailed,
+   		CumulativeGasUsed: 1,
+   		Logs: []*types.Log{
+      		{Address: common.BytesToAddress([]byte{0x11})},
+      		{Address: common.BytesToAddress([]byte{0x01, 0x11})},
+   		},
+   		TxHash:          tx1.Hash(),
+   		ContractAddress: common.BytesToAddress([]byte{0x01, 0x11, 0x11}),
+   		GasUsed:         111111,
+	}
+	var data []rlp.RawValue
+	data = append(data,[]byte{1,2})
+	pReceipt := &ReceiptTrieResps{Proofs: data,Index: 1,ReceiptHash: common.Hash{},Receipt: receipt1}
+
+	msg3 := &SimpleUlvpProof{
+		ChainProof:		msg2,
+		ReceiptProof:	pReceipt,
+		End:			big.NewInt(120),
+		Header:			&types.Header{},
+		Result:			false,
+		TxHash:			common.Hash{},
+	}
+
+	data3, err := rlp.EncodeToBytes(msg3)
+	if err != nil {
+		fmt.Println("error",err)
+	}
+	msg4 := &SimpleUlvpProof{}
+	if err := rlp.DecodeBytes(data3, msg4); err != nil {
+		fmt.Println("msg4",msg4,"error",err)
+	}
+
+	// data2,_ := msg1.Datas()
+	// res1,_ := ParseUvlpMsgRes(data2)
+	// if res1 == nil {
+	// 	fmt.Println("error")
+	// }
+
 	// fmt.Println("blocks_len:", len(blocks), "blocks:", blocks, "eblocks:", len(eblocks))
 	// fmt.Println("proof:", proof)
 	pBlocks, err := VerifyRequiredBlocks(proof, right_difficulty)
