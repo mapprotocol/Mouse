@@ -470,8 +470,7 @@ func (w *worker) mainLoop() {
 				if ev, ok := ev.Data.(core.NewOtherTxsEvent); ok {
 					for _, tx := range ev.Txs {
 						log.Info("Insert xcm transaction", "tx", tx.Hash().Hex())
-						w.insertCM(tx)
-						if !request {
+						if w.insertCM(tx) && !request {
 							request = true
 							w.requestCrossTxProof(tx.Hash())
 						}
@@ -1198,11 +1197,14 @@ func (w *worker) cmPendingTx() types.Transactions {
 	return messages
 }
 
-func (w *worker) insertCM(tx *types.Transaction) {
+func (w *worker) insertCM(tx *types.Transaction) bool {
 	w.cmListMu.RLock()
 	defer w.cmListMu.RUnlock()
-
-	w.cmList[tx.Hash()] = &ReqTransaction{Tx: tx, Quest: false}
+	if _, ok := w.cmList[tx.Hash()]; !ok {
+		w.cmList[tx.Hash()] = &ReqTransaction{Tx: tx, Quest: false}
+		return true
+	}
+	return false
 }
 
 func (w *worker) deleteCM(txsHash []common.Hash) {

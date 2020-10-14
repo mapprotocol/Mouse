@@ -274,7 +274,7 @@ func (tx *Transaction) PackCM() common.Hash {
 	}
 
 	var data []byte
-	err = Refabi.Unpack(&data, "unlock", tx.Data()[4:])
+	err = method.Inputs.Unpack(&data, tx.Data()[4:])
 
 	if err != nil {
 		log.Error("transaction Unpack unlock error", "tx", tx.Hash())
@@ -283,7 +283,7 @@ func (tx *Transaction) PackCM() common.Hash {
 
 	ulvpParams := struct {
 		From  common.Address
-		To    *big.Int
+		To    common.Address
 		Value *big.Int
 		Tx    common.Hash
 		Proof []byte
