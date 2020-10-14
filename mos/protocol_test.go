@@ -18,6 +18,7 @@ package mos
 
 import (
 	"fmt"
+	"github.com/marcopoloprotoco/mouse/core/ulvp"
 	"math/big"
 	"sync"
 	"sync/atomic"
@@ -455,5 +456,145 @@ func TestGetBlockHeadersDataEncodeDecode(t *testing.T) {
 				t.Fatalf("test %d: encode decode mismatch: have %+v, want %+v", i, packet, tt.packet)
 			}
 		}
+	}
+}
+
+func TestUVLPRLP(t *testing.T) {
+	tx1 := types.NewTransaction(1, common.HexToAddress("0x1"), big.NewInt(1), 1, big.NewInt(1), nil)
+
+	receipt1 := &types.Receipt{
+		Status:            types.ReceiptStatusFailed,
+		CumulativeGasUsed: 1,
+		Logs: []*types.Log{
+			{Address: common.BytesToAddress([]byte{0x11})},
+			{Address: common.BytesToAddress([]byte{0x01, 0x11})},
+		},
+		TxHash:          tx1.Hash(),
+		ContractAddress: common.BytesToAddress([]byte{0x01, 0x11, 0x11}),
+		GasUsed:         111111,
+	}
+	var data1 []rlp.RawValue
+	data1 = append(data1, []byte{1, 2})
+	pReceipt := &ulvp.ReceiptTrieResps{Proofs: data1, Index: 1, ReceiptHash: common.Hash{}, Receipt: receipt1}
+
+	var (
+		key1, _ = crypto.HexToECDSA("b71c71a67e1177ad4e901695e1b4b9ee17ae16c6668d313eac2f96dbcda3f291")
+		key2, _ = crypto.HexToECDSA("8a1f9a8f95be41cd7ccb6168179afb4504aefe388d1e14474d32c45c72ce7b7a")
+		key3, _ = crypto.HexToECDSA("49a7b37aa6f6645917e7b807e9d1c00d4fa71f18343b0d4122a4d2df64dd6fee")
+		addr1   = crypto.PubkeyToAddress(key1.PublicKey)
+		addr2   = crypto.PubkeyToAddress(key2.PublicKey)
+		addr3   = crypto.PubkeyToAddress(key3.PublicKey)
+		db      = rawdb.NewMemoryDatabase()
+	)
+
+	// Ensure that key1 has some funds in the genesis block.
+	gspec := &core.Genesis{
+		Config: &params.ChainConfig{HomesteadBlock: new(big.Int)},
+		Alloc:  core.GenesisAlloc{addr1: {Balance: big.NewInt(1000000)}},
+	}
+	genesis := gspec.MustCommit(db)
+
+	// This call generates a chain of 5 blocks. The function runs for
+	// each block and adds different features to gen based on the
+	// block index.
+	signer := types.HomesteadSigner{}
+	chain, _ := core.GenerateChain(gspec.Config, genesis, ethash.NewFaker(), db, 100, func(i int, gen *core.BlockGen) {
+		switch i {
+		case 0:
+			// In block 1, addr1 sends addr2 some ether.
+			tx, _ := types.SignTx(types.NewTransaction(gen.TxNonce(addr1), addr2, big.NewInt(10000), params.TxGas, nil, nil), signer, key1)
+			gen.AddTx(tx)
+		case 1:
+			// In block 2, addr1 sends some more ether to addr2.
+			// addr2 passes it on to addr3.
+			tx1, _ := types.SignTx(types.NewTransaction(gen.TxNonce(addr1), addr2, big.NewInt(1000), params.TxGas, nil, nil), signer, key1)
+			tx2, _ := types.SignTx(types.NewTransaction(gen.TxNonce(addr2), addr3, big.NewInt(1000), params.TxGas, nil, nil), signer, key2)
+			gen.AddTx(tx1)
+			gen.AddTx(tx2)
+		case 2:
+			// Block 3 is empty but was mined by addr3.
+			gen.SetCoinbase(addr3)
+			gen.SetExtra([]byte("yeehaw"))
+		case 3:
+			// Block 4 includes blocks 2 and 3 as uncle headers (with modified extra data).
+			b2 := gen.PrevBlock(1).Header()
+			b2.Extra = []byte("foo")
+			gen.AddUncle(b2)
+			b3 := gen.PrevBlock(2).Header()
+			b3.Extra = []byte("foo")
+			gen.AddUncle(b3)
+		}
+	})
+
+	// Import the chain. This runs all block validation rules.
+	blockchain, _ := core.NewBlockChain(db, nil, gspec.Config, ethash.NewFaker(), vm.Config{}, nil, nil)
+	defer blockchain.Stop()
+
+	if i, err := blockchain.InsertChain(chain); err != nil {
+		fmt.Printf("insert error (block %d): %v\n", chain[i].NumberU64(), err)
+		return
+	}
+	blockchain.UlVP.InitOtherChain(genesis)
+
+	fmt.Println("blockchain", blockchain.CurrentBlock().Number())
+
+	dataRes, err := blockchain.UlVP.HandleSimpleUlvpMsgReq(blockchain.UlVP.GetSimpleUlvpMsgReq([]uint64{50, 100}))
+	if err != nil {
+		fmt.Println("err", err)
+	}
+
+	var mtProof ulvp.SimpleUlvpProof
+	mtProof.Result = true
+	mtProof.ReceiptProof = pReceipt
+	mtProof.ChainProof = blockchain.UlVP.MakeUvlpChainProof(dataRes)
+	mtProof.Header = &types.Header{}
+	mtProof.End = new(big.Int).SetUint64(0)
+	mtProof.TxHash = common.Hash{}
+
+	data := []interface{}{mtProof.ChainProof, mtProof.ReceiptProof, mtProof.End, mtProof.Header, mtProof.Result}
+
+	size, proofD, err := rlp.EncodeToReader(data)
+	if err != nil {
+		fmt.Println("err", err)
+	}
+
+	var request *ulvp.SimpleUlvpProof
+
+	s := rlp.NewStream(proofD, uint64(size))
+	if err := s.Decode(&request); err != nil {
+		fmt.Println("err", err)
+	}
+
+}
+
+func TestPeer_SendMMRReceiptProof(t *testing.T) {
+
+	tx1 := types.NewTransaction(1, common.HexToAddress("0x1"), big.NewInt(1), 1, big.NewInt(1), nil)
+
+	receipt1 := &types.Receipt{
+		Status:            types.ReceiptStatusFailed,
+		CumulativeGasUsed: 1,
+		Logs: []*types.Log{
+			{Address: common.BytesToAddress([]byte{0x11})},
+			{Address: common.BytesToAddress([]byte{0x01, 0x11})},
+		},
+		TxHash:          tx1.Hash(),
+		ContractAddress: common.BytesToAddress([]byte{0x01, 0x11, 0x11}),
+		GasUsed:         111111,
+	}
+	var data []rlp.RawValue
+	data = append(data, []byte{1, 2})
+	pReceipt := &ulvp.ReceiptTrieResps{Proofs: data, Index: 1, ReceiptHash: common.Hash{}, Receipt: receipt1}
+
+	size, proofD, err := rlp.EncodeToReader(pReceipt)
+	if err != nil {
+		fmt.Println("err", err)
+	}
+
+	var request ulvp.ReceiptTrieResps
+
+	s := rlp.NewStream(proofD, uint64(size))
+	if err := s.Decode(&request); err != nil {
+		fmt.Println("err", err)
 	}
 }

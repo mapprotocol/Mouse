@@ -18,8 +18,6 @@ package core
 
 import (
 	"fmt"
-	"math/big"
-
 	"github.com/marcopoloprotoco/mouse/common"
 	"github.com/marcopoloprotoco/mouse/consensus"
 	"github.com/marcopoloprotoco/mouse/consensus/misc"
@@ -28,6 +26,7 @@ import (
 	"github.com/marcopoloprotoco/mouse/core/vm"
 	"github.com/marcopoloprotoco/mouse/mosdb"
 	"github.com/marcopoloprotoco/mouse/params"
+	"math/big"
 )
 
 // BlockGen creates blocks for testing.
@@ -191,6 +190,11 @@ func GenerateChain(config *params.ChainConfig, parent *types.Block, engine conse
 	}
 	blocks, receipts := make(types.Blocks, n), make([]types.Receipts, n)
 	chainreader := &fakeChainReader{config: config}
+
+	// Import the chain. This runs all block validation rules.
+	blockchain, _ := NewBlockChain(db, nil, config, engine, vm.Config{}, nil, nil)
+	defer blockchain.Stop()
+
 	genblock := func(i int, parent *types.Block, statedb *state.StateDB) (*types.Block, types.Receipts) {
 		b := &BlockGen{i: i, chain: blocks, parent: parent, statedb: statedb, config: config, engine: engine}
 		b.header = makeHeader(chainreader, parent, statedb, b.engine)
@@ -213,6 +217,8 @@ func GenerateChain(config *params.ChainConfig, parent *types.Block, engine conse
 		}
 		if b.engine != nil {
 			// Finalize and seal the block
+			b.header.MmrRoot = blockchain.GetMmrRoot()
+
 			block, _ := b.engine.FinalizeAndAssemble(chainreader, b.header, statedb, b.txs, b.uncles, b.receipts)
 
 			// Write state changes to db
@@ -233,6 +239,11 @@ func GenerateChain(config *params.ChainConfig, parent *types.Block, engine conse
 			panic(err)
 		}
 		block, receipt := genblock(i, parent, statedb)
+
+		if _, err := blockchain.InsertChain(types.Blocks{block}); err != nil {
+			panic(fmt.Sprintf("insert error (block %d): %v\n", block.NumberU64(), err))
+		}
+
 		blocks[i] = block
 		receipts[i] = receipt
 		parent = block
