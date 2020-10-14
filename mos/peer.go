@@ -737,7 +737,7 @@ func (p *peer) OtherHandshake(network uint64, td *big.Int, head common.Hash, gen
 	go func() {
 		switch {
 		case p.version >= eth64:
-			errc <- p.readOtherStatus(network, &status, uLVP.RemoteChain.Genesis.Hash(), uLVP)
+			errc <- p.readOtherStatus(network, &status, uLVP.RemoteChain.Genesis, uLVP)
 		default:
 			panic(fmt.Sprintf("unsupported mos protocol version: %d", p.version))
 		}

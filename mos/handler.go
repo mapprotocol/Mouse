@@ -1276,7 +1276,7 @@ func (pm *ProtocolManager) NodeInfo() *NodeInfo {
 		Network:      pm.networkID,
 		Difficulty:   pm.blockchain.GetTd(currentBlock.Hash(), currentBlock.NumberU64()),
 		Genesis:      pm.blockchain.Genesis().Hash(),
-		OtherGenesis: pm.ulVP.RemoteChain.Genesis.Hash(),
+		OtherGenesis: pm.ulVP.RemoteChain.Genesis,
 		Config:       pm.blockchain.Config(),
 		Head:         currentBlock.Hash(),
 	}
