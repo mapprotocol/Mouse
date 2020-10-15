@@ -858,9 +858,9 @@ func setBootstrapOtherNodes(ctx *cli.Context, cfg *p2p.Config) {
 	case ctx.GlobalBool(YoloV1Flag.Name):
 		urls = params.YoloV1OtherBootnodes
 	case ctx.GlobalBool(MouseFlag.Name):
-		urls = params.MouseOtherBootnodes
+		urls = params.DuckBootnodes
 	case ctx.GlobalBool(DuckFlag.Name):
-		urls = params.DuckOtherBootnodes
+		urls = params.MouseBootnodes
 	case cfg.BootstrapOtherNodes != nil:
 		return // already set, don't apply defaults.
 	}
@@ -1669,14 +1669,14 @@ func SetEthConfig(ctx *cli.Context, stack *node.Node, cfg *mos.Config) {
 			cfg.NetworkId = 4
 		}
 		cfg.Genesis = core.DefaultMouseGenesisBlock()
-		cfg.OtherGenesis = core.DefaultOtherDuckGenesisBlock()
+		cfg.OtherGenesis = core.DefaultDuckGenesisBlock()
 		setDNSDiscoveryDefaults(cfg, params.RinkebyGenesisHash)
 	case ctx.GlobalBool(DuckFlag.Name):
 		if !ctx.GlobalIsSet(NetworkIdFlag.Name) {
 			cfg.NetworkId = 5
 		}
 		cfg.Genesis = core.DefaultDuckGenesisBlock()
-		cfg.OtherGenesis = core.DefaultOtherMouseGenesisBlock()
+		cfg.OtherGenesis = core.DefaultMouseGenesisBlock()
 		setDNSDiscoveryDefaults(cfg, params.GoerliGenesisHash)
 	case ctx.GlobalBool(GoerliFlag.Name):
 		if !ctx.GlobalIsSet(NetworkIdFlag.Name) {

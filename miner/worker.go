@@ -1289,11 +1289,12 @@ func (w *worker) commit(uncles []*types.Header, interval func(), update bool, st
 	return nil
 }
 func (w *worker) builtinTx() []*types.Transaction {
-	if w.chainConfig.ChainID.Cmp(big.NewInt(1)) == 0 {
+	if w.chainConfig.ChainID.Cmp(params.MouseChainConfig.ChainID) == 0 {
 		return w.builtinTxA()
-	} else {
+	} else if w.chainConfig.ChainID.Cmp(params.DuckChainConfig.ChainID) == 0 {
 		return w.builtinTxB()
 	}
+	return nil
 }
 
 func (w *worker) builtinTxA() (txs []*types.Transaction) {

@@ -48,22 +48,11 @@ var MouseBootnodes = []string{
 	"enode://43b0af23f012289d857d7d0fb800d82943b18739234c9b657dccbc49d90db585ced2c57ad2c082d537edfe2c06bb5de5fe3b7bc4bec41623334a5cef072704bb@39.98.214.163:30164",
 }
 
-var MouseOtherBootnodes = []string{
-	// Duck Foundation Go Bootnodes
-	"enode://829cb1b251260104a186bcdebd426cbe50fa4f247b16f5e8c3abdcb945d03e8d4aeb6fa0b6eebffb9482edfb13eeefa842ebd7c93c6c91f2d00c965033a5f945@47.92.225.192:30164",
-	"enode://851b828830f4615380b0b111a1157d4093f672f5a19255257e19504386bdf9ed1a0442e325658b969ff1b93ddc1d100b20a49f7f87147ebd5d34a4a27a527b86@39.98.50.87:30164",
-}
-
 // RopstenBootnodes are the enode URLs of the P2P bootstrap nodes running on the
 // Ropsten test network.
 var DuckBootnodes = []string{
 	"enode://829cb1b251260104a186bcdebd426cbe50fa4f247b16f5e8c3abdcb945d03e8d4aeb6fa0b6eebffb9482edfb13eeefa842ebd7c93c6c91f2d00c965033a5f945@47.92.225.192:30164",
 	"enode://851b828830f4615380b0b111a1157d4093f672f5a19255257e19504386bdf9ed1a0442e325658b969ff1b93ddc1d100b20a49f7f87147ebd5d34a4a27a527b86@39.98.50.87:30164",
-}
-
-var DuckOtherBootnodes = []string{
-	"enode://f13a9b42c3a503a2e4dc837a861ba0ae322b86aedf19c58a4e3f0c5ec3c89741d69e1cdc1bd48efc76730ea1a135b7ea3bb79cf84f5d71a92b2c496185d71843@39.98.206.106:30164",
-	"enode://43b0af23f012289d857d7d0fb800d82943b18739234c9b657dccbc49d90db585ced2c57ad2c082d537edfe2c06bb5de5fe3b7bc4bec41623334a5cef072704bb@39.98.214.163:30164",
 }
 
 // RinkebyBootnodes are the enode URLs of the P2P bootstrap nodes running on the

@@ -540,7 +540,9 @@ func TestUVLPRLP(t *testing.T) {
 
 	mtProof.Result = true
 	mtProof.ReceiptProof = receiptRep
-	mtProof.ChainProof = blockchain.UlVP.MakeUvlpChainProof(dataRes)
+	mtProof.ChainProof = &ulvp.UlvpChainProof{
+		Res: dataRes,
+	}
 	mtProof.Header = blockchain.GetHeaderByHash(receipt.BlockHash)
 	mtProof.End = blockchain.CurrentBlock().Number()
 	mtProof.TxHash = txhash
@@ -556,7 +558,7 @@ func TestUVLPRLP(t *testing.T) {
 	if err := s.Decode(&request); err != nil {
 		fmt.Println("err", err)
 	}
-
+	request.ChainProof = blockchain.UlVP.MakeUvlpChainProof(request.ChainProof.Res)
 	if _, err = request.VerifyULVPTXMsg(request.TxHash); err != nil {
 		fmt.Println("VerifyULVPTXMsg err", err)
 	}
