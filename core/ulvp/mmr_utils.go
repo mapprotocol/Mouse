@@ -44,7 +44,7 @@ func sibling_offset(height int) uint64 {
 func merge(left, right *Node) *Node {
 	parent := &Node{}
 	hashes := make([]common.Hash, 0, 0)
-	hashes = append(append(hashes, left.getHash()), right.getHash())
+	hashes = append(append(hashes, left.GetHash()), right.GetHash())
 	parent.setHash(RlpHash(hashes))
 	parent.setDifficulty(new(big.Int).Add(left.getDifficulty(), right.getDifficulty()))
 	parent.setIndex(right.getIndex() + 1)

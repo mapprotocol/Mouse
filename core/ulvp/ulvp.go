@@ -97,6 +97,7 @@ func (b *UlvpMsgRes) checkMmrRoot() error {
 			fmt.Println("mmr root not match for second proof,first:", hex.EncodeToString(fRoot[:]), "second:", hex.EncodeToString(sRoot[:]))
 			return errors.New("mmr root not match for second proof")
 		}
+		return nil
 	}
 	return errors.New("invalid params in checkMmrRoot")
 }
@@ -177,6 +178,7 @@ func (o *OtherChainAdapter) checkMmrRootForFirst(root common.Hash) error {
 			fmt.Println("mmr root not match for first proof in header:", hex.EncodeToString(root[:]), "root in proof:", hex.EncodeToString(rHash[:]))
 			return errors.New("genesis not match")
 		}
+		return nil
 	}
 	return errors.New("not get the first proof")
 }

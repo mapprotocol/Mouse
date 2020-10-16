@@ -55,7 +55,7 @@ func NewNode(v common.Hash, d, ds, de *big.Int, timeCost uint64) *Node {
 		timeCost:   timeCost,
 	}
 }
-func (n *Node) getHash() common.Hash {
+func (n *Node) GetHash() common.Hash {
 	return n.value
 }
 func (n *Node) setHash(h common.Hash) {
@@ -456,7 +456,7 @@ func (m *Mmr) getRoot() common.Hash {
 	if root == nil {
 		return common.Hash{0}
 	} else {
-		return root.getHash()
+		return root.GetHash()
 	}
 }
 func (m *Mmr) GetRoot2() common.Hash {
@@ -538,7 +538,7 @@ func generateProofRecursive(currentNode *Node, blocks []uint64, proofs []*ProofE
 			Right:   false,
 			LeafNum: 0,
 			Res: &ProofRes{
-				H:  currentNode.getHash(),
+				H:  currentNode.GetHash(),
 				TD: currentNode.getDifficulty(),
 			},
 		})
@@ -564,7 +564,7 @@ func generateProofRecursive(currentNode *Node, blocks []uint64, proofs []*ProofE
 			Right:   false,
 			LeafNum: 0,
 			Res: &ProofRes{
-				H:  left_node.getHash(),
+				H:  left_node.GetHash(),
 				TD: left_node.getDifficulty(),
 			},
 		})
@@ -585,7 +585,7 @@ func generateProofRecursive(currentNode *Node, blocks []uint64, proofs []*ProofE
 			Right:   true,
 			LeafNum: 0,
 			Res: &ProofRes{
-				H:  right_node.getHash(),
+				H:  right_node.GetHash(),
 				TD: right_node.getDifficulty(),
 			},
 		})
@@ -605,7 +605,7 @@ func (m *Mmr) genProof(right_difficulty *big.Int, blocks []uint64) *ProofInfo {
 		Right:   false,
 		LeafNum: m.getLeafNumber(),
 		Res: &ProofRes{
-			H:  rootNode.getHash(),
+			H:  rootNode.GetHash(),
 			TD: rootNode.getDifficulty(),
 		},
 	})
@@ -1035,4 +1035,9 @@ func (m *Mmr) GenerateProof(proofHeight, EndHeight uint64) *ProofInfo {
 	info.Checked = []uint64{proofHeight}
 	return info
 }
+func (m *Mmr) GenerateProof2(proofHeight, EndHeight uint64) *ProofInfo {
 
+	info := m.genProof(big.NewInt(0), []uint64{proofHeight})
+	info.Checked = []uint64{proofHeight}
+	return info
+}

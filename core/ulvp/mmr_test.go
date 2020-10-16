@@ -3,6 +3,7 @@ package ulvp
 import (
 	"bytes"
 	"encoding/binary"
+	"encoding/hex"
 	"fmt"
 	"github.com/marcopoloprotoco/mouse/common"
 	"github.com/marcopoloprotoco/mouse/core/types"
@@ -121,7 +122,7 @@ func TestO6(t *testing.T) {
 	// for i := 10; i < 10; i++ {
 	// 	test_O6(i)
 	// }
-	test_O6(100)
+	test_O6(1000000)
 	fmt.Println("finish")
 }
 func test_O6(count int) {
@@ -231,7 +232,7 @@ func test_O6(count int) {
 }
 
 func TestO7(t *testing.T) {
-	count := 16
+	count := 20
 	mmr := NewMMR()
 	for i := 0; i < count; i++ {
 		if i == 9999 {
@@ -245,14 +246,26 @@ func TestO7(t *testing.T) {
 			de_diff:    big.NewInt(10),
 		})
 	}
-
-	proof := mmr.GenerateProof(8, 13)
-	proofBlock, err := VerifyRequiredBlocks2(proof)
-	if err != nil {
+	right_difficulty := big.NewInt(3000)
+	// fmt.Println("leaf_number:", mmr.getLeafNumber(), "root_difficulty:", mmr.GetRootDifficulty())
+	proof, _, _ := mmr.CreateNewProof(right_difficulty)
+	if proofBlock1, err := VerifyRequiredBlocks2(proof); err != nil {
 		fmt.Println(err)
 	} else {
-		b := proof.VerifyProof2(proofBlock)
+		b := proof.VerifyProof2(proofBlock1)
 		fmt.Println("b:", b)
+	}
+	
+	proof2 := mmr.GenerateProof(15, 20)
+	if proofBlock, err := VerifyRequiredBlocks2(proof2); err != nil {
+		fmt.Println(err)
+	} else {
+		b := proof2.VerifyProof2(proofBlock)
+		fmt.Println("b:", b)
+	}
+
+	if !bytes.Equal(proof.RootHash[:],proof2.RootHash[:]) {
+		fmt.Println("RootHash NOT match,root1:",hex.EncodeToString(proof.RootHash[:]),"root2:",hex.EncodeToString(proof2.RootHash[:]))
 	}
 
 	fmt.Println("finish:", count)

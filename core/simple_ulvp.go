@@ -17,7 +17,7 @@ import (
 )
 
 var (
-	K                = 6
+	K                = 3
 	Ulvp *SimpleULVP = nil
 )
 
@@ -97,7 +97,7 @@ func getRightDifficult(localChain *BlockChain, curNum uint64, r *big.Int) (*big.
 	}
 
 	right := new(big.Int).Set(r)
-	for ; i < int(curNum); i++ {
+	for ; i <= int(curNum); i++ {
 		b := localChain.GetBlockByNumber(uint64(i))
 		if b != nil {
 			heads = append(heads, b.Header())
@@ -196,13 +196,24 @@ func (uv *SimpleULVP) GetSimpleUlvpMsgReq(blocks []uint64) *ulvp.UlvpMsgReq {
 }
 
 func (uv *SimpleULVP) HandleSimpleUlvpMsgReq(msg *ulvp.UlvpMsgReq) (*ulvp.UlvpMsgRes, error) {
+	return uv.tryHandleSimpleUlvpMsgReq(msg)
+}
+func (uv *SimpleULVP) tryHandleSimpleUlvpMsgReq(msg *ulvp.UlvpMsgReq) (*ulvp.UlvpMsgRes, error) { 
 	res := ulvp.NewUlvpMsgRes()
 	// generate proof the leatest localChain
-	cur := uv.localChain.CurrentBlock()
+	// cur := uv.localChain.CurrentBlock()
+	// curNum := cur.NumberU64()
 	genesis := uv.localChain.GetBlockByNumber(0)
+	MmrInfo,root := uv.getTailMmr()
+
+	cur := uv.localChain.GetBlockByHash(root)
+	if cur == nil {
+		return nil,fmt.Errorf("not happend,hash:",hex.EncodeToString(root[:]))
+	}
 	curNum := cur.NumberU64()
-	Right, heads := getRightDifficult(uv.localChain, curNum, cur.Difficulty())
-	proof, _, _ := uv.MmrInfo.CreateNewProof(Right)
+
+	Right, heads := getRightDifficult(uv.localChain, curNum, big.NewInt(0))
+	proof, _, _ := MmrInfo.CreateNewProof(Right)
 	// heads[0]=genesis,heads[1]=confirmHeade and leatest header
 	heads = append([]*types.Header{genesis.Header()}, heads...)
 	res.FirstRes.Proof, res.FirstRes.Header = proof, heads
@@ -213,13 +224,13 @@ func (uv *SimpleULVP) HandleSimpleUlvpMsgReq(msg *ulvp.UlvpMsgReq) (*ulvp.UlvpMs
 	sort.Slice(blocks, func(i, j int) bool {
 		return blocks[i] < blocks[j]
 	})
-	if blocks[len(blocks)-1] > curNum {
+	if blocks[len(blocks)-1] > curNum + 1 {
 		return nil, errors.New("the proof point over the leatest localChain height")
 	}
 	// blocks = append(blocks, curNum)
 	// will send the block head with proofs to peer
 	if b := uv.localChain.GetBlockByNumber(blocks[0]); b != nil {
-		proof2 := uv.MmrInfo.GenerateProof(blocks[0], curNum)
+		proof2 := MmrInfo.GenerateProof2(blocks[0], curNum)
 		res.SecondRes.Proof = proof2
 		res.SecondRes.Header = []*types.Header{b.Header()}
 	} else {
@@ -228,6 +239,7 @@ func (uv *SimpleULVP) HandleSimpleUlvpMsgReq(msg *ulvp.UlvpMsgReq) (*ulvp.UlvpMs
 
 	return res, nil
 }
+
 
 func (uv *SimpleULVP) MakeUvlpChainProof(msg *ulvp.UlvpMsgRes) *ulvp.UlvpChainProof {
 	return &ulvp.UlvpChainProof{
@@ -273,5 +285,10 @@ func (uv *SimpleULVP) VerifyReceiptProof(receiptPes *ulvp.ReceiptTrieResps) (rec
 	}
 	return receipt, err
 }
+func (uv *SimpleULVP) getTailMmr() (*ulvp.Mmr,common.Hash) {
+	mmr := uv.MmrInfo.Copy()
+	n := mmr.Pop2()
 
+	return mmr,n.GetHash()
+}
 ///////////////////////////////////////////////////////////////////////////////////
