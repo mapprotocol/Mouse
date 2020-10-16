@@ -90,7 +90,16 @@ func (b *UlvpMsgRes) Datas() ([]byte, error) {
 	}
 	return data, nil
 }
-
+func (b *UlvpMsgRes) checkMmrRoot() error {
+	if b.FirstRes != nil && b.SecondRes != nil {
+		fRoot,sRoot := b.FirstRes.Proof.RootHash, b.SecondRes.Proof.RootHash
+		if !bytes.Equal(fRoot[:], sRoot[:]) {
+			fmt.Println("mmr root not match for second proof,first:", hex.EncodeToString(fRoot[:]), "second:", hex.EncodeToString(sRoot[:]))
+			return errors.New("mmr root not match for second proof")
+		}
+	}
+	return errors.New("invalid params in checkMmrRoot")
+}
 ///////////////////////////////////////////////////////////////////////////////////
 
 type OtherChainAdapter struct {
@@ -160,6 +169,17 @@ func (o *OtherChainAdapter) setLeatestHeader(confirm *types.Header, leatest []*t
 	}
 	o.Leatest = tmp
 }
+func (o *OtherChainAdapter) checkMmrRootForFirst(root common.Hash) error {
+	if len(o.Leatest) > 0 {
+		l := o.Leatest[len(o.Leatest) - 1]
+		rHash := l.MmrRoot
+		if !bytes.Equal(root[:], rHash[:]) {
+			fmt.Println("mmr root not match for first proof in header:", hex.EncodeToString(root[:]), "root in proof:", hex.EncodeToString(rHash[:]))
+			return errors.New("genesis not match")
+		}
+	}
+	return errors.New("not get the first proof")
+}
 
 ///////////////////////////////////////////////////////////////////////////////////
 
@@ -182,12 +202,17 @@ func (uc *UlvpChainProof) Verify() error {
 			if err := uc.Remote.checkAndSetHeaders(uc.Res.FirstRes.Header, false); err != nil {
 				return err
 			}
-
+			if err := uc.Remote.checkMmrRootForFirst(uc.Res.FirstRes.Proof.RootHash); err != nil {
+				return err
+			}
 			if pBlocks, err := VerifyRequiredBlocks2(uc.Res.SecondRes.Proof); err != nil {
 				return err
 			} else {
 				if !uc.Res.SecondRes.Proof.VerifyProof2(pBlocks) {
 					return errors.New("Verify Proof2 Failed on first msg")
+				}
+				if err := uc.checkMmrRoot(); err != nil {
+					return err
 				}
 				// check headers
 				return uc.Remote.checkAndSetHeaders(uc.Res.SecondRes.Header, true)
@@ -195,6 +220,9 @@ func (uc *UlvpChainProof) Verify() error {
 		}
 	}
 	return nil
+}
+func (uc *UlvpChainProof) checkMmrRoot() error {
+	return uc.Res.checkMmrRoot() 
 }
 
 type ReceiptTrieResps struct { // describes all responses, not just a single one
