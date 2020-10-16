@@ -104,6 +104,7 @@ type ProtocolManager struct {
 	txs                      map[common.Hash]*types.Transaction
 	pendTxs                  map[uint64][]*types.Transaction
 	lock                     sync.RWMutex
+	running                  bool
 }
 
 // NewProtocolManager returns a new Mouse sub protocol manager. The Mouse sub protocol manages peers capable
@@ -303,9 +304,13 @@ func (pm *ProtocolManager) Start(maxPeers int) {
 	pm.wg.Add(2)
 	go pm.chainSync.loop()
 	go pm.txsyncLoop64() // TODO(karalabe): Legacy initial tx echange, drop with mos/64.
+
+	pm.running = true
 }
 
 func (pm *ProtocolManager) Stop() {
+	pm.running = false
+
 	pm.txsSub.Unsubscribe()        // quits txBroadcastLoop
 	pm.minedBlockSub.Unsubscribe() // quits blockBroadcastLoop
 	pm.requestTxSub.Unsubscribe()  // quits requestTxLoop
@@ -334,6 +339,9 @@ func (pm *ProtocolManager) newPeer(pv int, p *p2p.Peer, rw p2p.MsgReadWriter, ge
 func (pm *ProtocolManager) runPeer(p *peer) error {
 	pm.peerWG.Add(1)
 	defer pm.peerWG.Done()
+	if !pm.running {
+		return errors.New("ProtocolManager stop")
+	}
 	if p.Peer.ChainId() == p2p.ChainB {
 		return pm.handleOther(p)
 	} else {
@@ -492,7 +500,7 @@ func (pm *ProtocolManager) handleOtherMsg(p *peer) error {
 				mtProof.Result = true
 				mtProof.ReceiptProof = receiptRep
 				mtProof.ChainProof = &ulvp.UlvpChainProof{
-					Res:		data,
+					Res: data,
 				}
 				mtProof.Header = pm.blockchain.GetHeaderByHash(receipt.BlockHash)
 				mtProof.End = pm.blockchain.CurrentBlock().Number()
