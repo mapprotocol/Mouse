@@ -931,6 +931,7 @@ func (s *PublicBlockChainAPI) Call(ctx context.Context, args CallArgs, blockNrOr
 	if overrides != nil {
 		accounts = *overrides
 	}
+	log.Debug("Call", "args", args.To.String(), "args", args)
 	result, err := DoCall(ctx, s.b, args, blockNrOrHash, accounts, vm.Config{}, 5*time.Second, s.b.RPCGasCap())
 	if err != nil {
 		return nil, err
@@ -1052,7 +1053,9 @@ func DoEstimateGas(ctx context.Context, b Backend, args CallArgs, blockNrOrHash 
 // given transaction against the current pending block.
 func (s *PublicBlockChainAPI) EstimateGas(ctx context.Context, args CallArgs) (hexutil.Uint64, error) {
 	blockNrOrHash := rpc.BlockNumberOrHashWithNumber(rpc.PendingBlockNumber)
-	return DoEstimateGas(ctx, s.b, args, blockNrOrHash, s.b.RPCGasCap())
+	data, err := DoEstimateGas(ctx, s.b, args, blockNrOrHash, s.b.RPCGasCap())
+	log.Debug("EstimateGas", "args", args, "err", err)
+	return data, err
 }
 
 // ExecutionResult groups all structured logs emitted by the EVM
@@ -1601,6 +1604,7 @@ func SubmitTransaction(ctx context.Context, b Backend, tx *types.Transaction) (c
 	if err := checkTxFee(tx.GasPrice(), tx.Gas(), b.RPCTxFeeCap()); err != nil {
 		return common.Hash{}, err
 	}
+	log.Debug("SubmitTransaction", "tx", tx, " data ", tx.Data())
 	if err := b.SendTx(ctx, tx); err != nil {
 		return common.Hash{}, err
 	}

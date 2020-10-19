@@ -288,6 +288,7 @@ func (h *handler) handleResponse(msg *jsonrpcMessage) {
 
 // handleCallMsg executes a call message and returns the answer.
 func (h *handler) handleCallMsg(ctx *callProc, msg *jsonrpcMessage) *jsonrpcMessage {
+	log.Debug("handleCallMsg", "msg", msg.String())
 	start := time.Now()
 	switch {
 	case msg.isNotification():
