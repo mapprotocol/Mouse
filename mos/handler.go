@@ -490,12 +490,13 @@ func (pm *ProtocolManager) handleOtherMsg(p *peer) error {
 		log.Info("handleOtherMsg", "msg.Code", msg.Code, "GetMMRReceiptProofMsg", query.TxHash.String())
 		var mtProof ulvp.SimpleUlvpProof
 		receiptRep, receipt, err := pm.ulVP.GetReceiptProof(query.TxHash)
+		mtProof.TxHash = query.TxHash
 		if err != nil {
-			log.Info("GetReceiptProof", "err", err)
+			log.Warn("GetReceiptProof", "err", err)
 		} else {
 			data, err := pm.ulVP.HandleSimpleUlvpMsgReq(pm.ulVP.GetSimpleUlvpMsgReq([]uint64{receipt.BlockNumber.Uint64(), pm.blockchain.CurrentBlock().NumberU64()}))
 			if err != nil {
-				fmt.Println("HandleSimpleUlvpMsgReq err", err)
+				log.Warn("HandleSimpleUlvpMsgReq", "tx", query.TxHash.String(), "err", err)
 			} else {
 				mtProof.Result = true
 				mtProof.ReceiptProof = receiptRep
@@ -504,7 +505,6 @@ func (pm *ProtocolManager) handleOtherMsg(p *peer) error {
 				}
 				mtProof.Header = pm.blockchain.GetHeaderByHash(receipt.BlockHash)
 				mtProof.End = pm.blockchain.CurrentBlock().Number()
-				mtProof.TxHash = query.TxHash
 			}
 		}
 
@@ -528,7 +528,11 @@ func (pm *ProtocolManager) handleOtherMsg(p *peer) error {
 		}
 
 		if find {
-			log.Info("MMRReceiptProofMsg", "err", err)
+			peer := pm.peersOther.BestPeer()
+			log.Error("MMRReceiptProofMsg", "peer", peer, "err", err)
+			if peer != nil {
+				peer.RequestMMRReceipts([]common.Hash{request.TxHash})
+			}
 			pm.removeOtherPeer(p.id)
 			request.Result = false
 		}

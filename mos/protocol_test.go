@@ -526,7 +526,6 @@ func TestUVLPRLP(t *testing.T) {
 				hexutil.MustDecodeBig("0xcd27442a4c4f0d134508e02be5a7bc57428ee46f0cf3c62fe33d98327fee5154"),
 				hexutil.MustDecodeBig("0x5e1c109592b13781c91d22fbf2394f337b810a60333cc1307fa6cb02cf429219"),
 			)
-			fmt.Println(token.ChainId())
 			gen.AddTx(token)
 
 			ref := types.NewContractCreation(
@@ -540,8 +539,6 @@ func TestUVLPRLP(t *testing.T) {
 				hexutil.MustDecodeBig("0xeb1418299ef79258f43c31011a214249bc02a1cf5b95b27f14eb9a12b6db64b"),
 				hexutil.MustDecodeBig("0x6e72a8ab0fa41cf65783b70c0ae51ee824bd1e450386725fc143cb8bf53424ee"),
 			)
-			fmt.Println(token.ChainId())
-
 			gen.AddTx(ref)
 
 			ch := types.NewTransaction(
@@ -556,8 +553,6 @@ func TestUVLPRLP(t *testing.T) {
 				hexutil.MustDecodeBig("0x6a78a08d301d8d30a46f6cc98a7da3d8fd73b40e7fa50dbbb5571c803dcca2d3"),
 				hexutil.MustDecodeBig("0x4e2a0356f4d219110a85b4fd8172ffcbddd1f9032c765dc295b26254604bb377"),
 			)
-			fmt.Println(token.ChainId())
-
 			gen.AddTx(ch)
 		case 5:
 			proof := getRandomData()
@@ -636,7 +631,7 @@ func TestUVLPRLP(t *testing.T) {
 func getRandomData() []byte {
 	data0 := []byte{1, 2, 3, 4, 5, 6, 7, 8, 9, 1, 2, 3, 4, 5, 6, 7, 8, 9, 1, 2, 3, 4, 5, 6, 7, 8, 9, 1, 2, 3, 4, 5, 6, 7, 8, 9, 1, 2, 3, 4, 5, 6, 7, 8, 9}
 	data := []byte{}
-	for i := 0; i < 1000000; i++ {
+	for i := 0; i < 1000; i++ {
 		data = append(data, data0...)
 	}
 	return data

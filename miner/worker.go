@@ -1449,7 +1449,7 @@ func packTx(ulvpT *ulvp.UlvpTransaction) (packed []byte, err error) {
 			log.Warn("Decode CM lock failed", "error", err)
 			return nil, err
 		}
-		log.Warn("CM lock map", "from", fromAddr, "to", receiver, "value", tx.Value())
+		log.Warn("CM lock map", "from", fromAddr, "to", receiver, "value", tx.Value(), "tx", tx.Hash())
 
 		packed, err = genabi.Pack("", fromAddr, receiver, tx.Value(), tx.Hash(), proof)
 		if err != nil {
@@ -1475,7 +1475,7 @@ func packTx(ulvpT *ulvp.UlvpTransaction) (packed []byte, err error) {
 			log.Warn("Decode CM withdraw failed", "error", err)
 			return nil, err
 		}
-		log.Warn("CM withdraw xmap", "from", fromAddr, "to", args.Receiver, "value", args.Amount)
+		log.Warn("CM withdraw xmap", "from", fromAddr, "to", args.Receiver, "value", args.Amount, "tx", tx.Hash())
 
 		// Sign withdrawxamp transaction
 		packed, err = genabi.Pack("", fromAddr, args.Receiver, args.Amount, tx.Hash(), proof)
