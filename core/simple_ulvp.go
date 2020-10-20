@@ -196,19 +196,20 @@ func (uv *SimpleULVP) GetSimpleUlvpMsgReq(blocks []uint64) *ulvp.UlvpMsgReq {
 }
 
 func (uv *SimpleULVP) HandleSimpleUlvpMsgReq(msg *ulvp.UlvpMsgReq) (*ulvp.UlvpMsgRes, error) {
+	
 	return uv.tryHandleSimpleUlvpMsgReq(msg)
 }
 func (uv *SimpleULVP) tryHandleSimpleUlvpMsgReq(msg *ulvp.UlvpMsgReq) (*ulvp.UlvpMsgRes, error) { 
 	res := ulvp.NewUlvpMsgRes()
 	// generate proof the leatest localChain
-	// cur := uv.localChain.CurrentBlock()
-	// curNum := cur.NumberU64()
+	cur1 := uv.localChain.CurrentBlock()
+	curNum1 := cur1.NumberU64()
 	genesis := uv.localChain.GetBlockByNumber(0)
 	MmrInfo,root := uv.getTailMmr()
 
 	cur := uv.localChain.GetBlockByHash(root)
-	if cur == nil {
-		return nil,fmt.Errorf("not happend,hash:",hex.EncodeToString(root[:]))
+	if cur != nil {
+		return nil,fmt.Errorf("not happend,hash:%v,height:%v",hex.EncodeToString(root[:]),curNum1)
 	}
 	curNum := cur.NumberU64()
 
