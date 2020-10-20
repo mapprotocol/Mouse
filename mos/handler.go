@@ -497,6 +497,9 @@ func (pm *ProtocolManager) handleOtherMsg(p *peer) error {
 			data, err := pm.ulVP.HandleSimpleUlvpMsgReq(pm.ulVP.GetSimpleUlvpMsgReq([]uint64{receipt.BlockNumber.Uint64(), pm.blockchain.CurrentBlock().NumberU64()}))
 			if err != nil {
 				log.Warn("HandleSimpleUlvpMsgReq", "tx", query.TxHash.String(), "err", err)
+				mtProof.ReceiptProof = &ulvp.ReceiptTrieResps{}
+				mtProof.ChainProof = &ulvp.UlvpChainProof{}
+				mtProof.Header = &types.Header{}
 			} else {
 				mtProof.Result = true
 				mtProof.ReceiptProof = receiptRep
