@@ -1153,7 +1153,7 @@ func (pm *ProtocolManager) BroadcastOtherReadyTransactions(block *types.Block) {
 	}
 	pm.deleteOtherTxs(deleteTxs)
 
-	delay := block.NumberU64() - 6
+	delay := block.NumberU64() - params.BroadCastDelay
 	if txs := pm.pendingOther(delay); len(txs) != 0 {
 		var (
 			txset = make(map[*peer][]*types.Transaction)
