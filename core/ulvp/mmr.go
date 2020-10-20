@@ -517,10 +517,12 @@ func (m *Mmr) getChildByAggrWeight(weight float64) uint64 {
 
 func (m *Mmr) Copy() *Mmr {
 	tmp := NewMMR()
-	tmp.curSize = m.curSize
-	tmp.leafNum = m.leafNum
 	m.mu.Lock()
 	defer m.mu.Unlock()
+	
+	tmp.curSize = m.curSize
+	tmp.leafNum = m.leafNum
+
 	for _, n := range m.values {
 		tmp.values = append(tmp.values, n.clone())
 	}
