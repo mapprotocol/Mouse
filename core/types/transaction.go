@@ -311,15 +311,15 @@ func (tx *Transaction) PackCM() common.Hash {
 		}
 
 		ulvpParams := struct {
-			From  common.Address
-			To    common.Address
-			Value *big.Int
-			Tx    common.Hash
-			ID    string
-			Nation string
-			Name string
+			From    common.Address
+			To      common.Address
+			Value   *big.Int
+			Tx      common.Hash
+			Id      string
+			Nation  string
+			Name    string
 			Address string
-			Proof []byte
+			Proof   []byte
 		}{}
 
 		err = Genabi.Constructor.Inputs.Unpack(&ulvpParams, data)
