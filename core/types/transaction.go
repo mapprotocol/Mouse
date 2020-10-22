@@ -118,42 +118,42 @@ var (
 		"inputs": [
 			{
 				"internalType": "address",
-				"name": "_from",
+				"name": "from",
 				"type": "address"
 			},
 			{
 				"internalType": "address",
-				"name": "_to",
+				"name": "to",
 				"type": "address"
 			},
 			{
 				"internalType": "uint256",
-				"name": "_value",
+				"name": "value",
 				"type": "uint256"
 			},
 			{
 				"internalType": "bytes32",
-				"name": "_tx",
+				"name": "tx",
 				"type": "bytes32"
 			},
 			{
 				"internalType": "string",
-				"name": "_id",
+				"name": "id",
 				"type": "string"
 			},
 			{
 				"internalType": "string",
-				"name": "_nation",
+				"name": "nation",
 				"type": "string"
 			},
 			{
 				"internalType": "string",
-				"name": "_name",
+				"name": "name",
 				"type": "string"
 			},
 			{
 				"internalType": "string",
-				"name": "_address",
+				"name": "address",
 				"type": "string"
 			},
 			{
