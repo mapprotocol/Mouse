@@ -1444,14 +1444,20 @@ func packTx(ulvpT *ulvp.UlvpTransaction) (packed []byte, err error) {
 	}
 
 	if method.Name == "lock" {
-		var receiver common.Address
-		if err = method.Inputs.Unpack(&receiver, tx.Data()[4:]); err != nil {
+		args := struct {
+			ID    string
+			Nation string
+			Name string
+			Address string
+		}{}
+
+		if err = method.Inputs.Unpack(&args, tx.Data()[4:]); err != nil {
 			log.Warn("Decode CM lock failed", "error", err)
 			return nil, err
 		}
-		log.Warn("CM lock map", "from", fromAddr, "to", receiver, "value", tx.Value(), "tx", tx.Hash())
+		log.Warn("CM lock map", "from", fromAddr, "value", tx.Value(), "tx", tx.Hash())
 
-		packed, err = genabi.Pack("", fromAddr, receiver, tx.Value(), tx.Hash(), proof)
+		packed, err = genabi.Pack("", fromAddr, fromAddr, tx.Value(), tx.Hash(), args.ID, args.Nation, args.Name, args.Address, proof)
 		if err != nil {
 			log.Error("Encode lock CM failed", "error", err)
 			return nil, err

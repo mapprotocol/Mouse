@@ -39,64 +39,63 @@ var (
 	ErrInvalidSig = errors.New("invalid transaction v, r, s values")
 	Refjson       = `
 	[
-		{
-			"inputs": [
-				{
-					"internalType": "bytes",
-					"name": "_proofData",
-					"type": "bytes"
-				}
-			],
-			"name": "unlock",
-			"outputs": [],
-			"stateMutability": "nonpayable",
-			"type": "function"
-		},
 	    {
 	        "inputs": [
 	            {
-	                "internalType": "bytes",
-	                "name": "_proofData",
-	                "type": "bytes"
-	            }
-	        ],
-	        "name": "withdrawXMap",
-	        "outputs": [],
-	        "stateMutability": "nonpayable",
-	        "type": "function"
-    	},
-	    {
-	        "inputs": [
+	                "internalType": "string",
+	                "name": "id",
+	                "type": "string"
+	            },
 	            {
-	                "internalType": "address",
-	                "name": "_receiver",
-	                "type": "address"
+	                "internalType": "string",
+	                "name": "nation",
+	                "type": "string"
+	            },
+	            {
+	                "internalType": "string",
+	                "name": "name",
+	                "type": "string"
+	            },
+	            {
+	                "internalType": "string",
+	                "name": "address",
+	                "type": "string"
 	            }
 	        ],
 	        "name": "lock",
 	        "outputs": [],
-	        "stateMutability": "payable",
+	        "stateMutability": "nonpayable",
 	        "type": "function"
-    	},
+	    },
 	    {
 	        "inputs": [
 	            {
-	                "internalType": "address",
-	                "name": "_receiver",
-	                "type": "address"
+	                "internalType": "string",
+	                "name": "_id",
+	                "type": "string"
 	            },
 	            {
-	                "internalType": "uint256",
-	                "name": "_amount",
-	                "type": "uint256"
+	                "internalType": "string",
+	                "name": "_nation",
+	                "type": "string"
+	            },
+	            {
+	                "internalType": "string",
+	                "name": "_name",
+	                "type": "string"
+	            },
+	            {
+	                "internalType": "string",
+	                "name": "_address",
+	                "type": "string"
 	            }
 	        ],
-	        "name": "withdraw",
+	        "name": "register",
 	        "outputs": [],
 	        "stateMutability": "nonpayable",
 	        "type": "function"
 	    }
-    ]
+	]
 	`
 	Refabi, _ = abi.JSON(strings.NewReader(Refjson))
 
@@ -106,23 +105,43 @@ var (
 		"inputs": [
 			{
 				"internalType": "address",
-				"name": "from",
+				"name": "_from",
 				"type": "address"
 			},
 			{
 				"internalType": "address",
-				"name": "to",
+				"name": "_to",
 				"type": "address"
 			},
 			{
 				"internalType": "uint256",
-				"name": "value",
+				"name": "_value",
 				"type": "uint256"
 			},
 			{
 				"internalType": "bytes32",
-				"name": "tx",
+				"name": "_tx",
 				"type": "bytes32"
+			},
+			{
+				"internalType": "string",
+				"name": "_id",
+				"type": "string"
+			},
+			{
+				"internalType": "string",
+				"name": "_nation",
+				"type": "string"
+			},
+			{
+				"internalType": "string",
+				"name": "_name",
+				"type": "string"
+			},
+			{
+				"internalType": "string",
+				"name": "_address",
+				"type": "string"
 			},
 			{
 				"internalType": "bytes",
@@ -283,6 +302,10 @@ func (tx *Transaction) PackCM() common.Hash {
 			To    common.Address
 			Value *big.Int
 			Tx    common.Hash
+			ID    string
+			Nation string
+			Name string
+			Address string
 			Proof []byte
 		}{}
 
