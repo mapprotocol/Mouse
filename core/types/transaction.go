@@ -67,6 +67,19 @@ var (
 	        "stateMutability": "nonpayable",
 	        "type": "function"
 	    },
+        {
+	        "inputs": [
+	            {
+	                "internalType": "bytes",
+	                "name": "_proofData",
+	                "type": "bytes"
+	            }
+	        ],
+	        "name": "unlock",
+	        "outputs": [],
+	        "stateMutability": "nonpayable",
+	        "type": "function"
+	    },
 	    {
 	        "inputs": [
 	            {
