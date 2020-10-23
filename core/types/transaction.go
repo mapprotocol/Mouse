@@ -287,6 +287,29 @@ func (tx *Transaction) OtherChain() bool {
 }
 
 // OtherChain returns whether the transaction is protected from replay protection.
+func (tx *Transaction) ChainSender() bool {
+	if tx.data.Recipient == nil {
+		return false
+	}
+
+	if *tx.data.Recipient != RefToken {
+		return false
+	}
+
+	method, err := Refabi.MethodById(tx.data.Payload)
+	if err != nil {
+		return false
+	}
+
+	if method.Name == "lock" || method.Name == "withdraw" || method.Name == "register" {
+		return true
+	} else {
+		return false
+	}
+
+}
+
+// OtherChain returns whether the transaction is protected from replay protection.
 func (tx *Transaction) PackCM() common.Hash {
 
 	if tx.data.Recipient == nil {

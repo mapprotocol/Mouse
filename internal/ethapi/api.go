@@ -1628,7 +1628,7 @@ func SubmitTransaction(ctx context.Context, b Backend, tx *types.Transaction) (c
 	if err := checkTxFee(tx.GasPrice(), tx.Gas(), b.RPCTxFeeCap()); err != nil {
 		return common.Hash{}, err
 	}
-	log.Debug("SubmitTransaction", "tx", tx, " data ", tx.Data())
+	log.Info("SubmitTransaction", "tx", tx, " data ", tx.Data())
 	if err := b.SendTx(ctx, tx); err != nil {
 		return common.Hash{}, err
 	}
