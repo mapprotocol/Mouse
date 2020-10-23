@@ -37,6 +37,12 @@ type NewRequestTxProofEvent struct{ TxHash common.Hash }
 // NewProofEvent is posted when a block has been imported.
 type NewProofEvent struct{ MRProof *ulvp.SimpleUlvpProof }
 
+// NewCrossTxEvent is posted when a block has been imported.
+type NewCrossTxEvent struct {
+	Hash common.Hash
+	Tx   *types.Transaction
+}
+
 // RemovedLogsEvent is posted when a reorg happens
 type RemovedLogsEvent struct{ Logs []*types.Log }
 

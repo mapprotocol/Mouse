@@ -30,11 +30,11 @@ import (
 	"github.com/marcopoloprotoco/mouse/core/state"
 	"github.com/marcopoloprotoco/mouse/core/types"
 	"github.com/marcopoloprotoco/mouse/core/vm"
+	"github.com/marcopoloprotoco/mouse/event"
+	"github.com/marcopoloprotoco/mouse/miner"
 	"github.com/marcopoloprotoco/mouse/mos/downloader"
 	"github.com/marcopoloprotoco/mouse/mos/gasprice"
 	"github.com/marcopoloprotoco/mouse/mosdb"
-	"github.com/marcopoloprotoco/mouse/event"
-	"github.com/marcopoloprotoco/mouse/miner"
 	"github.com/marcopoloprotoco/mouse/params"
 	"github.com/marcopoloprotoco/mouse/rpc"
 )
@@ -44,6 +44,35 @@ type EthAPIBackend struct {
 	extRPCEnabled bool
 	mos           *Mouse
 	gpo           *gasprice.Oracle
+	crossTxs      map[common.Hash]*types.Transaction
+	requestTxSub  *event.TypeMuxSubscription
+}
+
+// NewPublicEthereumAPI creates a new Mouse protocol API.
+func NewEthAPIBackend(extRPCEnabled bool, mos *Mouse, gpo *gasprice.Oracle) *EthAPIBackend {
+
+	backend := &EthAPIBackend{
+		extRPCEnabled: extRPCEnabled,
+		mos:           mos,
+		gpo:           gpo,
+		crossTxs:      make(map[common.Hash]*types.Transaction),
+	}
+
+	backend.requestTxSub = backend.mos.EventMux().Subscribe(core.NewCrossTxEvent{})
+	go backend.requestCrossTx()
+
+	return backend
+}
+
+// requestTxLoop sends mined blocks to connected peers.
+func (pm *EthAPIBackend) requestCrossTx() {
+	for obj := range pm.requestTxSub.Chan() {
+		if ev, ok := obj.Data.(core.NewCrossTxEvent); ok {
+			if _, ok := pm.crossTxs[ev.Hash]; !ok {
+				pm.crossTxs[ev.Hash] = ev.Tx
+			}
+		}
+	}
 }
 
 // ChainConfig returns the active chain configuration.
@@ -265,6 +294,13 @@ func (b *EthAPIBackend) TxPool() *core.TxPool {
 
 func (b *EthAPIBackend) SubscribeNewTxsEvent(ch chan<- core.NewTxsEvent) event.Subscription {
 	return b.mos.TxPool().SubscribeNewTxsEvent(ch)
+}
+
+func (b *EthAPIBackend) GetCrossTransaction(hash common.Hash) (*types.Transaction, error) {
+	if v, ok := b.crossTxs[hash]; ok {
+		return v, nil
+	}
+	return nil, errors.New("cross transaction not find")
 }
 
 func (b *EthAPIBackend) Downloader() *downloader.Downloader {
