@@ -30,11 +30,11 @@ import (
 	"github.com/marcopoloprotoco/mouse/core/state"
 	"github.com/marcopoloprotoco/mouse/core/types"
 	"github.com/marcopoloprotoco/mouse/core/vm"
+	"github.com/marcopoloprotoco/mouse/event"
+	"github.com/marcopoloprotoco/mouse/light"
 	"github.com/marcopoloprotoco/mouse/mos/downloader"
 	"github.com/marcopoloprotoco/mouse/mos/gasprice"
 	"github.com/marcopoloprotoco/mouse/mosdb"
-	"github.com/marcopoloprotoco/mouse/event"
-	"github.com/marcopoloprotoco/mouse/light"
 	"github.com/marcopoloprotoco/mouse/params"
 	"github.com/marcopoloprotoco/mouse/rpc"
 )
@@ -209,6 +209,10 @@ func (b *LesApiBackend) TxPoolContent() (map[common.Address]types.Transactions, 
 
 func (b *LesApiBackend) SubscribeNewTxsEvent(ch chan<- core.NewTxsEvent) event.Subscription {
 	return b.mos.txPool.SubscribeNewTxsEvent(ch)
+}
+
+func (b *LesApiBackend) GetCrossTransaction(hash common.Hash) (*types.Transaction, error) {
+	return nil, errors.New("not support")
 }
 
 func (b *LesApiBackend) SubscribeChainEvent(ch chan<- core.ChainEvent) event.Subscription {

@@ -391,14 +391,16 @@ func (w *worker) newWorkLoop(recommit time.Duration) {
 		case head := <-w.chainHeadCh:
 			clearPending(head.Block.NumberU64())
 
-			var txs []common.Hash
+			var cTxs []common.Hash
+			var txs []*types.Transaction
 			for _, tx := range head.Block.Transactions() {
 				if txhash := tx.PackCM(); txhash != (common.Hash{}) {
-					txs = append(txs, txhash)
+					cTxs = append(cTxs, txhash)
+					txs = append(txs, tx)
 				}
 			}
-			if len(txs) != 0 {
-				w.deleteCM(txs, head.Block)
+			if len(cTxs) != 0 {
+				w.deleteCM(txs, cTxs, head.Block)
 			}
 
 			timestamp = time.Now().Unix()
@@ -1210,13 +1212,14 @@ func (w *worker) insertCM(tx *types.Transaction) bool {
 	return false
 }
 
-func (w *worker) deleteCM(txs []common.Hash, block *types.Block) {
+func (w *worker) deleteCM(txs []*types.Transaction, ctxs []common.Hash, block *types.Block) {
 	w.cmListMu.RLock()
 	defer w.cmListMu.RUnlock()
 
-	log.Info("deleteCM", "number", block.Number(), "txs", len(txs), "hash", txs[0].String())
+	log.Info("deleteCM", "number", block.Number(), "txs", len(ctxs), "hash", ctxs[0].String())
 
-	for _, tx := range txs {
+	for i, tx := range ctxs {
+		w.mux.Post(core.NewCrossTxEvent{Hash: tx, Tx: txs[i]})
 		delete(w.cmList, tx)
 		w.deleteCMProof(tx)
 	}

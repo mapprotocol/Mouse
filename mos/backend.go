@@ -207,7 +207,7 @@ func New(stack *node.Node, config *Config) (*Mouse, error) {
 	mos.miner = miner.New(mos, &config.Miner, chainConfig, mos.EventMux(), mos.engine, mos.isLocalBlock)
 	mos.miner.SetExtra(makeExtraData(config.Miner.ExtraData))
 
-	mos.APIBackend = &EthAPIBackend{stack.Config().ExtRPCEnabled(), mos, nil}
+	mos.APIBackend = NewEthAPIBackend(stack.Config().ExtRPCEnabled(), mos, nil)
 	gpoParams := config.GPO
 	if gpoParams.Default == nil {
 		gpoParams.Default = config.Miner.GasPrice

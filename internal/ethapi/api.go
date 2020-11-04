@@ -1348,6 +1348,30 @@ func (s *PublicTransactionPoolAPI) GetTransactionByBlockNumberAndIndex(ctx conte
 	return nil
 }
 
+// GetOtherTransactionByHash returns the transaction for the given block number and index.
+func (s *PublicTransactionPoolAPI) GetOtherTransactionByHash(ctx context.Context, hash common.Hash) (*RPCTransaction, error) {
+	txHash, err := s.b.GetCrossTransaction(hash)
+	if err != nil {
+		return nil, err
+	}
+
+	// Try to return an already finalized transaction
+	tx, blockHash, blockNumber, index, err := s.b.GetTransaction(ctx, txHash.Hash())
+	if err != nil {
+		return nil, err
+	}
+	if tx != nil {
+		return newRPCTransaction(tx, blockHash, blockNumber, index), nil
+	}
+	// No finalized transaction, try to retrieve it from the pool
+	if tx := s.b.GetPoolTransaction(hash); tx != nil {
+		return newRPCPendingTransaction(tx), nil
+	}
+
+	// Transaction unknown, return as such
+	return nil, nil
+}
+
 // GetTransactionByBlockHashAndIndex returns the transaction for the given block hash and index.
 func (s *PublicTransactionPoolAPI) GetTransactionByBlockHashAndIndex(ctx context.Context, blockHash common.Hash, index hexutil.Uint) *RPCTransaction {
 	if block, _ := s.b.BlockByHash(ctx, blockHash); block != nil {
@@ -1604,7 +1628,9 @@ func SubmitTransaction(ctx context.Context, b Backend, tx *types.Transaction) (c
 	if err := checkTxFee(tx.GasPrice(), tx.Gas(), b.RPCTxFeeCap()); err != nil {
 		return common.Hash{}, err
 	}
-	log.Debug("SubmitTransaction", "tx", tx, " data ", tx.Data())
+	signer := types.NewEIP155Signer(b.ChainConfig().ChainID)
+	from, err := types.Sender(signer, tx)
+	log.Info("SubmitTransaction", "tx", tx, " data ", tx.Data(), "chainID", tx.ChainId(), "from", from, "err", err)
 	if err := b.SendTx(ctx, tx); err != nil {
 		return common.Hash{}, err
 	}

@@ -5341,6 +5341,12 @@ var methods = function () {
       params: 1,
     });
 
+    var getOtherTransactionByHash = new Method({
+      name: 'getOtherTransactionByHash',
+      call: 'mos_getOtherTransactionByHash',
+      params: 1,
+    });
+
     var getTransactionFromBlock = new Method({
         name: 'getTransactionFromBlock',
         call: transactionFromBlockCall,
@@ -5448,6 +5454,7 @@ var methods = function () {
         getBlockUncleCount,
         getTransaction,
         getCrossTransaction,
+        getOtherTransactionByHash,
         getTransactionFromBlock,
         getTransactionReceipt,
         getTransactionCount,

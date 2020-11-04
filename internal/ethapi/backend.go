@@ -77,6 +77,7 @@ type Backend interface {
 	Stats() (pending int, queued int)
 	TxPoolContent() (map[common.Address]types.Transactions, map[common.Address]types.Transactions)
 	SubscribeNewTxsEvent(chan<- core.NewTxsEvent) event.Subscription
+	GetCrossTransaction(hash common.Hash) (*types.Transaction, error)
 
 	// Filter API
 	BloomStatus() (uint64, uint64)
